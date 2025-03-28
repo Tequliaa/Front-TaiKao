@@ -278,7 +278,7 @@ const allSurveys = ref({
 })
 
 const getAllSurveys = async () => {
-    let result = await getAllSurveysService();
+    let result = await getAllSurveysService(userInfoStore.info.id);
     allSurveys.value = result.data;
 }
 getAllSurveys()

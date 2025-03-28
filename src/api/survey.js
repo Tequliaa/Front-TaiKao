@@ -8,9 +8,9 @@ export const surveyListService = (params) => {
   return request.get('/survey/list',{params})
 }
 
-export const getAllSurveysService = () => {
+export const getAllSurveysService = (userId) => {
   console.log("到调用接口部分了")
-  return request.get('/survey/getAll')
+  return request.get('/survey/getAll?userId='+userId)
 }
 
 //添加问卷

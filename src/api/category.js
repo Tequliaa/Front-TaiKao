@@ -4,45 +4,31 @@ import request from '@/utils/request.js'
 
 //获取一级分类
 export const getParentCategories = () => {
-  console.log("到调用接口部分了")
-  // const tokenStore = useTokenStore()
-  return request.get('/category?action=getParentCategories')
+  return request.get('/category/getParentCategories')
 }
 
 //获取全部分类
 export const getAllCategoriesService = () => {
-  console.log("到调用接口部分了")
-  // const tokenStore = useTokenStore()
-  return request.get('/category?action=getAll')
+  return request.get('/category/getAll')
 }
 
 //分类查询
 export const categoryListService = (params) => {
-  console.log("到调用接口部分了")
-  // const tokenStore = useTokenStore()
-  return request.get('/category?action=list',{params})
+  return request.get('/category/list',{params})
 }
 
 
 //添加分类
 export const categoryAddService = (categoryModel)=>{
- /*  var params = new URLSearchParams()
-  for (let key in categoryModel) {
-    params.append(key, categoryModel[key])
-  } */
-  return request.put('/category',categoryModel)
+  return request.post('/category/add',categoryModel)
 }
 
 //删除分类
 export const categoryDelService = (id)=>{
-  return request.post('/category?action=delete&categoryId='+id)
+  return request.delete('/category/delete?categoryId='+id)
 }
 
 //更新分类
 export const categoryUpdateService = (categoryModel)=>{
-   var params = new URLSearchParams()
-   for (let key in categoryModel) {
-     params.append(key, categoryModel[key])
-   }
-   return request.post('/category?action=update',params)
+   return request.put('/category/update',categoryModel)
  }

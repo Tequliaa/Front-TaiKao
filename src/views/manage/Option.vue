@@ -193,7 +193,7 @@ const allSurveys = ref({
 })
 
 const getAllSurveys = async () => {
-    let result = await getAllSurveysService();
+    let result = await getAllSurveysService(userInfoStore.info.id);
     allSurveys.value = result.data;
 }
 getAllSurveys()
@@ -207,14 +207,26 @@ const getAllQuestions = async () => {
     let result = await getAllQuestionsService(surveyId.value)
     allQuestions.value = result.data
 }
-getAllQuestions()
+
+// 修改为监听surveyId，且不为空时调用getAllQuestions
+watch(surveyId, (newVal) => {
+    if (newVal) {
+        console.log("监视surveyId变化，且surveyId不为空，调用getAllQuestions")
+        getAllQuestions()
+    }
+}, { immediate: true }) // immediate: true 确保初始值不为空时也会触发
 
 // 监听activeSurveyId的变化
 watch(activeSurveyId, (newVal) => {
-    console.log("监视surveyId变化")
-    surveyId.value = newVal
-    getAllQuestions()
-})
+    console.log("监视activeSurveyId变化，新值为: ", newVal);
+    if (newVal) {
+        surveyId.value = newVal;
+        getAllQuestions();
+    }else{
+        // 给questions置空
+        allQuestions.value = {}
+    }
+});
 
 const typeOptions = [
     {
