@@ -103,8 +103,7 @@ const openAddDialog = () => {
 
 //添加部门处理逻辑
 const addDepartment = async () => {
-    departmentModel.value.userId = userInfoStore.info.id
-    let result = await departmentAddService(departmentModel.value);
+    let result = await departmentAddService(departmentModel.value,userInfoStore.info.id);
     ElMessage.success(result.message ? result.message : '添加成功')
     //再次调用getDepartments,获取部门
     getDepartments()

@@ -6,21 +6,21 @@ import request from '@/utils/request.js'
 export const getParentCategories = () => {
   console.log("到调用接口部分了")
   // const tokenStore = useTokenStore()
-  return request.get('/student/category?action=getParentCategories')
+  return request.get('/category?action=getParentCategories')
 }
 
 //获取全部分类
 export const getAllCategoriesService = () => {
   console.log("到调用接口部分了")
   // const tokenStore = useTokenStore()
-  return request.get('/student/category?action=getAll')
+  return request.get('/category?action=getAll')
 }
 
 //分类查询
 export const categoryListService = (params) => {
   console.log("到调用接口部分了")
   // const tokenStore = useTokenStore()
-  return request.get('/student/category?action=list',{params})
+  return request.get('/category?action=list',{params})
 }
 
 
@@ -30,12 +30,12 @@ export const categoryAddService = (categoryModel)=>{
   for (let key in categoryModel) {
     params.append(key, categoryModel[key])
   } */
-  return request.put('/student/category',categoryModel)
+  return request.put('/category',categoryModel)
 }
 
 //删除分类
 export const categoryDelService = (id)=>{
-  return request.post('/student/category?action=delete&categoryId='+id)
+  return request.post('/category?action=delete&categoryId='+id)
 }
 
 //更新分类
@@ -44,5 +44,5 @@ export const categoryUpdateService = (categoryModel)=>{
    for (let key in categoryModel) {
      params.append(key, categoryModel[key])
    }
-   return request.post('/student/category?action=update',params)
+   return request.post('/category?action=update',params)
  }

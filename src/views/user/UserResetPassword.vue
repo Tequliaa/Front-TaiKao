@@ -61,8 +61,8 @@ const updateUserInfo = async () => {
         <el-row>
             <el-col :span="12">
                 <el-form :model="userInfo" :rules="rules" label-width="100px" size="large">
-                    <el-form-item label="用户名">
-                        <el-input v-model="userInfo.username" disabled></el-input>
+                    <el-form-item label="昵称">
+                        <el-input v-model="userInfo.name" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="旧密码" prop="old_pwd">
                         <el-input v-model="userInfo.old_pwd" type="password"></el-input>

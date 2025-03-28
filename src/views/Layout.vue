@@ -73,7 +73,7 @@ const handleCommand = (command) => {
     <el-container class="layout-container">
         <!-- 左侧菜单 -->
         <el-aside width="200px">
-            <div class="el-aside__logo"></div>
+            <div class="el-aside__logo">问卷管理平台</div>
             <el-menu active-text-color="#ffd04b" background-color="#232323" text-color="#fff" router>
                 <el-menu-item index="/manage/user">
                     <el-icon>
@@ -160,7 +160,7 @@ const handleCommand = (command) => {
         <el-container>
             <!-- 头部区域 -->
             <el-header>
-                <div>软件学院：<strong>{{ userInfoStore.info.username }}</strong></div>
+                <div>软件学院：<strong>{{ userInfoStore.info.name }}</strong></div>
                 <el-dropdown placement="bottom-end" @command="handleCommand">
                     <span class="el-dropdown__box">
                         <el-avatar :src="avatar" />
@@ -199,7 +199,12 @@ const handleCommand = (command) => {
 
         &__logo {
             height: 120px;
-            background: url('@/assets/logo.png') no-repeat center / 120px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 550;
         }
 
         .el-menu {

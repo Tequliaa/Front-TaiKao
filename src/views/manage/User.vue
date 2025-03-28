@@ -7,7 +7,7 @@ import {
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userListService, userUpdateService, userDeleteService } from '@/api/user.js'
-import { allDepartmentService } from '@/api/department.js'
+import { getAllSurveysService } from '@/api/department.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -66,7 +66,7 @@ const departments = ref({
 })
 
 const getAllDepartments = async () => {
-    let result = await allDepartmentService(userInfoStore.info.id);
+    let result = await getAllSurveysService(userInfoStore.info.id);
     departments.value = result.data;
 }
 getAllDepartments();

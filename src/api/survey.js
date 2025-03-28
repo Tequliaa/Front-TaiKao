@@ -5,35 +5,25 @@ import request from '@/utils/request.js'
 //学生问卷查询
 export const surveyListService = (params) => {
   console.log("到调用接口部分了")
-  // const tokenStore = useTokenStore()
-  return request.get('/student/survey?action=list',{params})
+  return request.get('/survey/list',{params})
 }
 
 export const getAllSurveysService = () => {
   console.log("到调用接口部分了")
-  // const tokenStore = useTokenStore()
-  return request.get('/student/survey?action=getAll')
+  return request.get('/survey/getAll')
 }
 
 //添加问卷
 export const surveyAddService = (studentModel)=>{
- /*  var params = new URLSearchParams()
-  for (let key in studentModel) {
-    params.append(key, studentModel[key])
-  } */
-  return request.put('/student/survey',studentModel)
+  return request.post('/survey/add',studentModel)
 }
 
 //删除问卷
 export const surveyDelService = (id)=>{
-  return request.post('/student/survey?action=delete&surveyId='+id)
+  return request.delete('/survey/delete?surveyId='+id)
 }
 
 //更新问卷
 export const surveyUpdateService = (studentModel)=>{
-   var params = new URLSearchParams()
-   for (let key in studentModel) {
-     params.append(key, studentModel[key])
-   }
-   return request.post('/student/survey?action=edit',params)
+   return request.put('/survey/update',studentModel)
  }

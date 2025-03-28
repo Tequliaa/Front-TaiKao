@@ -17,7 +17,8 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginVue },
-    { path: '/', 
+    { 
+      path: '/', 
       component: LayoutVue,
       //重定向  默认打开的路由
       redirect: '/manage/survey',

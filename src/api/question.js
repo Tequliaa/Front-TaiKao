@@ -6,14 +6,14 @@ import request from '@/utils/request.js'
 export const questionListService = (params) => {
   console.log("到调用接口部分了")
   // const tokenStore = useTokenStore()
-  return request.get('/student/question?action=list',{params})
+  return request.get('/question?action=list',{params})
 }
 
 //问题列表查询
 export const getAllQuestionsService = (surveyId) => {
   console.log("到调用接口部分了")
   // const tokenStore = useTokenStore()
-  return request.get('/student/question?action=getAll&surveyId='+surveyId)
+  return request.get('/question?action=getAll&surveyId='+surveyId)
 }
 
 
@@ -23,12 +23,12 @@ export const questionAddService = (questionModel)=>{
   for (let key in studentModel) {
     params.append(key, studentModel[key])
   } */
-  return request.put('/student/question',questionModel)
+  return request.put('/question',questionModel)
 }
 
 //删除问题
 export const questionDelService = (id)=>{
-  return request.delete('/student/question',{params:{questionId:id}})
+  return request.delete('/question',{params:{questionId:id}})
 }
 
 //更新问题
@@ -37,5 +37,5 @@ export const questionUpdateService = (questionModel)=>{
    for (let key in questionModel) {
      params.append(key, questionModel[key])
    }
-   return request.post('/student/question?action=update',params)
+   return request.post('/question?action=update',params)
  }
