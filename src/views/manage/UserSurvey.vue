@@ -115,6 +115,16 @@ const getPlainText = (htmlContent)=> {
       div.innerHTML = htmlContent;
       return div.textContent || div.innerText || '';
 }
+import { useRouter } from 'vue-router'
+const router = useRouter()
+const fillOutSurvey = (row) => {
+    router.push({
+        name: 'SurveyWrite',
+        params: {
+            surveyId: row.surveyId
+        }
+    })
+}
 
 </script>
 <template>
@@ -149,7 +159,7 @@ const getPlainText = (htmlContent)=> {
             <el-table-column label="操作" style="text-align: center;" align="center" width="200">
                 <template #default="{ row }">
                     <el-tooltip content="答题" placement="top">
-                        <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
+                        <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
                     </el-tooltip>
                     <el-tooltip content="查看答题情况" placement="top">
                         <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>

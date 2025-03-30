@@ -14,6 +14,8 @@ import UserInfoVue from '@/views/user/UserInfo.vue'
 import UserAvatarVue from '@/views/user/UserAvatar.vue'
 import UserResetPasswordVue from '@/views/user/UserResetPassword.vue'
 import ResponseVue from '@/views/manage/ResponseList.vue'
+import SurveyWriteVue from '@/views/manage/SurveyWrite.vue'
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -25,6 +27,7 @@ const router = createRouter({
       redirect: '/manage/survey',
       //子路由
       children:[
+        { path: '/manage/surveyWrite/:surveyId?',component:SurveyWriteVue,props:true,name:'SurveyWrite'},
         { path: '/manage/response/:surveyId?/:surveyName?',component:ResponseVue,props:true,name:'Response'},
         { path: '/manage/userSurvey/:userId?/:username?',component:UserSurveyVue,props:true,name:'UserSurvey'},
         { path: '/manage/category',component:CategoryVue},

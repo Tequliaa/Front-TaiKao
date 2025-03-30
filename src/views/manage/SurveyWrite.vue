@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAllQuestionsService,getAllQuestionsBySurveyIdService } from '@/api/question'
-import { ElMessage } from 'element-plus'
+import { submitResponseService, getResponseDetailsService } from '@/api/response'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useUserInfoStore } from '@/stores/user'
 
 // 问卷ID
 const props = defineProps({
@@ -19,86 +21,115 @@ const surveyInfo = ref({
     description: ''
 })
 
+const router = useRouter()
+const userInfoStore = useUserInfoStore()
+
 // 获取问卷的所有问题
 const getSurveyData = async () => {
     try {
-        // 获取问题列表（包含选项）
-        const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId)
-        // 处理每个问题，添加必要的响应式数据
-        questions.value = questionsResult.data.map(question => {
-            // 根据问题类型初始化不同的数据
-            if (question.type === '多选') {
-                question.selectedOptions = []
-            } else if (question.type === '单选') {
-                question.selectedOption = ''
-            } else if (question.type === '矩阵单选' || question.type === '矩阵多选') {
-                question.matrixAnswers = {}
-                // 初始化每个行选项的答案
-                question.options
-                    .filter(opt => opt.type === '行选项')
-                    .forEach(row => {
-                        if (question.type === '矩阵单选') {
-                            question.matrixAnswers[row.optionId] = ''  // 初始化为空字符串
-                        } else {
-                            question.matrixAnswers[row.optionId] = []  // 初始化为空数组
-                        }
-                    })
+        // 获取用户答题记录
+        const responseResult = await getResponseDetailsService(props.surveyId, userInfoStore.info.id)
+        console.log('接口返回数据：', responseResult)
+        
+        if (responseResult.code === 0) {
+            const { userResponses, questions: questionsData } = responseResult.data
+            
+            // 处理每个问题，添加必要的响应式数据
+            questions.value = questionsData.map(question => {
+                // 根据问题类型初始化不同的数据
+                if (question.type === '多选') {
+                    question.selectedOptions = []
+                } else if (question.type === '单选') {
+                    question.selectedOption = ''
+                } else if (question.type === '矩阵单选' || question.type === '矩阵多选') {
+                    question.matrixAnswers = {}
+                    // 初始化每个行选项的答案
+                    question.options
+                        .filter(opt => opt.type === '行选项')
+                        .forEach(row => {
+                            if (question.type === '矩阵单选') {
+                                question.matrixAnswers[row.optionId] = ''  // 初始化为空字符串
+                            } else {
+                                question.matrixAnswers[row.optionId] = []  // 初始化为空数组
+                            }
+                        })
+                }
+
+                // 设置用户之前的答案
+                const questionResponses = userResponses.filter(r => r.questionId === question.questionId)
+                console.log('当前问题的用户答案：', questionResponses)
+                
+                if (questionResponses.length > 0) {
+                    switch (question.type) {
+                        case '单选':
+                            // 找到选中的选项（isValid为1的选项）
+                            const selectedResponse = questionResponses.find(r => r.isValid === 1)
+                            if (selectedResponse) {
+                                question.selectedOption = selectedResponse.optionId
+                            }
+                            break
+                        case '多选':
+                            // 找到所有选中的选项（isValid为1的选项）
+                            question.selectedOptions = questionResponses
+                                .filter(r => r.isValid === 1)
+                                .map(r => r.optionId)
+                            break
+                        case '矩阵单选':
+                            // 处理矩阵单选题答案
+                            questionResponses.forEach(response => {
+                                if (response.rowId && response.columnId && response.isValid === 1) {
+                                    question.matrixAnswers[response.rowId] = response.columnId
+                                }
+                            })
+                            break
+                        case '矩阵多选':
+                            // 处理矩阵多选题答案
+                            questionResponses.forEach(response => {
+                                if (response.rowId && response.columnId && response.isValid === 1) {
+                                    if (!question.matrixAnswers[response.rowId]) {
+                                        question.matrixAnswers[response.rowId] = []
+                                    }
+                                    question.matrixAnswers[response.rowId].push(response.columnId)
+                                }
+                            })
+                            break
+                        case '评分题':
+                            // 处理评分题答案
+                            questionResponses.forEach(response => {
+                                if (response.optionId && response.responseData && response.isValid === 1) {
+                                    const option = question.options.find(opt => opt.optionId === response.optionId)
+                                    if (option) {
+                                        option.rating = Number(response.responseData)
+                                    }
+                                }
+                            })
+                            break
+                        case '填空':
+                            // 处理填空题答案
+                            const textResponse = questionResponses.find(r => r.responseData && r.isValid === 1)
+                            if (textResponse) {
+                                question.answer = textResponse.responseData
+                            }
+                            break
+                    }
+                }
+
+                return question
+            })
+
+            // 设置问卷信息
+            if (questionsData.length > 0) {
+                surveyInfo.value = {
+                    name: questionsData[0].surveyName,
+                    description: questionsData[0].surveyDescription
+                }
             }
-            return question
-        })
-        // 设置问卷信息
-        if (questionsResult.data.length > 0) {
-            surveyInfo.value = {
-                name: questionsResult.data[0].surveyName,
-                description: questionsResult.data[0].surveyDescription
-            }
+        } else {
+            ElMessage.error('获取问卷数据失败')
         }
     } catch (error) {
-        ElMessage.error('获取问卷数据失败')
-    }
-}
-
-// 处理选项选择
-const handleOptionSelect = (questionId, optionId) => {
-    // 根据问题类型处理选择逻辑
-    const question = questions.value.find(q => q.questionId === questionId)
-    if (!question) return
-
-    switch (question.type) {
-        case '单选':
-            question.selectedOption = optionId
-            break
-        case '多选':
-            const index = question.selectedOptions.indexOf(optionId)
-            if (index === -1) {
-                question.selectedOptions.push(optionId)
-            } else {
-                question.selectedOptions.splice(index, 1)
-            }
-            break
-        case '矩阵单选':
-            // 更新单选答案 {行ID: 列ID}
-            question.matrixAnswers[optionId.rowId] = optionId.colId
-            break
-        case '矩阵多选':
-            // 确保该行选项的答案数组存在
-            if (!question.matrixAnswers[optionId.rowId]) {
-                question.matrixAnswers[optionId.rowId] = []
-            }
-            // 切换选中状态
-            const matrixIndex = question.matrixAnswers[optionId.rowId].indexOf(optionId.colId)
-            if (matrixIndex === -1) {
-                question.matrixAnswers[optionId.rowId].push(optionId.colId)
-            } else {
-                question.matrixAnswers[optionId.rowId].splice(matrixIndex, 1)
-            }
-            break
-        case '排序':
-            // 排序需要处理拖拽排序
-            break
-        case '评分题':
-            // 评分题需要处理评分选择
-            break
+        console.error('获取问卷数据异常：', error)
+        ElMessage.error('获取问卷数据失败：' + error.message)
     }
 }
 
@@ -121,6 +152,109 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
         if (index !== -1) {
             question.matrixAnswers[rowId].splice(index, 1)
         }
+    }
+}
+
+// 修改提交方法
+const submitSurvey = async (isSaveAction = false) => {
+    try {
+        // 构建表单数据
+        const formData = new FormData()
+        formData.append('surveyId', props.surveyId)
+        formData.append('isSaveAction', isSaveAction)
+        formData.append('userId', userInfoStore.info.id)
+        formData.append('userRole', userInfoStore.info.role)
+        formData.append('ipAddress', '127.0.0.1')
+
+        // 处理每个问题的答案
+        questions.value.forEach(question => {
+            switch (question.type) {
+                case '单选':
+                    formData.append(`question_${question.questionId}`, question.selectedOption || '')
+                    break
+                case '多选':
+                    // 多选题需要为每个选项创建一个记录
+                    question.selectedOptions.forEach(optionId => {
+                        formData.append(`question_${question.questionId}`, optionId)
+                    })
+                    break
+                case '填空':
+                    formData.append(`question_${question.questionId}`, question.answer || '')
+                    break
+                case '矩阵单选':
+                    Object.entries(question.matrixAnswers).forEach(([rowId, colId]) => {
+                        if (colId) {  // 只提交有选择的答案
+                            formData.append(`question_${question.questionId}_row_${rowId}`, colId)
+                        }
+                    })
+                    break
+                case '矩阵多选':
+                    Object.entries(question.matrixAnswers).forEach(([rowId, colIds]) => {
+                        if (colIds && colIds.length > 0) {  // 只提交有选择的答案
+                            colIds.forEach(colId => {
+                                formData.append(`question_${question.questionId}_row_${rowId}`, colId)
+                            })
+                        }
+                    })
+                    break
+                case '评分题':
+                    question.options.forEach(option => {
+                        if (option.rating) {  // 只提交有评分的答案
+                            formData.append(`rating_${question.questionId}_${option.optionId}`, option.rating)
+                        }
+                    })
+                    break
+            }
+
+            // 处理开放选项
+            if (question.options) {
+                question.options.forEach(option => {
+                    if (option.isOpenOption && option.openAnswer) {
+                        formData.append(`open_answer_${option.optionId}`, option.openAnswer)
+                    }
+                })
+            }
+        })
+
+        // 发送请求
+        const result = await submitResponseService(formData)
+        
+        if (result.code === 0) {
+            ElMessage.success(isSaveAction ? '保存成功' : '提交成功')
+            if (!isSaveAction) {
+                router.push('/manage/userSurvey')
+            }
+        } else {
+            ElMessage.error(result.message || '操作失败')
+        }
+    } catch (error) {
+        ElMessage.error('操作失败：' + error.message)
+    }
+}
+
+// 添加确认提交方法
+const confirmSubmit = () => {
+    ElMessageBox.confirm(
+        '确定要提交问卷吗？提交后将无法修改。',
+        '提示',
+        {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }
+    ).then(() => {
+        submitSurvey(false)
+    }).catch(() => {
+        ElMessage.info('已取消提交')
+    })
+}
+
+// 修改矩阵单选的处理方法
+const handleMatrixRadioChange = (question, rowId, colId, checked) => {
+    if (checked) {
+        question.matrixAnswers[rowId] = colId
+    } else {
+        question.matrixAnswers[rowId] = ''
     }
 }
 
@@ -247,7 +381,8 @@ onMounted(() => {
                                     <template #default="{ row }">
                                         <el-radio 
                                             v-model="question.matrixAnswers[row.optionId]" 
-                                            @change="handleOptionSelect(question.questionId, {rowId: row.optionId, colId: col.optionId})" />
+                                            :label="col.optionId"
+                                            @change="(val) => handleMatrixRadioChange(question, row.optionId, col.optionId, val)" />
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -315,6 +450,12 @@ onMounted(() => {
                         </template>
                     </div>
                 </div>
+            </div>
+
+            <!-- 添加按钮组 -->
+            <div class="button-group">
+                <el-button type="primary" @click="submitSurvey(true)">保存</el-button>
+                <el-button type="success" @click="confirmSubmit">提交</el-button>
             </div>
         </div>
     </div>
@@ -438,6 +579,28 @@ onMounted(() => {
                     margin-top: 8px;
                 }
             }
+
+            // 修改矩阵单选题的样式
+            :deep(.el-table) {
+                .el-radio {
+                    .el-radio__label {
+                        display: none;
+                    }
+                    .el-radio__inner {
+                        margin-right: 0;
+                    }
+                }
+            }
+        }
+    }
+
+    .button-group {
+        margin-top: 30px;
+        text-align: center;
+        
+        .el-button {
+            margin: 0 10px;
+            min-width: 100px;
         }
     }
 }

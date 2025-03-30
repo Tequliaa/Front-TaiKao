@@ -1,29 +1,31 @@
 //导入request.js请求工具
 import request from '@/utils/request.js'
 
+// 提交问卷
+export const submitResponseService = (formData) => {
+    return request.post('/response/submit', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
 
-//答题情况列表
-export const responseListService = (params) => {
+// 获取问卷响应列表
+export const getResponseListService = (params) => {
+    return request.get('/response/list', { params })
+}
+
+// 获取问卷响应详情
+export const getResponseDetailsService = (surveyId,userId) => {
+    return request.get(`/response/details?surveyId=`+surveyId+'&userId='+userId)
+}
+
+// 删除问卷响应
+export const deleteResponseService = (responseId) => {
+    return request.delete(`/response/delete/${responseId}`)
+}
+
+export const getDetailsService = (surveyId,userId) => {
   console.log("到调用接口部分了")
-  return request.get('/response/list',{params})
+  return request.get('/survey/details?userId='+userId+'&surveyId='+surveyId)
 }
-
-export const getAllSurveysService = (userId) => {
-  console.log("到调用接口部分了")
-  return request.get('/survey/getAll?userId='+userId)
-}
-
-//添加问卷
-export const surveyAddService = (studentModel)=>{
-  return request.post('/survey/add',studentModel)
-}
-
-//删除问卷
-export const surveyDelService = (id)=>{
-  return request.delete('/survey/delete?surveyId='+id)
-}
-
-//更新问卷
-export const surveyUpdateService = (studentModel)=>{
-   return request.put('/survey/update',studentModel)
- }

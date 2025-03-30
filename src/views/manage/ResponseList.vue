@@ -10,7 +10,7 @@ import dayjs from 'dayjs'
 import { nextTick } from 'vue';
 import { ref,reactive } from 'vue'
 //问卷列表查询
-import { responseListService } from '@/api/response.js'
+import { getResponseListService } from '@/api/response.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -77,7 +77,7 @@ const getResponseList = async () => {
         pageSize: pageSize.value,
         surveyId: props.surveyId
     }
-    let result = await responseListService(params);
+    let result = await getResponseListService(params);
     //渲染总条数
     total.value = result.data.totalCount
     //渲染列表数据
@@ -88,12 +88,12 @@ console.log("123")
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getResponseList();
+    getResponseListService();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getResponseList()
+    getResponseListService()
 }
 
 
