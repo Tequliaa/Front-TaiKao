@@ -4,7 +4,8 @@ import {
     Delete,
     Pointer,
     View,
-    Connection
+    Connection,
+    DataLine
 } from '@element-plus/icons-vue'
 import { nextTick } from 'vue';
 import { ref,reactive } from 'vue'
@@ -272,6 +273,17 @@ const openQuestions = (row) => {
     })
 }
 
+const checkResponse = (row) => {
+    router.push({
+        name: 'Response',
+        params: {
+            surveyId: row.surveyId,
+            surveyName: row.name
+        }
+    })
+}
+
+
 const dialogFormVisible = ref(false)
 const formLabelWidth = '140px'
 
@@ -299,7 +311,7 @@ const formLabelWidth = '140px'
                 <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="250">
+            <el-table-column label="操作" style="text-align: center;" align="center" width="300">
                 <template #default="{ row }">
                     <el-tooltip content="预览" placement="top">
                         <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
@@ -309,6 +321,9 @@ const formLabelWidth = '140px'
                     </el-tooltip>
                     <el-tooltip content="发布" placement="top">
                         <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                    </el-tooltip>
+                    <el-tooltip content="查看答题情况" placement="top">
+                        <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
                         <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>

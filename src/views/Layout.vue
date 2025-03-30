@@ -7,7 +7,10 @@ import {
     Crop,
     EditPen,
     SwitchButton,
-    CaretBottom
+    CaretBottom,
+    Avatar,
+    List,
+    Menu
 } from '@element-plus/icons-vue'
 import avatar from '@/assets/default.png'
 
@@ -75,6 +78,12 @@ const handleCommand = (command) => {
         <el-aside width="200px">
             <div class="el-aside__logo">问卷管理平台</div>
             <el-menu active-text-color="#ffd04b" background-color="#232323" text-color="#fff" router>
+                <el-menu-item index="/manage/userSurvey">
+                    <el-icon>
+                        <Avatar />
+                    </el-icon>
+                    <span>我的问卷</span>
+                </el-menu-item>
                 <el-menu-item index="/manage/user">
                     <el-icon>
                         <Management />
@@ -84,7 +93,7 @@ const handleCommand = (command) => {
 
                 <el-menu-item index="/manage/department">
                     <el-icon>
-                        <Management />
+                        <List />
                     </el-icon>
                     <span>部门管理</span>
                 </el-menu-item>
@@ -92,7 +101,7 @@ const handleCommand = (command) => {
                 <el-sub-menu index="geren1">
                     <template #title>
                         <el-icon>
-                            <UserFilled />
+                            <Menu />
                         </el-icon>
                         <span>问卷管理</span>
                     </template>

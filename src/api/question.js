@@ -8,7 +8,12 @@ export const questionListService = (params) => {
 }
 
 //问题列表查询
-export const getAllQuestionsService = (surveyId) => {
+export const getAllQuestionsService = () => {
+  return request.get('/question/getAll')
+}
+
+//问题列表查询
+export const getAllQuestionsBySurveyIdService = (surveyId) => {
   return request.get('/question/getAll?surveyId='+surveyId)
 }
 

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAllQuestionsService } from '@/api/question'
+import { getAllQuestionsService,getAllQuestionsBySurveyIdService } from '@/api/question'
 import { ElMessage } from 'element-plus'
 
 // 问卷ID
@@ -23,7 +23,7 @@ const surveyInfo = ref({
 const getSurveyData = async () => {
     try {
         // 获取问题列表（包含选项）
-        const questionsResult = await getAllQuestionsService(props.surveyId)
+        const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId)
         // 处理每个问题，添加必要的响应式数据
         questions.value = questionsResult.data.map(question => {
             // 根据问题类型初始化不同的数据
@@ -102,6 +102,11 @@ const handleOptionSelect = (questionId, optionId) => {
     }
 }
 
+const getQuestionIndex = (questionId) => {
+    const index = questions.value.findIndex(q => q.questionId === questionId)
+    return index + 1
+}
+
 onMounted(() => {
     getSurveyData()
 })
@@ -155,7 +160,7 @@ onMounted(() => {
                                             <template v-else>
                                                 {{ option.description }}
                                                 <span v-if="option.isSkip" class="skip-info">
-                                                    (跳转至第{{ option.skipTo }}题)
+                                                    (跳转至第{{ getQuestionIndex(option.skipTo) }}题)
                                                 </span>
                                             </template>
                                         </span>
@@ -186,6 +191,9 @@ onMounted(() => {
                                             </template>
                                             <template v-else>
                                                 {{ option.description }}
+                                                <span v-if="option.isSkip" class="skip-info">
+                                                    (跳转至第{{ getQuestionIndex(option.skipTo) }}题)
+                                                </span>
                                             </template>
                                         </span>
                                     </el-checkbox>

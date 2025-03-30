@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import path from 'path'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -12,11 +13,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': path.resolve(__dirname, './src')
     },
   },
   //配置代理
   server: {
+    port: 3000,  // 修改为其他端口
+    open: true,   // 自动打开浏览器
     proxy: {
       '/api': {
         target: 'http://localhost:8082', // 后端服务器地址

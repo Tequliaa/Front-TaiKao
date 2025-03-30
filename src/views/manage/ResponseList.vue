@@ -3,12 +3,14 @@ import {
     Edit,
     Delete,
     Pointer,
-    View
+    View,
+    Connection
 } from '@element-plus/icons-vue'
-import { ref,reactive } from 'vue'
 import dayjs from 'dayjs'
+import { nextTick } from 'vue';
+import { ref,reactive } from 'vue'
 //问卷列表查询
-import {userSurveyListService} from '@/api/userSurvey.js'
+import { responseListService } from '@/api/response.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -20,8 +22,10 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
+import { useRouter } from 'vue-router'
 
 const userInfoStore = useUserInfoStore();
+const router = useRouter()
 
 //获取个人信息
 const getUserInf = async () => {
@@ -33,61 +37,63 @@ const getUserInf = async () => {
 //获取用户基本信息
 getUserInf()
 
+//问卷数据模型
+const responses = ref([
+    {
+        "responseId":1,
+        "surveyId":1,
+        "questionId":1,
+        "optionId":1,
+        "rowId":1,
+        "columnId":1,
+        "userId": 1,
+        "userName": "用户名",
+        "ipAddress": "ip地址",
+        "responseData": "填空内容",
+        "createdAt": "创建时间",
+        "totalQuestions":1,
+        "isValid": 1,
+        "status": "张三",
+        "filePath": "文件路径",
+    }
+])
+
 const props =defineProps({
-    userId:{
+    surveyId:{
         type:Number
     },
-    username:{
+    surveyName:{
         type:String
     }
 })
-//问卷数据模型
-const userSurveys = ref([
-    {
-        "id": 1,
-        "userId": "1",
-        "surveyId": "张三",
-        "departmentId": "1",
-        "username": "张三",
-        "departmentName": "部门1",
-        "surveyName": "早餐调查问卷",
-        "surveyDescription": "这是一份关于早餐的调查问卷。",
-        "status": "已完成",
-        "allowView": "1",
-        "assignedAt": "2024-05-01 10:00:00",
-        "completedAt": "2024-05-01 12:00:00"
-    }
-])
 
 //分页条数据模型
 const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
-const keyword = ref('')
-const getUserSurveys = async () => {
+const getResponseList = async () => {
     let params = {
-        keyword: keyword.value,
         pageNum: pageNum.value,
         pageSize: pageSize.value,
-        userId:props.userId||userInfoStore.info.id,
-        keyword: keyword.value
+        surveyId: props.surveyId
     }
-    let result = await userSurveyListService(params);
+    let result = await responseListService(params);
     //渲染总条数
     total.value = result.data.totalCount
     //渲染列表数据
-    userSurveys.value = result.data.userSurveys
+    responses.value = result.data.responses
 }
-getUserSurveys()
+getResponseList()
+console.log("123")
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getUserSurveys();
+    getResponseList();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getUserSurveys()
+    getResponseList()
 }
 
 
@@ -105,9 +111,8 @@ import { debounce } from 'lodash';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
-    getUserSurveys()
+    getSurveys()
     }, 500);  // 延时 500ms
-
 
 const getPlainText = (htmlContent)=> {
       // 使用正则去掉 HTML 标签，获取纯文本
@@ -116,44 +121,53 @@ const getPlainText = (htmlContent)=> {
       return div.textContent || div.innerText || '';
 }
 
+const openQuestions = (row) => {
+    router.push({
+        name: 'Question',
+        params: {
+            surveyId: row.surveyId,
+            surveyName: row.name
+        }
+    })
+}
+
+
 </script>
 <template>
     <el-card class="page-container">
         <template #header>
             <div class="header">
-                <span>{{ props.username || userInfoStore.info.name }}的问卷</span>
-                <div class="extra">
-                    <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
-                </div>
+                <span>{{ props.surveyName }}-答题情况</span>
             </div>
         </template>
 
         <!-- 问卷列表 -->
-        <el-table :data="userSurveys" style="width: 100%">
+        <el-table :data="responses" style="width: 100%">
             <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
             <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
-            <el-table-column label="问卷描述" style="text-align: center;" align="center">
-            <template #default="scope">
-                <!-- 通过 row.description 获取每行数据的问卷描述，并去掉 HTML 标签 -->
-                <span>{{ getPlainText(scope.row.surveyDescription) }}</span>
-            </template>
-            </el-table-column>
-            <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
-            <el-table-column label="发布于" style="text-align: center;" align="center" prop="assignedAt"
-            :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"></el-table-column>
-            <!-- <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView">
-                <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column> -->
-            <el-table-column label="操作" style="text-align: center;" align="center" width="200">
+            <el-table-column label="用户名称" style="text-align: center;" align="center" prop="userName"></el-table-column>
+            <el-table-column label="答题总数" style="text-align: center;" align="center" prop="totalQuestions"></el-table-column>
+            <el-table-column label="最后答题时间" style="text-align: center;" align="center" prop="createdAt"
+            :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"> </el-table-column>
+            <el-table-column label="答题状态" style="text-align: center;" align="center" prop="status"></el-table-column>
+            <el-table-column label="答题IP地址" style="text-align: center;" align="center" prop="ipAddress"></el-table-column>
+            <el-table-column label="操作" style="text-align: center;" align="center" width="250">
                 <template #default="{ row }">
-                    <el-tooltip content="答题" placement="top">
+                    <el-tooltip content="预览" placement="top">
                         <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
                     </el-tooltip>
-                    <el-tooltip content="查看答题情况" placement="top">
+                    <el-tooltip content="查看" placement="top">
+                        <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
+                    </el-tooltip>
+                    <el-tooltip content="发布" placement="top">
                         <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
-                    </el-tooltip>        
+                    </el-tooltip>
+                    <el-tooltip content="编辑" placement="top">
+                        <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                    </el-tooltip>
+                    <el-tooltip content="删除" placement="top">
+                        <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
+                    </el-tooltip>          
                 </template>
             </el-table-column>
 
@@ -167,8 +181,8 @@ const getPlainText = (htmlContent)=> {
             layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
             @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
     </el-card>
+    
 </template>
-
 <style lang="scss" scoped>
 .page-container {
     min-height: 100%;

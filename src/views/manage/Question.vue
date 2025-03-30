@@ -2,11 +2,13 @@
 import {
     Edit,
     Delete,
-    Pointer
+    Pointer,
+    Connection
 } from '@element-plus/icons-vue'
 
 import { nextTick, onMounted, watch } from 'vue';
 import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 //问题列表查询
 import { questionListService, questionAddService, questionDelService, questionUpdateService } from '@/api/question.js'
 import { getAllCategoriesService } from '@/api/category.js'
@@ -15,7 +17,6 @@ import { getAllSurveysService } from '@/api/survey.js'
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
-import { useRoute } from 'vue-router'
 
 //富文本编辑器
 import { QuillEditor } from '@vueup/vue-quill'
@@ -25,6 +26,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
+const router = useRouter()
 const route = useRoute()
 
 //获取个人信息
@@ -319,6 +321,16 @@ const getPlainText = (htmlContent)=> {
       div.innerHTML = htmlContent;
       return div.textContent || div.innerText || '';
 }
+const openOptions = (row) => {
+    router.push({
+        name: 'Option',
+        params: {
+            questionId: row.questionId,
+            questionName:row.description
+        }
+    })
+}
+
 </script>
 <template>
     <el-card class="page-container">
@@ -356,7 +368,7 @@ const getPlainText = (htmlContent)=> {
             <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                 <template #default="{ row }">
                     <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary"></el-button>
+                        <el-button :icon="Connection" circle plain type="primary" @click="openOptions(row)"></el-button>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
                         <el-button :icon="Edit" circle plain type="primary" @click="editQuestionEcho(row)"></el-button>

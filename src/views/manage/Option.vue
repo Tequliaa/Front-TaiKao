@@ -19,10 +19,11 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
-
+const router = useRouter()
 //获取个人信息
 const getUserInf = async () => {
     let result = await userInfoGetService();
@@ -32,7 +33,14 @@ const getUserInf = async () => {
 
 //获取用户基本信息
 getUserInf()
-
+const props =defineProps({
+    questionId:{
+        type:Number
+    },
+    questionName:{
+        type:String
+    }
+})
 //选项数据模型
 const options = ref([
     {
@@ -54,6 +62,7 @@ const pageSize = ref(8)//每页条数
 const keyword = ref('')
 const getOptions = async () => {
     let params = {
+        questionId:props.questionId || "",
         keyword: keyword.value,
         pageNum: pageNum.value,
         pageSize: pageSize.value
@@ -204,7 +213,14 @@ const surveyId = ref(0)
 const activeSurveyId = ref('')
 
 const getAllQuestions = async () => {
-    let result = await getAllQuestionsService(surveyId.value)
+    let result = await getAllQuestionsService()
+    allQuestions.value = result.data
+}
+
+getAllQuestions()
+
+const getAllQuestionsBySurveyId = async () => {
+    let result = await getAllQuestionsBySurveyIdService(surveyId.value)
     allQuestions.value = result.data
 }
 
@@ -212,7 +228,7 @@ const getAllQuestions = async () => {
 watch(surveyId, (newVal) => {
     if (newVal) {
         console.log("监视surveyId变化，且surveyId不为空，调用getAllQuestions")
-        getAllQuestions()
+        getAllQuestionsBySurveyId()
     }
 }, { immediate: true }) // immediate: true 确保初始值不为空时也会触发
 
@@ -221,7 +237,7 @@ watch(activeSurveyId, (newVal) => {
     console.log("监视activeSurveyId变化，新值为: ", newVal);
     if (newVal) {
         surveyId.value = newVal;
-        getAllQuestions();
+        getAllQuestionsBySurveyId();
     }else{
         // 给questions置空
         allQuestions.value = {}
@@ -255,7 +271,7 @@ const ischecked = [
 ]
 import { debounce } from 'lodash';
 import { getAllSurveysService } from '@/api/survey';
-import { getAllQuestionsService } from '@/api/question';
+import { getAllQuestionsService,getAllQuestionsBySurveyIdService } from '@/api/question';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
@@ -284,7 +300,7 @@ const getSkipQuestions = async (questionId) => {
     const currentSurveyId = currentQuestion.surveyId;
     
     // 获取该问卷下的所有问题
-    let result = await getAllQuestionsService(currentSurveyId);
+    let result = await getAllQuestionsBySurveyIdService(currentSurveyId);
     skipQuestions.value = result.data;
 }
 
@@ -299,7 +315,7 @@ watch(() => optionModel.value.questionId, (newVal) => {
     <el-card class="page-container">
         <template #header>
             <div class="header">
-                <span>选项管理</span>
+                <span>选项管理 - {{ props.questionName || '所有选项' }}</span>
                 <div class="extra">
                     <!-- <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入选项名称或描述" /> -->
                     <el-button type="primary" @click="openAddDialog()">添加选项</el-button>
