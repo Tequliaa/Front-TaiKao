@@ -9,6 +9,7 @@ import CategoryVue from '@/views/manage/Category.vue'
 import OptionVue from '@/views/manage/Option.vue'
 import SurveyVue from '@/views/manage/Survey.vue'
 import UserVue from '@/views/manage/User.vue'
+import UserSurveyVue from '@/views/manage/UserSurvey.vue'
 import UserInfoVue from '@/views/user/UserInfo.vue'
 import UserAvatarVue from '@/views/user/UserAvatar.vue'
 import UserResetPasswordVue from '@/views/user/UserResetPassword.vue'
@@ -24,9 +25,10 @@ const router = createRouter({
       redirect: '/manage/survey',
       //子路由
       children:[
+        { path: '/manage/userSurvey/:userId/:username',component:UserSurveyVue,props:true,name:'UserSurvey'},
         { path: '/manage/category',component:CategoryVue},
         { path: '/manage/department',component:DepartmentVue},
-        { path: '/manage/question',component:QuestionVue},
+        { path: '/manage/question/:surveyId?/:surveyName?',component:QuestionVue,props:true,name:'Question'},
         { path: '/manage/Option',component:OptionVue},
         { path: '/manage/survey',component:SurveyVue},
         { path: '/manage/user' ,component:UserVue},

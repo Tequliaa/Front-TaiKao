@@ -24,7 +24,28 @@ const getSurveyData = async () => {
     try {
         // 获取问题列表（包含选项）
         const questionsResult = await getAllQuestionsService(props.surveyId)
-        questions.value = questionsResult.data
+        // 处理每个问题，添加必要的响应式数据
+        questions.value = questionsResult.data.map(question => {
+            // 根据问题类型初始化不同的数据
+            if (question.type === '多选') {
+                question.selectedOptions = []
+            } else if (question.type === '单选') {
+                question.selectedOption = ''
+            } else if (question.type === '矩阵单选' || question.type === '矩阵多选') {
+                question.matrixAnswers = {}
+                // 初始化每个行选项的答案
+                question.options
+                    .filter(opt => opt.type === '行选项')
+                    .forEach(row => {
+                        if (question.type === '矩阵单选') {
+                            question.matrixAnswers[row.optionId] = ''
+                        } else {
+                            question.matrixAnswers[row.optionId] = []
+                        }
+                    })
+            }
+            return question
+        })
         // 设置问卷信息
         if (questionsResult.data.length > 0) {
             surveyInfo.value = {
@@ -45,16 +66,32 @@ const handleOptionSelect = (questionId, optionId) => {
 
     switch (question.type) {
         case '单选':
-            // 单选只需要更新选中状态
+            question.selectedOption = optionId
             break
         case '多选':
-            // 多选需要维护选中数组
+            const index = question.selectedOptions.indexOf(optionId)
+            if (index === -1) {
+                question.selectedOptions.push(optionId)
+            } else {
+                question.selectedOptions.splice(index, 1)
+            }
             break
         case '矩阵单选':
-            // 矩阵单选需要处理行列选择
+            // 更新单选答案 {行ID: 列ID}
+            question.matrixAnswers[optionId.rowId] = optionId.colId
             break
         case '矩阵多选':
-            // 矩阵多选需要处理行列多选
+            // 确保该行选项的答案数组存在
+            if (!question.matrixAnswers[optionId.rowId]) {
+                question.matrixAnswers[optionId.rowId] = []
+            }
+            // 切换选中状态
+            const matrixIndex = question.matrixAnswers[optionId.rowId].indexOf(optionId.colId)
+            if (matrixIndex === -1) {
+                question.matrixAnswers[optionId.rowId].push(optionId.colId)
+            } else {
+                question.matrixAnswers[optionId.rowId].splice(matrixIndex, 1)
+            }
             break
         case '排序':
             // 排序需要处理拖拽排序
@@ -141,9 +178,11 @@ onMounted(() => {
                                             {{ String.fromCharCode(65 + optIndex) }}.
                                             <template v-if="option.isOpenOption">
                                                 <el-input 
+                                                    v-if="question.selectedOptions.includes(option.optionId)"
                                                     v-model="option.openAnswer" 
                                                     :placeholder="option.description"
                                                     class="open-answer-input" />
+                                                <span v-else>{{ option.description }}</span>
                                             </template>
                                             <template v-else>
                                                 {{ option.description }}
@@ -166,18 +205,24 @@ onMounted(() => {
 
                         <!-- 矩阵单选题 -->
                         <template v-if="question.type === '矩阵单选'">
-                            <el-table :data="question.options.filter(opt => opt.type === '行选项')" border>
-                                <el-table-column label="行/列" prop="description" />
+                            <el-table 
+                                :data="question.options.filter(opt => opt.type === '行选项')" 
+                                border
+                                style="width: 100%">
                                 <el-table-column 
-                                    v-for="colOption in question.options.filter(opt => opt.type === '列选项')"
-                                    :key="colOption.optionId"
-                                    :label="colOption.description"
-                                    align="center">
-                                    <template #default="scope">
+                                    prop="description" 
+                                    label="行选项"
+                                    width="180" />
+                                <el-table-column 
+                                    v-for="col in question.options.filter(opt => opt.type === '列选项')"
+                                    :key="col.optionId"
+                                    :label="col.description"
+                                    align="center"
+                                    width="120">
+                                    <template #default="{ row }">
                                         <el-radio 
-                                            v-model="question.matrixAnswers[scope.row.optionId]" 
-                                            :label="colOption.optionId"
-                                            :required="question.isRequired" />
+                                            v-model="question.matrixAnswers[row.optionId]" 
+                                            @change="handleOptionSelect(question.questionId, {rowId: row.optionId, colId: col.optionId})" />
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -185,18 +230,24 @@ onMounted(() => {
 
                         <!-- 矩阵多选题 -->
                         <template v-if="question.type === '矩阵多选'">
-                            <el-table :data="question.options.filter(opt => opt.type === '行选项')" border>
-                                <el-table-column label="行/列" prop="description" />
+                            <el-table 
+                                :data="question.options.filter(opt => opt.type === '行选项')" 
+                                border
+                                style="width: 100%">
                                 <el-table-column 
-                                    v-for="colOption in question.options.filter(opt => opt.type === '列选项')"
-                                    :key="colOption.optionId"
-                                    :label="colOption.description"
-                                    align="center">
-                                    <template #default="scope">
+                                    prop="description" 
+                                    label="行选项"
+                                    width="180" />
+                                <el-table-column 
+                                    v-for="col in question.options.filter(opt => opt.type === '列选项')"
+                                    :key="col.optionId"
+                                    :label="col.description"
+                                    align="center"
+                                    width="120">
+                                    <template #default="{ row }">
                                         <el-checkbox 
-                                            v-model="question.matrixAnswers[scope.row.optionId]" 
-                                            :label="colOption.optionId"
-                                            :required="question.isRequired" />
+                                            v-model="question.matrixAnswers[row.optionId]" 
+                                            @change="handleOptionSelect(question.questionId, {rowId: row.optionId, colId: col.optionId})" />
                                     </template>
                                 </el-table-column>
                             </el-table>

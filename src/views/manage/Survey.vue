@@ -2,15 +2,18 @@
 import {
     Edit,
     Delete,
-    Pointer
+    Pointer,
+    View,
+    Connection
 } from '@element-plus/icons-vue'
-
 import { nextTick } from 'vue';
-import { ref } from 'vue'
+import { ref,reactive } from 'vue'
 //问卷列表查询
 import { surveyListService, surveyAddService, surveyDelService, surveyUpdateService } from '@/api/survey.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
+import  {assignSurveyToDepartment} from '@/api/userSurvey.js'
+import { departmentListService } from '@/api/department.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
 
@@ -21,8 +24,10 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 import SurveyPreview from './SurveyPreview.vue'
+import { useRouter } from 'vue-router'
 
 const userInfoStore = useUserInfoStore();
+const router = useRouter()
 
 //获取个人信息
 const getUserInf = async () => {
@@ -80,6 +85,8 @@ const addSurveyFlag = ref(true);
 
 //控制抽屉是否显示
 const visibleDrawer = ref(false)
+// 控制分配问卷抽屉是否显示
+const assignVisible = ref(false)
 
 //添加表单数据模型
 const surveyModel = ref({
@@ -91,6 +98,39 @@ const surveyModel = ref({
     allowView: '',
     userId: '',
 })
+
+// 分配问卷表单数据模型
+const assignForm = ref({
+    surveyId: '',
+    name: '',
+    description:'',
+    departmentId: ''
+})
+
+
+//部门数据模型
+const departments = ref([
+    {
+        "id": 1,
+        "name": "早餐调查部门",
+        "description": "张三",
+    }
+])
+
+const getDepartments = async () => {
+    let params = {
+        userId: userInfoStore.info.id,
+        keyword: keyword.value,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+    }
+    let result = await departmentListService(params);
+    //渲染总条数
+    total.value = result.data.totalCount
+    //渲染列表数据
+    departments.value = result.data.departments
+}
+getDepartments()
 
 //打开添加问卷窗口
 const openAddDialog = () => {
@@ -147,6 +187,21 @@ const delsurvey = (row) => {
                 message: '取消删除',
             })
         })
+}
+//分配问卷回显
+const assignSurveyEcho = (row) => {
+    //操作改为编辑
+    dialogFormVisible.value = true
+    assignForm.value = row;
+}
+
+const assignSurvey = async () => {
+    
+    let result = await assignSurveyToDepartment(assignForm.value.departmentId,assignForm.value.surveyId)
+
+    ElMessage.success(result.message? result.message : '分配成功') 
+    dialogFormVisible.value = false
+    assignForm.value = {};
 }
 
 //修改问卷回显
@@ -206,6 +261,20 @@ const openPreview = (row) => {
     currentSurveyId.value = row.surveyId
     previewVisible.value = true
 }
+
+const openQuestions = (row) => {
+    router.push({
+        name: 'Question',
+        params: {
+            surveyId: row.surveyId,
+            surveyName: row.name
+        }
+    })
+}
+
+const dialogFormVisible = ref(false)
+const formLabelWidth = '140px'
+
 </script>
 <template>
     <el-card class="page-container">
@@ -230,10 +299,16 @@ const openPreview = (row) => {
                 <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+            <el-table-column label="操作" style="text-align: center;" align="center" width="250">
                 <template #default="{ row }">
                     <el-tooltip content="预览" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary" @click="openPreview(row)"></el-button>
+                        <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
+                    </el-tooltip>
+                    <el-tooltip content="查看" placement="top">
+                        <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
+                    </el-tooltip>
+                    <el-tooltip content="发布" placement="top">
+                        <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
                         <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
@@ -254,7 +329,28 @@ const openPreview = (row) => {
             layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
             @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
     </el-card>
-
+    <!-- 分配问卷对话框 -->
+    <el-dialog class="custom-dialog" v-model="dialogFormVisible" title="分发问卷" width="500">
+        <el-form :model="assignForm">
+        <el-form-item label="问卷名称" :label-width="formLabelWidth">
+            <el-input v-model="assignForm.name" aria-disabled="true" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="分发部门" :label-width="formLabelWidth">
+            <el-select v-model="assignForm.departmentId" clearable placeholder="所要分发部门">
+                    <el-option v-for="item in departments" :key="item.id" :label="item.name" :value="item.id"/>
+            </el-select>
+        </el-form-item>
+        </el-form>
+        <template #footer>
+        <div class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取消</el-button>
+            <el-button type="primary" @click="assignSurvey()">
+            确认发布
+            </el-button>
+        </div>
+        </template>
+    </el-dialog>
+    
 
     <!-- 抽屉 -->
     <el-drawer v-model="visibleDrawer" :title="addSurveyFlag ? '添加问卷' : '编辑问卷'" direction="rtl" size="50%">

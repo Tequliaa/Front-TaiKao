@@ -32,7 +32,7 @@ export const userUpdateService = (userModel)=>{
 
 //删除用户
 export const userDeleteService = (id) => {
-  return request.post('/user/delete&id='+id)
+  return request.delete('/user/delete?id='+id)
 }
 
 //获取个人信息

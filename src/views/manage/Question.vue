@@ -5,7 +5,7 @@ import {
     Pointer
 } from '@element-plus/icons-vue'
 
-import { nextTick } from 'vue';
+import { nextTick, onMounted, watch } from 'vue';
 import { ref } from 'vue'
 //问题列表查询
 import { questionListService, questionAddService, questionDelService, questionUpdateService } from '@/api/question.js'
@@ -15,6 +15,7 @@ import { getAllSurveysService } from '@/api/survey.js'
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
+import { useRoute } from 'vue-router'
 
 //富文本编辑器
 import { QuillEditor } from '@vueup/vue-quill'
@@ -24,6 +25,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
+const route = useRoute()
 
 //获取个人信息
 const getUserInf = async () => {
@@ -52,6 +54,14 @@ const questions = ref([
     }
 ])
 
+const props =defineProps({
+    surveyId:{
+        type:Number
+    },
+    surveyName:{
+        type:String
+    }
+})
 
 //分页条数据模型
 const pageNum = ref(1)//当前页
@@ -60,8 +70,8 @@ const pageSize = ref(8)//每页条数
 const keyword = ref('')
 const getQuestions = async () => {
     let params = {
-        surveyId:"",
-        categoryId:"",
+        surveyId: props.surveyId || "",
+        categoryId: "",
         keyword: keyword.value,
         pageNum: pageNum.value,
         pageSize: pageSize.value
@@ -72,7 +82,19 @@ const getQuestions = async () => {
     //渲染列表数据
     questions.value = result.data.questions
 }
-getQuestions()
+
+// 在组件挂载时获取问题列表
+onMounted(() => {
+    getQuestions()
+})
+
+// 监听路由参数变化
+watch(() => route.query.surveyId, (newVal) => {
+    if (newVal) {
+        getQuestions()
+    }
+})
+
 console.log("123")
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
@@ -302,9 +324,9 @@ const getPlainText = (htmlContent)=> {
     <el-card class="page-container">
         <template #header>
             <div class="header">
-                <span>问题管理</span>
+                <span>问题管理 - {{ props.surveyName || '所有问卷' }}</span>
                 <div class="extra">
-                    <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问题名称或描述" />
+                    <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问题描述" />
                     <el-button type="primary" @click="openAddDialog()">添加问题</el-button>
                 </div>
             </div>
@@ -314,20 +336,20 @@ const getPlainText = (htmlContent)=> {
         <el-table :data="questions" style="width: 100%">
             <!-- <el-table-column label="序号" prop="questionId"></el-table-column> -->
             <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description"></el-table-column>
+            <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description" width="150"></el-table-column>
             <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
-            <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName"></el-table-column>
-            <el-table-column label="所属问题" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+            <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column>
+            <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName" width="150"></el-table-column>
 
-            <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired">
+            <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired" width="100">
                 <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
                 </template>
             </el-table-column>
-            <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen">
+            <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen" width="120">
                 <template #default="{ row }">{{ row.isOpen === 1 ? '有' : '无' }}
                 </template>
             </el-table-column>
-            <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip">
+            <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip" width="100">
                 <template #default="{ row }">{{ row.isSkip === 1 ? '有' : '无' }}
                 </template>
             </el-table-column>

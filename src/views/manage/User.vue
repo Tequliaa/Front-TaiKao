@@ -186,6 +186,15 @@ const getPlainText = (htmlContent)=> {
     div.innerHTML = htmlContent;
     return div.textContent || div.innerText || '';
 }
+import { useRouter } from 'vue-router';
+const router = useRouter();
+const goToUserSurveyPage = (row) => {
+    console.log(row.name)
+    router.push({
+      name: 'UserSurvey',  // 使用路由名称
+      params: { userId: row.id ,
+                username: row.name }  // 传递参数
+    })}
 </script>
 <template>
     <el-card class="page-container">
@@ -206,7 +215,7 @@ const getPlainText = (htmlContent)=> {
             <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                 <template #default="{ row }">
                     <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary"></el-button>
+                        <el-button :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
                         <el-button :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>
