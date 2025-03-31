@@ -5,7 +5,7 @@ import {
     Pointer
 } from '@element-plus/icons-vue'
 
-import { nextTick, reactive, watch } from 'vue';
+import { nextTick, reactive, watch, onMounted } from 'vue';
 import { ref } from 'vue'
 //选项列表查询
 import { optionListService, optionAddService, optionDelService, optionUpdateService } from '@/api/option.js'
@@ -21,6 +21,7 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 // import { name } from 'element-plus/dist/locale/zh-cn'
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
 
 const userInfoStore = useUserInfoStore();
 const router = useRouter()
@@ -60,21 +61,48 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
+
+// 添加加载状态
+const loading = ref(true)
+
+// 修改获取选项数据的方法
 const getOptions = async () => {
-    let params = {
-        questionId:props.questionId || "",
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+    try {
+        let params = {
+            questionId:props.questionId || "",
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await optionListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        options.value = result.data.options
+    } catch (error) {
+        ElMessage.error('获取选项列表失败')
     }
-    let result = await optionListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    options.value = result.data.options
 }
-getOptions()
-console.log("123")
+
+// 初始化数据
+const initData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            getOptions(),
+            getAllSurveys(),
+            getAllQuestions()
+        ])
+    } finally {
+        loading.value = false
+    }
+}
+
+// 在组件挂载时初始化数据
+onMounted(() => {
+    initData()
+})
+
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
@@ -312,56 +340,58 @@ watch(() => optionModel.value.questionId, (newVal) => {
 })
 </script>
 <template>
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>选项管理 - {{ props.questionName || '所有选项' }}</span>
-                <div class="extra">
-                    <!-- <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入选项名称或描述" /> -->
-                    <el-button type="primary" @click="openAddDialog()">添加选项</el-button>
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>选项管理 - {{ props.questionName || '所有选项' }}</span>
+                    <div class="extra">
+                        <!-- <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入选项名称或描述" /> -->
+                        <el-button type="primary" @click="openAddDialog()">添加选项</el-button>
+                    </div>
                 </div>
-            </div>
-        </template>
-
-        <!-- 选项列表 -->
-        <el-table :data="options" style="width: 100%">
-            <!-- <el-table-column label="序号" prop="optionId"></el-table-column> -->
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="所属问题名称" style="text-align: center;" align="center" prop="questionName"></el-table-column>
-            <el-table-column label="选项类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
-            <el-table-column label="选项描述" style="text-align: center;" align="center" prop="description"></el-table-column>
-            <el-table-column label="是否为开放选项" style="text-align: center;" align="center" prop="isOpen">
-                <template #default="{ row }">{{ row.isOpen === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="是否为跳转选项" style="text-align: center;" align="center" prop="isSkip">
-                <template #default="{ row }">{{ row.isSkip === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="150">
-                <template #default="{ row }">
-                    <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                        <el-button :icon="Edit" circle plain type="primary" @click="editOptionEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                        <el-button :icon="Delete" circle plain type="danger" @click="deloption(row)"></el-button>
-                    </el-tooltip>          
-                </template>
-            </el-table-column>
-
-            <template #empty>
-                <el-empty description="没有数据" />
             </template>
-        </el-table>
 
-        <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
+            <!-- 选项列表 -->
+            <el-table :data="options" style="width: 100%">
+                <!-- <el-table-column label="序号" prop="optionId"></el-table-column> -->
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                <el-table-column label="所属问题名称" style="text-align: center;" align="center" prop="questionName"></el-table-column>
+                <el-table-column label="选项类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
+                <el-table-column label="选项描述" style="text-align: center;" align="center" prop="description"></el-table-column>
+                <el-table-column label="是否为开放选项" style="text-align: center;" align="center" prop="isOpen">
+                    <template #default="{ row }">{{ row.isOpen === 1 ? '是' : '否' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="是否为跳转选项" style="text-align: center;" align="center" prop="isSkip">
+                    <template #default="{ row }">{{ row.isSkip === 1 ? '是' : '否' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+                    <template #default="{ row }">
+                        <el-tooltip content="查看" placement="top">
+                            <el-button :icon="Pointer" circle plain type="primary"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button :icon="Edit" circle plain type="primary" @click="editOptionEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button :icon="Delete" circle plain type="danger" @click="deloption(row)"></el-button>
+                        </el-tooltip>          
+                    </template>
+                </el-table-column>
+
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
+
+            <!-- 分页条 -->
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
+                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
+                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
+    </LoadingWrapper>
 
 
     <!-- 抽屉 -->

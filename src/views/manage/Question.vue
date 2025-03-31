@@ -25,6 +25,8 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
+
 const userInfoStore = useUserInfoStore();
 const router = useRouter()
 const route = useRoute()
@@ -70,24 +72,45 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
+
+// 添加加载状态
+const loading = ref(true)
+
+// 修改获取问题数据的方法
 const getQuestions = async () => {
-    let params = {
-        surveyId: props.surveyId || "",
-        categoryId: "",
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+    try {
+        let params = {
+            userId: userInfoStore.info.id,
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await questionListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        questions.value = result.data.questions
+    } catch (error) {
+        ElMessage.error('获取问题列表失败')
     }
-    let result = await questionListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    questions.value = result.data.questions
 }
 
-// 在组件挂载时获取问题列表
+// 初始化数据
+const initData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            getUserInf(),
+            getQuestions()
+        ])
+    } finally {
+        loading.value = false
+    }
+}
+
+// 在组件挂载时初始化数据
 onMounted(() => {
-    getQuestions()
+    initData()
 })
 
 // 监听路由参数变化
@@ -333,62 +356,64 @@ const openOptions = (row) => {
 
 </script>
 <template>
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>问题管理 - {{ props.surveyName || '所有问卷' }}</span>
-                <div class="extra">
-                    <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问题描述" />
-                    <el-button type="primary" @click="openAddDialog()">添加问题</el-button>
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>问题管理 - {{ props.surveyName || '所有问卷' }}</span>
+                    <div class="extra">
+                        <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问题描述" />
+                        <el-button type="primary" @click="openAddDialog()">添加问题</el-button>
+                    </div>
                 </div>
-            </div>
-        </template>
-
-        <!-- 问题列表 -->
-        <el-table :data="questions" style="width: 100%">
-            <!-- <el-table-column label="序号" prop="questionId"></el-table-column> -->
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description" width="150"></el-table-column>
-            <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
-            <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column>
-            <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName" width="150"></el-table-column>
-
-            <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired" width="100">
-                <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen" width="120">
-                <template #default="{ row }">{{ row.isOpen === 1 ? '有' : '无' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip" width="100">
-                <template #default="{ row }">{{ row.isSkip === 1 ? '有' : '无' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="150">
-                <template #default="{ row }">
-                    <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Connection" circle plain type="primary" @click="openOptions(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                        <el-button :icon="Edit" circle plain type="primary" @click="editQuestionEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                        <el-button :icon="Delete" circle plain type="danger" @click="delquestion(row)"></el-button>
-                    </el-tooltip>          
-                </template>
-            </el-table-column>
-
-            <template #empty>
-                <el-empty description="没有数据" />
             </template>
-        </el-table>
 
-        <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
+            <!-- 问题列表 -->
+            <el-table :data="questions" style="width: 100%">
+                <!-- <el-table-column label="序号" prop="questionId"></el-table-column> -->
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description" width="150"></el-table-column>
+                <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
+                <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column>
+                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName" width="150"></el-table-column>
+
+                <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired" width="100">
+                    <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen" width="120">
+                    <template #default="{ row }">{{ row.isOpen === 1 ? '有' : '无' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip" width="100">
+                    <template #default="{ row }">{{ row.isSkip === 1 ? '有' : '无' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+                    <template #default="{ row }">
+                        <el-tooltip content="查看" placement="top">
+                            <el-button :icon="Connection" circle plain type="primary" @click="openOptions(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button :icon="Edit" circle plain type="primary" @click="editQuestionEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button :icon="Delete" circle plain type="danger" @click="delquestion(row)"></el-button>
+                        </el-tooltip>          
+                    </template>
+                </el-table-column>
+
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
+
+            <!-- 分页条 -->
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
+                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
+                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
+    </LoadingWrapper>
 
 
     <!-- 抽屉 -->

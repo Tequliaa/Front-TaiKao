@@ -5,8 +5,9 @@ import {
     Pointer
 } from '@element-plus/icons-vue'
 
-import { nextTick } from 'vue';
+import { nextTick, onMounted } from 'vue';
 import { ref } from 'vue'
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
 
 //部门列表查询
 import { departmentListService, departmentAddService, departmentDelService, departmentUpdateService } from '@/api/department.js'
@@ -48,21 +49,47 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
+
+// 添加加载状态
+const loading = ref(true)
+
+// 修改获取部门数据的方法
 const getDepartments = async () => {
-    let params = {
-        userId: userInfoStore.info.id,
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+    try {
+        let params = {
+            userId: userInfoStore.info.id,
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await departmentListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        departments.value = result.data.departments
+    } catch (error) {
+        ElMessage.error('获取部门列表失败')
     }
-    let result = await departmentListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    departments.value = result.data.departments
 }
-getDepartments()
-console.log("123")
+
+// 初始化数据
+const initData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            getUserInf(),
+            getDepartments()
+        ])
+    } finally {
+        loading.value = false
+    }
+}
+
+// 在组件挂载时初始化数据
+onMounted(() => {
+    initData()
+})
+
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
@@ -184,52 +211,54 @@ const getPlainText = (htmlContent)=> {
     }
 </script>
 <template>
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>部门管理</span>
-                <div class="extra">
-                    <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入部门名称或描述" />
-                    <el-button type="primary" @click="openAddDialog()">添加部门</el-button>
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>部门管理</span>
+                    <div class="extra">
+                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入部门名称或描述" />
+                        <el-button type="primary" @click="openAddDialog()">添加部门</el-button>
+                    </div>
                 </div>
-            </div>
-        </template>
-
-        <!-- 部门列表 -->
-        <el-table :data="departments" style="width: 100%">
-            <!-- <el-table-column label="序号" prop="departmentId"></el-table-column> -->
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="部门名称" style="text-align: center;" align="center" prop="name"></el-table-column>
-            <el-table-column label="部门介绍" style="text-align: center;" align="center">
-            <template #default="scope">
-                <!-- 通过 row.description 获取每行数据的部门介绍，并去掉 HTML 标签 -->
-                <span>{{ getPlainText(scope.row.description) }}</span>
             </template>
-            </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="150">
-                <template #default="{ row }">
-                    <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                        <el-button :icon="Edit" circle plain type="primary" @click="editDepartmentEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                        <el-button :icon="Delete" circle plain type="danger" @click="delDepartment(row)"></el-button>
-                    </el-tooltip>          
+
+            <!-- 部门列表 -->
+            <el-table :data="departments" style="width: 100%">
+                <!-- <el-table-column label="序号" prop="departmentId"></el-table-column> -->
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                <el-table-column label="部门名称" style="text-align: center;" align="center" prop="name"></el-table-column>
+                <el-table-column label="部门介绍" style="text-align: center;" align="center">
+                <template #default="scope">
+                    <!-- 通过 row.description 获取每行数据的部门介绍，并去掉 HTML 标签 -->
+                    <span>{{ getPlainText(scope.row.description) }}</span>
                 </template>
-            </el-table-column>
+                </el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+                    <template #default="{ row }">
+                        <el-tooltip content="查看" placement="top">
+                            <el-button :icon="Pointer" circle plain type="primary"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button :icon="Edit" circle plain type="primary" @click="editDepartmentEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button :icon="Delete" circle plain type="danger" @click="delDepartment(row)"></el-button>
+                        </el-tooltip>          
+                    </template>
+                </el-table-column>
 
-            <template #empty>
-                <el-empty description="没有数据" />
-            </template>
-        </el-table>
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
 
-        <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
+            <!-- 分页条 -->
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
+                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
+                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
+    </LoadingWrapper>
 
 
     <!-- 抽屉 -->

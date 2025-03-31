@@ -5,7 +5,7 @@ import {
     Pointer,
     View
 } from '@element-plus/icons-vue'
-import { ref,reactive } from 'vue'
+import { ref,reactive, onMounted } from 'vue'
 import dayjs from 'dayjs'
 //问卷列表查询
 import {userSurveyListService} from '@/api/userSurvey.js'
@@ -22,16 +22,43 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
+const loading = ref(true)
 
 //获取个人信息
 const getUserInf = async () => {
-    let result = await userInfoGetService();
-    //存储pinia
-    userInfoStore.info = result.data;
+    try {
+        let result = await userInfoGetService();
+        //存储pinia
+        userInfoStore.info = result.data;
+        return result.data;
+    } catch (error) {
+        ElMessage.error('获取用户信息失败')
+        return null;
+    }
+}
+
+//初始化数据
+const initData = async () => {
+    loading.value = true;
+    try {
+        // 获取用户信息
+        const userInfo = await getUserInf();
+        if (!userInfo) {
+            throw new Error('获取用户信息失败');
+        }
+        
+        // 获取问卷列表
+        await getUserSurveys();
+    } catch (error) {
+        console.error('初始化数据失败:', error);
+        ElMessage.error('加载数据失败');
+    } finally {
+        loading.value = false;
+    }
 }
 
 //获取用户基本信息
-getUserInf()
+// getUserInf()
 
 const props =defineProps({
     userId:{
@@ -65,31 +92,36 @@ const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
 const getUserSurveys = async () => {
-    let params = {
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value,
-        userId:props.userId||userInfoStore.info.id,
-        keyword: keyword.value
+    try {
+        let params = {
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value,
+            userId:props.userId||userInfoStore.info.id,
+            keyword: keyword.value
+        }
+        let result = await userSurveyListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        userSurveys.value = result.data.userSurveys
+    } catch (error) {
+        ElMessage.error('获取问卷列表失败')
+        throw error;
     }
-    let result = await userSurveyListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    userSurveys.value = result.data.userSurveys
 }
-getUserSurveys()
+
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
     getUserSurveys();
 }
-//当前页码发生变化，调用此函数
+
+//当前页码发生了变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
     getUserSurveys()
 }
-
 
 const options = [
   {
@@ -126,6 +158,19 @@ const fillOutSurvey = (row) => {
     })
 }
 
+// 添加查看答题情况的方法
+const viewResponse = (row) => {
+    router.push({
+        name: 'SurveyView',
+        params: {
+            surveyId: row.surveyId,
+        }
+    })
+}
+
+onMounted(() => {
+    initData();
+})
 </script>
 <template>
     <el-card class="page-container">
@@ -139,7 +184,10 @@ const fillOutSurvey = (row) => {
         </template>
 
         <!-- 问卷列表 -->
-        <el-table :data="userSurveys" style="width: 100%">
+        <el-table 
+            v-loading="loading"
+            :data="userSurveys" 
+            style="width: 100%">
             <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
             <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
             <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
@@ -158,11 +206,21 @@ const fillOutSurvey = (row) => {
             </el-table-column> -->
             <el-table-column label="操作" style="text-align: center;" align="center" width="200">
                 <template #default="{ row }">
-                    <el-tooltip content="答题" placement="top">
+                    <!-- 未完成状态显示答题按钮 -->
+                    <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
                         <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
                     </el-tooltip>
-                    <el-tooltip content="查看答题情况" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                    <!-- 已完成状态显示查看按钮 -->
+                    <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
+                        <el-button 
+                            v-if="row.status === '已完成'" 
+                            :icon="Pointer" 
+                            circle 
+                            plain 
+                            :type="row.allowView === 1 ? 'primary' : 'info'"
+                            :disabled="row.allowView !== 1"
+                            @click="row.allowView === 1 && viewResponse(row)"
+                        ></el-button>
                     </el-tooltip>        
                 </template>
             </el-table-column>
@@ -173,9 +231,17 @@ const fillOutSurvey = (row) => {
         </el-table>
 
         <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        <el-pagination 
+            v-loading="loading"
+            v-model:current-page="pageNum" 
+            v-model:page-size="pageSize" 
+            :page-sizes="[3, 5, 10, 15]"
+            layout="jumper, total, sizes, prev, pager, next" 
+            background 
+            :total="total" 
+            @size-change="onSizeChange"
+            @current-change="onCurrentChange" 
+            style="margin-top: 20px; justify-content: flex-end" />
     </el-card>
 </template>
 

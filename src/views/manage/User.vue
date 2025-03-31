@@ -4,7 +4,7 @@ import {
     Delete,
     Pointer
 } from '@element-plus/icons-vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userListService, userUpdateService, userDeleteService } from '@/api/user.js'
 import { getAllSurveysService } from '@/api/department.js'
@@ -12,6 +12,7 @@ import { getAllSurveysService } from '@/api/department.js'
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
 const userInfoStore = useUserInfoStore();
 
 const users = ref([
@@ -25,20 +26,30 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
-const getUsers = async () => {
-    let params = {
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
-    }
-    let result = await userListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    users.value = result.data.users
-}
-getUsers()
 
+// 添加部门数据模型
+const departments = ref([])
+
+// 添加加载状态
+const loading = ref(true)
+
+// 修改获取用户数据的方法
+const getUsers = async () => {
+    try {
+        let params = {
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await userListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        users.value = result.data.users
+    } catch (error) {
+        ElMessage.error('获取用户列表失败')
+    }
+}
 
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
@@ -59,17 +70,34 @@ const getUserInf = async () => {
     userInfoStore.info = result.data;
 }
 
-//获取用户基本信息
-getUserInf()
-
-const departments = ref({
-})
-
+// 修改获取部门数据的方法
 const getAllDepartments = async () => {
-    let result = await getAllSurveysService(userInfoStore.info.id);
-    departments.value = result.data;
+    try {
+        let result = await getAllSurveysService(userInfoStore.info.id);
+        departments.value = result.data;
+    } catch (error) {
+        ElMessage.error('获取部门列表失败')
+    }
 }
-getAllDepartments();
+
+// 初始化数据
+const initData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            getUserInf(),
+            getUsers(),
+            getAllDepartments()
+        ])
+    } finally {
+        loading.value = false
+    }
+}
+
+// 在组件挂载时初始化数据
+onMounted(() => {
+    initData()
+})
 
 // 用户角色
 const roles = [
@@ -197,72 +225,73 @@ const goToUserSurveyPage = (row) => {
     })}
 </script>
 <template>
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>用户管理</span>
-                <div class="extra">
-                    <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>用户管理</span>
+                    <div class="extra">
+                        <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
+                    </div>
+                    
                 </div>
-                
-            </div>
-        </template>
-        <el-table :data="users" style="width: 100%">
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"> </el-table-column>
-            <el-table-column label="用户名称" style="text-align: center;" align="center" prop="name"> </el-table-column>
-            <el-table-column label="角色" style="text-align: center;" align="center" prop="role"></el-table-column>
-            <el-table-column label="所属部门" style="text-align: center;" align="center" prop="departmentName"></el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="150">
-                <template #default="{ row }">
-                    <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                        <el-button :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                        <el-button :icon="Delete" circle plain type="danger" @click="deleteUser(row)"></el-button>
-                    </el-tooltip>          
-                </template>
-            </el-table-column>
-            <template #empty>
-                <el-empty description="没有数据" />
             </template>
-        </el-table>
-        <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-        layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-        @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
+            <el-table :data="users" style="width: 100%">
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"> </el-table-column>
+                <el-table-column label="用户名称" style="text-align: center;" align="center" prop="name"> </el-table-column>
+                <el-table-column label="角色" style="text-align: center;" align="center" prop="role"></el-table-column>
+                <el-table-column label="所属部门" style="text-align: center;" align="center" prop="departmentName"></el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+                    <template #default="{ row }">
+                        <el-tooltip content="查看" placement="top">
+                            <el-button :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button :icon="Delete" circle plain type="danger" @click="deleteUser(row)"></el-button>
+                        </el-tooltip>          
+                    </template>
+                </el-table-column>
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
+            <!-- 分页条 -->
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
+            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
+            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
 
-    <!-- 修改用户弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="title" width="30%">
-        <el-form :model="userModel" :rules="rules" label-width="100px" style="padding-right: 30px">
-            <el-form-item label="用户名">
-                <el-input placeholder="请输入用户名" v-model="userModel.name" minlength="5" maxlength="16"></el-input>
-            </el-form-item>
+        <!-- 修改用户弹窗 -->
+        <el-dialog v-model="dialogVisible" :title="title" width="30%">
+            <el-form :model="userModel" :rules="rules" label-width="100px" style="padding-right: 30px">
+                <el-form-item label="用户名">
+                    <el-input placeholder="请输入用户名" v-model="userModel.name" minlength="5" maxlength="16"></el-input>
+                </el-form-item>
 
-            <el-form-item label="用户角色">
-                <el-select v-model="userModel.role" clearable placeholder="请选择用户角色">
-                    <el-option v-for="item in roles" :key="item.value" :label="item.value" :value="item.value"/>
-                </el-select>
-            </el-form-item>
+                <el-form-item label="用户角色">
+                    <el-select v-model="userModel.role" clearable placeholder="请选择用户角色">
+                        <el-option v-for="item in roles" :key="item.value" :label="item.value" :value="item.value"/>
+                    </el-select>
+                </el-form-item>
 
-            <el-form-item label="所属部门">
-                <el-select v-model="userModel.departmentId" clearable placeholder="请选择所属部门">
-                    <el-option v-for="item in departments" :key="item.id" :label="item.name" :value="item.id"/>
-                </el-select>
-            </el-form-item>
+                <el-form-item label="所属部门">
+                    <el-select v-model="userModel.departmentId" clearable placeholder="请选择所属部门">
+                        <el-option v-for="item in departments" :key="item.id" :label="item.name" :value="item.id"/>
+                    </el-select>
+                </el-form-item>
 
-        </el-form>
-        <template #footer>
-            <span class="dialog-footer">
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click =updateUser()> 确认 </el-button>
-            </span>
-        </template>
-    </el-dialog>
-
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click =updateUser()> 确认 </el-button>
+                </span>
+            </template>
+        </el-dialog>
+    </LoadingWrapper>
 </template>
 
 <style lang="scss" scoped>

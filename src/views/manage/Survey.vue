@@ -7,7 +7,7 @@ import {
     Connection,
     DataLine
 } from '@element-plus/icons-vue'
-import { nextTick } from 'vue';
+import { nextTick, onMounted } from 'vue';
 import { ref,reactive } from 'vue'
 //问卷列表查询
 import { surveyListService, surveyAddService, surveyDelService, surveyUpdateService } from '@/api/survey.js'
@@ -26,7 +26,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 import SurveyPreview from './SurveyPreview.vue'
 import { useRouter } from 'vue-router'
-
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
 const userInfoStore = useUserInfoStore();
 const router = useRouter()
 
@@ -56,20 +56,28 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
+
+// 添加加载状态
+const loading = ref(true)
+
+// 修改获取问卷数据的方法
 const getSurveys = async () => {
-    let params = {
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+    try {
+        let params = {
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await surveyListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        surveys.value = result.data.surveys
+    } catch (error) {
+        ElMessage.error('获取问卷列表失败')
     }
-    let result = await surveyListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    surveys.value = result.data.surveys
 }
-getSurveys()
-console.log("123")
+
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
@@ -118,20 +126,42 @@ const departments = ref([
     }
 ])
 
+// 修改获取部门数据的方法
 const getDepartments = async () => {
-    let params = {
-        userId: userInfoStore.info.id,
-        keyword: keyword.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+    try {
+        let params = {
+            userId: userInfoStore.info.id,
+            keyword: keyword.value,
+            pageNum: pageNum.value,
+            pageSize: pageSize.value
+        }
+        let result = await departmentListService(params);
+        //渲染总条数
+        total.value = result.data.totalCount
+        //渲染列表数据
+        departments.value = result.data.departments
+    } catch (error) {
+        ElMessage.error('获取部门列表失败')
     }
-    let result = await departmentListService(params);
-    //渲染总条数
-    total.value = result.data.totalCount
-    //渲染列表数据
-    departments.value = result.data.departments
 }
-getDepartments()
+
+// 初始化数据
+const initData = async () => {
+    loading.value = true
+    try {
+        await Promise.all([
+            getSurveys(),
+            getDepartments()
+        ])
+    } finally {
+        loading.value = false
+    }
+}
+
+// 在组件挂载时初始化数据
+onMounted(() => {
+    initData()
+})
 
 //打开添加问卷窗口
 const openAddDialog = () => {
@@ -289,61 +319,63 @@ const formLabelWidth = '140px'
 
 </script>
 <template>
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>问卷管理</span>
-                <div class="extra">
-                    <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
-                    <el-button type="primary" @click="openAddDialog()">添加问卷</el-button>
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>问卷管理</span>
+                    <div class="extra">
+                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
+                        <el-button type="primary" @click="openAddDialog()">添加问卷</el-button>
+                    </div>
                 </div>
-            </div>
-        </template>
-
-        <!-- 问卷列表 -->
-        <el-table :data="surveys" style="width: 100%">
-            <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
-            <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName"> </el-table-column>
-            <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
-            <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView">
-                <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" style="text-align: center;" align="center" width="300">
-                <template #default="{ row }">
-                    <el-tooltip content="预览" placement="top">
-                        <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="查看" placement="top">
-                        <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="发布" placement="top">
-                        <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="查看答题情况" placement="top">
-                        <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                        <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                        <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
-                    </el-tooltip>          
-                </template>
-            </el-table-column>
-
-            <template #empty>
-                <el-empty description="没有数据" />
             </template>
-        </el-table>
 
-        <!-- 分页条 -->
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
+            <!-- 问卷列表 -->
+            <el-table :data="surveys" style="width: 100%">
+                <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
+                <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName"> </el-table-column>
+                <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
+                <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView">
+                    <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="300">
+                    <template #default="{ row }">
+                        <el-tooltip content="预览" placement="top">
+                            <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="查看" placement="top">
+                            <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="发布" placement="top">
+                            <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="查看答题情况" placement="top">
+                            <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
+                        </el-tooltip>          
+                    </template>
+                </el-table-column>
+
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
+
+            <!-- 分页条 -->
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
+                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
+                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
+    </LoadingWrapper>
     <!-- 分配问卷对话框 -->
     <el-dialog class="custom-dialog" v-model="dialogFormVisible" title="分发问卷" width="500">
         <el-form :model="assignForm">
