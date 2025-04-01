@@ -15,7 +15,7 @@ import UserAvatarVue from '@/views/user/UserAvatar.vue'
 import UserResetPasswordVue from '@/views/user/UserResetPassword.vue'
 import ResponseVue from '@/views/manage/ResponseList.vue'
 import SurveyWriteVue from '@/views/manage/SurveyWrite.vue'
-import SurveyViewVue from '@/views/manage/SurveyView.vue'
+import SurveyViewVue from '@/views/manage/surveyView.vue'
 
 const router = createRouter({
   history: createWebHistory(),

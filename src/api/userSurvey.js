@@ -18,8 +18,8 @@ export const assignSurveyToDepartment = (departmentId,surveyId) => {
   }
 
 //更新用户答卷信息
-export const userSurveyUpdateService = (id,status)=>{
-   return request.post('/userSurvey/update',{id,status})
+export const userSurveyUpdateService = (surveyId,userId,status)=>{
+   return request.post('/userSurvey/update?surveyId='+surveyId+'&userId='+userId+'&status='+status)
 }  
 
 // 获取用户答卷信息

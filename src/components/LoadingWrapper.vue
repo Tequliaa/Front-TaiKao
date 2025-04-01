@@ -8,12 +8,12 @@
     </div>
 </template>
 
+
 <script setup>
-const props = defineProps({
+defineProps({
     loading: {
         type: Boolean,
-        required: true,
-        default: false
+        required: true
     }
 })
 </script>

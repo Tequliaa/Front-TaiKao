@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { getResponseDetailsService } from '@/api/response'
 import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/user'
-
+import {userSurveyUpdateService} from '@/api/userSurvey'
 // 问卷ID
 const props = defineProps({
     surveyId: {
@@ -155,6 +155,15 @@ const getSurveyData = async () => {
                                 question.answer = textResponse.responseData
                             }
                             break
+                        case '文件上传题':
+                        // 处理文件上传题答案
+                        question.uploadedFiles = questionResponses
+                            .filter(response => response.filePath && response.isValid === 1)
+                            .map(response => ({
+                                name: response.filePath.split('/').pop(),  // 获取文件名
+                                url: "http://localhost:8082" + response.filePath  // 完整的文件URL
+                            }))
+                        break
                     }
                 }
 
@@ -187,6 +196,62 @@ const getQuestionIndex = (questionId) => {
 onMounted(() => {
     getSurveyData()
 })
+//打回问卷
+const HitBackSurvey = async () => {
+    let result = await userSurveyUpdateService(props.surveyId,props.userId||userInfoStore.info.id,'0');
+    ElMessage.success(result.message ? result.message : '打回成功')
+}
+import request from '@/utils/request.js'
+import { showImagePreview } from '@/utils/imagePreviewer';
+// 处理文件的预览
+const handlePreview = async (file) => {
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+  const fileUrl = `/uploads/${file.name}`;
+
+  try {
+    console.log('开始请求文件:', fileUrl);
+    const response = await request.get(fileUrl, {
+      responseType: 'blob',
+    });
+
+    console.log('响应数据:', response);
+    
+    if (!response.data || !(response.data instanceof Blob)) {
+      throw new Error('文件数据无效');
+    }
+
+    const blobUrl = URL.createObjectURL(response.data);
+    console.log('生成的 Blob URL:', blobUrl);
+
+    // 测试图片显示
+    const testImg = document.createElement('img');
+    testImg.src = blobUrl;
+    testImg.style.maxWidth = '100%';
+    testImg.onload = () => console.log('测试图片加载成功');
+    testImg.onerror = (e) => console.error('测试图片加载失败', e);
+    document.body.appendChild(testImg);
+
+    console.log('文件扩展名:', fileExtension);
+    
+    if (['jpg', 'jpeg', 'png'].includes(fileExtension.toLowerCase())) {
+      console.log('准备调用 showImagePreview');
+      // 确保这个函数存在
+      if (typeof showImagePreview === 'function') {
+        showImagePreview(blobUrl);
+      } else {
+        throw new Error('showImagePreview 不是函数');
+      }
+    } else if (fileExtension === 'pdf') {
+      console.log('准备打开PDF');
+      window.open(blobUrl, '_blank');
+    } else {
+      console.warn('无法预览该文件类型:', fileExtension);
+    }
+  } catch (error) {
+    console.error('文件预览失败:', error);
+    ElMessage.error('文件预览失败: ' + error.message);
+  }
+};
 </script>
 
 <template>
@@ -202,6 +267,10 @@ onMounted(() => {
                         <div v-if="props.userName" class="survey-user">
                             答题人：{{ props.userName }}
                         </div>
+                        
+                        <div class="extra">
+                            <el-button type="primary" v-if="userInfoStore.info.userRole!=='普通用户'" @click="HitBackSurvey()">打回问卷</el-button>
+                        </div>    
                     </div>
 
                     <!-- 问题列表 -->
@@ -360,6 +429,26 @@ onMounted(() => {
                                         </div>
                                     </div>
                                 </template>
+                                <!-- 文件上传题 -->
+                                <template v-if="question.type === '文件上传题'">
+                                    <el-upload
+                                    class="upload-demo"
+                                    action="" 
+                                    :auto-upload="false"
+                                    :file-list="question.uploadedFiles"
+                                    :on-change="(file, fileList) => question.uploadedFiles = fileList"
+                                    :on-remove="(file, fileList) => question.uploadedFiles = fileList"
+                                    :on-preview="handlePreview"
+                                    multiple
+                                    :limit="3"
+                                    :on-exceed="handleExceed"
+                                    :required="question.isRequired">
+                                    <el-button type="primary">点击上传</el-button>
+                                    <template #tip>
+                                        <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
+                                    </template>
+                                </el-upload>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -370,6 +459,27 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.survey-header {
+    min-height: 100%;
+    box-sizing: border-box;
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .extra {
+        display: flex;
+        align-items: center;  /* 确保垂直居中对齐 */
+        gap: 10px;  /* 在所有子元素之间添加 10px 的间隔 */
+        justify-content: flex-end;
+    }
+
+    .el-input {
+        width: 240px;  /* 输入框的宽度 */
+    }
+
+}
 .survey-preview {
     background-color: #f8f9fa;
     min-height: 100vh;

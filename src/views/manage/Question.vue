@@ -80,6 +80,7 @@ const loading = ref(true)
 const getQuestions = async () => {
     try {
         let params = {
+            surveyId:props.surveyId,
             userId: userInfoStore.info.id,
             keyword: keyword.value,
             pageNum: pageNum.value,
@@ -307,7 +308,7 @@ const typeOptions = [
         label:'评分题'
     },
     {
-        value: '文件上传',
+        value: '文件上传题',
         label:'文件上传题'
     },
 ]

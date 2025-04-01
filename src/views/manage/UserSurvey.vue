@@ -19,6 +19,7 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
+import LoadingWrapper from '@/components/LoadingWrapper.vue'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
@@ -173,6 +174,7 @@ onMounted(() => {
 })
 </script>
 <template>
+<LoadingWrapper :loading="loading">
     <el-card class="page-container">
         <template #header>
             <div class="header">
@@ -243,6 +245,7 @@ onMounted(() => {
             @current-change="onCurrentChange" 
             style="margin-top: 20px; justify-content: flex-end" />
     </el-card>
+</LoadingWrapper>
 </template>
 
 <style lang="scss" scoped>

@@ -30,28 +30,49 @@ instance.interceptors.request.use(
     }
 )
 
-//添加响应拦截器
+// 响应拦截器
 instance.interceptors.response.use(
     result => {
-        //如果业务状态码为0，代表本次操作成功
+        // 如果是Blob响应（如文件下载），直接返回原始响应
+        if (result.config.responseType === 'blob' || result.data instanceof Blob) {
+            return result;
+        }
+        
+        // 普通JSON响应处理
         if (result.data.code == 0) {
             return result.data;
         }
-        //代码走到这里，代表业务状态码不是0，本次操作失败
-        //alert(result.data.message || '服务异常');
+        
         ElMessage.error(result.data.message || '服务异常');
-        return Promise.reject(result.data);//异步的状态转化成失败的状态
+        return Promise.reject(result.data);
     },
     err => {
-       //如果响应状态码是401，代表未登录，给出对应的提示，并跳转到登录页
-        if(err.response.status===401){
+        // 处理Blob类型的错误响应
+        if (err.response && err.config.responseType === 'blob') {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const errorData = JSON.parse(reader.result);
+                        ElMessage.error(errorData.message || '服务异常');
+                        reject(errorData);
+                    } catch (e) {
+                        ElMessage.error('文件处理失败');
+                        reject(new Error('文件处理失败'));
+                    }
+                };
+                reader.readAsText(err.response.data);
+            });
+        }
+        
+        if(err.response?.status === 401){
             ElMessage.error('请先登录！')
             router.push('/login')
         }else{
             ElMessage.error('服务异常');
         }
-        return Promise.reject(err);//异步的状态转化成失败的状态
+        return Promise.reject(err);
     }
-)
+);
 
 export default instance;

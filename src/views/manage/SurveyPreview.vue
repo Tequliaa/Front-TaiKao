@@ -169,11 +169,13 @@ onMounted(() => {
                                             <span class="option-label">
                                                 {{ String.fromCharCode(65 + optIndex) }}.
                                                 <template v-if="option.isOpenOption">
-                                                    <el-input 
-                                                        v-model="option.openAnswer" 
-                                                        :placeholder="option.description"
-                                                        class="open-answer-input" />
-                                                </template>
+                                                        <el-input
+                                                        v-if="question.selectedOption==option.optionId"
+                                                            v-model="option.openAnswer" 
+                                                            :placeholder="option.description"
+                                                            class="open-answer-input" />
+                                                            <span v-else>{{ option.description }}</span>
+                                                    </template>
                                                 <template v-else>
                                                     {{ option.description }}
                                                     <span v-if="option.isSkip" class="skip-info">
@@ -294,24 +296,24 @@ onMounted(() => {
                             </template>
 
                             <!-- 文件上传题 -->
-                            <template v-if="question.type === '文件上传'">
+                            <template v-if="question.type === '文件上传题'">
                                 <el-upload
-                                    class="upload-demo"
-                                    action="/api/upload"
-                                    :on-preview="handlePreview"
-                                    :on-remove="handleRemove"
-                                    :before-remove="beforeRemove"
-                                    multiple
-                                    :limit="3"
-                                    :on-exceed="handleExceed"
-                                    :required="question.isRequired">
-                                    <el-button type="primary">点击上传</el-button>
-                                    <template #tip>
-                                        <div class="el-upload__tip">
-                                            支持 jpg/png/pdf/docx 文件
-                                        </div>
-                                    </template>
-                                </el-upload>
+                                class="upload-demo"
+                                action="" 
+                                :auto-upload="false"
+                                :file-list="question.uploadedFiles"
+                                :on-change="(file, fileList) => question.uploadedFiles = fileList"
+                                :on-remove="(file, fileList) => question.uploadedFiles = fileList"
+                                :on-preview="handlePreview"
+                                multiple
+                                :limit="3"
+                                :on-exceed="handleExceed"
+                                :required="question.isRequired">
+                                <el-button type="primary">点击上传</el-button>
+                                <template #tip>
+                                    <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
+                                </template>
+                            </el-upload>
                             </template>
                         </div>
                     </div>

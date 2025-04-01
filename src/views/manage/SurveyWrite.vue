@@ -4,7 +4,7 @@ import { submitResponseService, getResponseDetailsService } from '@/api/response
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/user'
-
+import request from '@/utils/request.js'
 // 问卷ID
 const props = defineProps({
     surveyId: {
@@ -29,13 +29,6 @@ const loading = ref(true)
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
-// 初始化问题显示状态
-const initQuestionVisibility = () => {
-    visibleQuestions.value.clear()
-    questions.value.forEach(question => {
-        visibleQuestions.value.add(question.questionId)
-    })
-}
 
 // 处理选项选择变化
 const handleOptionChange = (question, optionId, checked) => {
@@ -185,6 +178,17 @@ const getSurveyData = async () => {
                                 question.answer = textResponse.responseData
                             }
                             break
+                        case '文件上传题':
+                            // 处理文件上传题答案
+                            question.uploadedFiles = questionResponses
+                                .filter(response => response.filePath && response.isValid === 1)
+                                .map(response => ({
+                                    name: response.filePath.split('/').pop(),  // 获取文件名
+                                    url: "http://localhost:8082" + response.filePath  // 完整的文件URL
+                                }))
+                            break
+
+
                     }
                 }
 
@@ -357,6 +361,14 @@ const submitSurvey = async (isSaveAction = false) => {
                         }
                     })
                     break
+                case '文件上传题': 
+                    if (question.uploadedFiles && question.uploadedFiles.length > 0) {
+                        question.uploadedFiles.forEach(file => {
+                            formData.append(`file_${question.questionId}`, file.raw, `question_${question.questionId}_${file.name}`);
+                        });
+                    }
+                    break;
+
             }
 
             // 处理开放选项
@@ -414,6 +426,59 @@ const handleMatrixRadioChange = (question, rowId, colId, checked) => {
 onMounted(() => {
     getSurveyData()
 })
+import { showImagePreview } from '@/utils/imagePreviewer';
+// 处理文件的预览
+const handlePreview = async (file) => {
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+  const fileUrl = `/uploads/${file.name}`;
+
+  try {
+    console.log('开始请求文件:', fileUrl);
+    const response = await request.get(fileUrl, {
+      responseType: 'blob',
+    });
+
+    console.log('响应数据:', response);
+    
+    if (!response.data || !(response.data instanceof Blob)) {
+      throw new Error('文件数据无效');
+    }
+
+    const blobUrl = URL.createObjectURL(response.data);
+    console.log('生成的 Blob URL:', blobUrl);
+
+    // 测试图片显示
+    const testImg = document.createElement('img');
+    testImg.src = blobUrl;
+    testImg.style.maxWidth = '100%';
+    testImg.onload = () => console.log('测试图片加载成功');
+    testImg.onerror = (e) => console.error('测试图片加载失败', e);
+    document.body.appendChild(testImg);
+
+    console.log('文件扩展名:', fileExtension);
+    
+    if (['jpg', 'jpeg', 'png'].includes(fileExtension.toLowerCase())) {
+      console.log('准备调用 showImagePreview');
+      // 确保这个函数存在
+      if (typeof showImagePreview === 'function') {
+        showImagePreview(blobUrl);
+      } else {
+        throw new Error('showImagePreview 不是函数');
+      }
+    } else if (fileExtension === 'pdf') {
+      console.log('准备打开PDF');
+      window.open(blobUrl, '_blank');
+    } else {
+      console.warn('无法预览该文件类型:', fileExtension);
+    }
+  } catch (error) {
+    console.error('文件预览失败:', error);
+    ElMessage.error('文件预览失败: ' + error.message);
+  }
+};
+
+// 在打开表单的方法中
+
 </script>
 
 <template>
@@ -461,10 +526,12 @@ onMounted(() => {
                                                 <span class="option-label">
                                                     {{ String.fromCharCode(65 + optIndex) }}.
                                                     <template v-if="option.isOpenOption">
-                                                        <el-input 
+                                                        <el-input
+                                                        v-if="question.selectedOption==option.optionId"
                                                             v-model="option.openAnswer" 
                                                             :placeholder="option.description"
                                                             class="open-answer-input" />
+                                                            <span v-else>{{ option.description }}</span>
                                                     </template>
                                                     <template v-else>
                                                         {{ option.description }}
@@ -587,25 +654,26 @@ onMounted(() => {
                                 </template>
 
                                 <!-- 文件上传题 -->
-                                <template v-if="question.type === '文件上传'">
+                                <template v-if="question.type === '文件上传题'">
                                     <el-upload
-                                        class="upload-demo"
-                                        action="/api/upload"
-                                        :on-preview="handlePreview"
-                                        :on-remove="handleRemove"
-                                        :before-remove="beforeRemove"
-                                        multiple
-                                        :limit="3"
-                                        :on-exceed="handleExceed"
-                                        :required="question.isRequired">
-                                        <el-button type="primary">点击上传</el-button>
-                                        <template #tip>
-                                            <div class="el-upload__tip">
-                                                支持 jpg/png/pdf/docx 文件
-                                            </div>
-                                        </template>
-                                    </el-upload>
+                                    class="upload-demo"
+                                    action="" 
+                                    :auto-upload="false"
+                                    :file-list="question.uploadedFiles"
+                                    :on-change="(file, fileList) => question.uploadedFiles = fileList"
+                                    :on-remove="(file, fileList) => question.uploadedFiles = fileList"
+                                    :on-preview="handlePreview"
+                                    multiple
+                                    :limit="3"
+                                    :on-exceed="handleExceed"
+                                    :required="question.isRequired">
+                                    <el-button type="primary" @click="resetForm()">点击上传</el-button>
+                                    <template #tip>
+                                        <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
+                                    </template>
+                                </el-upload>
                                 </template>
+
                             </div>
                         </div>
                     </div>
