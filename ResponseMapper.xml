@@ -1,0 +1,26 @@
+  <!-- 获取用户已有的文件响应记录 -->
+  <select id="selectExistingFileResponses" resultType="Response">
+    SELECT * FROM responses 
+    WHERE user_id = #{userId} 
+    AND survey_id = #{surveyId} 
+    AND file_path IS NOT NULL
+  </select>
+
+  <!-- 重置指定用户的响应记录的有效性，但排除指定的记录ID -->
+  <update id="resetIsValidForResponsesExcludingIds">
+    UPDATE responses 
+    SET is_valid = 0 
+    WHERE user_id = #{userId} 
+    AND survey_id = #{surveyId} 
+    AND id NOT IN
+    <foreach collection="excludedIds" item="id" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+  </update>
+
+  <!-- 获取指定问题的所有文件记录 -->
+  <select id="selectExistingFileResponsesByQuestionId" resultType="Response">
+    SELECT * FROM responses 
+    WHERE question_id = #{questionId} 
+    AND file_path IS NOT NULL
+  </select> 

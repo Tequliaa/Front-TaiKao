@@ -29,6 +29,8 @@ const loading = ref(true)
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
+// 在 script setup 中添加新的响应式变量
+const deletedFileIds = ref(new Set());
 
 // 处理选项选择变化
 const handleOptionChange = (question, optionId, checked) => {
@@ -179,14 +181,20 @@ const getSurveyData = async () => {
                             }
                             break
                         case '文件上传题':
-                            // 处理文件上传题答案
+                            // 获取文件上传题答案
                             question.uploadedFiles = questionResponses
                                 .filter(response => response.filePath && response.isValid === 1)
                                 .map(response => ({
-                                    name: response.filePath.split('/').pop(),  // 获取文件名
-                                    url: "http://localhost:8082" + response.filePath  // 完整的文件URL
-                                }))
-                            break
+                                    name: response.filePath.split('/').pop(),
+                                    url: "http://localhost:8082" + response.filePath,
+                                    isExisting: true,  // 标记为已有文件
+                                    fileId: response.id || response.fileId,  // 保留文件ID
+                                    responseId: response.id,  // 保留响应记录ID
+                                    raw: null  // 明确设置raw为null
+                                }));
+                            // 初始化新上传文件数组
+                            question.newUploadedFiles = [];
+                            break;
 
 
                     }
@@ -287,6 +295,21 @@ const validateRequiredQuestions = () => {
             case '评分题':
                 isValid = question.options.some(option => option.rating)
                 break
+            case '文件上传题':
+                // 检查必答题的文件上传情况
+                console.log('验证文件上传题:', {
+                    questionId: question.questionId,
+                    isRequired: question.isRequired,
+                    uploadedFiles: question.uploadedFiles,
+                    newUploadedFiles: question.newUploadedFiles
+                });
+                // 检查是否有文件（包括已有文件和新上传的文件）
+                const hasFiles = question.uploadedFiles && question.uploadedFiles.length > 0;
+                if (!hasFiles) {
+                    isValid = false;
+                    console.log('文件上传题验证失败：没有文件');
+                }
+                break;
         }
         
         if (!isValid) {
@@ -362,10 +385,20 @@ const submitSurvey = async (isSaveAction = false) => {
                     })
                     break
                 case '文件上传题': 
-                    if (question.uploadedFiles && question.uploadedFiles.length > 0) {
-                        question.uploadedFiles.forEach(file => {
-                            formData.append(`file_${question.questionId}`, file.raw, `question_${question.questionId}_${file.name}`);
+                    // 只处理新上传的文件
+                    if (question.newUploadedFiles && question.newUploadedFiles.length > 0) {
+                        question.newUploadedFiles.forEach(file => {
+                            if (file.raw) {
+                                formData.append(`file_${question.questionId}`, file.raw, `question_${question.questionId}_${file.name}`);
+                            }
                         });
+                    }
+
+                    // 传递未删除的已有文件信息
+                    const existingFiles = question.uploadedFiles.filter(f => f.isExisting && !deletedFileIds.value.has(f.responseId));
+                    if (existingFiles.length > 0) {
+                        formData.append(`existing_files_${question.questionId}`, 
+                                    existingFiles.map(f => f.responseId).join(','));
                     }
                     break;
 
@@ -426,50 +459,58 @@ const handleMatrixRadioChange = (question, rowId, colId, checked) => {
 onMounted(() => {
     getSurveyData()
 })
+
+// 处理文件的预览
 import { showImagePreview } from '@/utils/imagePreviewer';
+
 // 处理文件的预览
 const handlePreview = async (file) => {
   const fileExtension = file.name.split('.').pop().toLowerCase();
   const fileUrl = `/uploads/${file.name}`;
 
+  // 存储预览控制器以便后续清理
+  let previewController = null;
+
   try {
-    console.log('开始请求文件:', fileUrl);
     const response = await request.get(fileUrl, {
       responseType: 'blob',
     });
-
-    console.log('响应数据:', response);
     
     if (!response.data || !(response.data instanceof Blob)) {
       throw new Error('文件数据无效');
     }
 
     const blobUrl = URL.createObjectURL(response.data);
-    console.log('生成的 Blob URL:', blobUrl);
-
-    // 测试图片显示
-    const testImg = document.createElement('img');
-    testImg.src = blobUrl;
-    testImg.style.maxWidth = '100%';
-    testImg.onload = () => console.log('测试图片加载成功');
-    testImg.onerror = (e) => console.error('测试图片加载失败', e);
-    document.body.appendChild(testImg);
-
-    console.log('文件扩展名:', fileExtension);
     
-    if (['jpg', 'jpeg', 'png'].includes(fileExtension.toLowerCase())) {
-      console.log('准备调用 showImagePreview');
-      // 确保这个函数存在
-      if (typeof showImagePreview === 'function') {
-        showImagePreview(blobUrl);
-      } else {
-        throw new Error('showImagePreview 不是函数');
-      }
-    } else if (fileExtension === 'pdf') {
-      console.log('准备打开PDF');
+    // 确保在组件卸载或预览关闭时清理资源
+    const cleanup = () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (previewController?.close) previewController.close();
+    };
+
+    // 添加全局监听，确保在路由变化时清理
+    window.addEventListener('beforeunload', cleanup);
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+      previewController = showImagePreview(blobUrl);
+      
+      // 增强关闭处理
+      const originalClose = previewController.close;
+      previewController.close = () => {
+        cleanup();
+        originalClose();
+        window.removeEventListener('beforeunload', cleanup);
+      };
+    } 
+    else if (fileExtension === 'pdf') {
       window.open(blobUrl, '_blank');
-    } else {
+      // PDF 在新窗口打开，无法控制其关闭时机
+      // 设置延迟清理（风险：用户可能还在查看PDF）
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    }
+    else {
       console.warn('无法预览该文件类型:', fileExtension);
+      URL.revokeObjectURL(blobUrl);
     }
   } catch (error) {
     console.error('文件预览失败:', error);
@@ -477,6 +518,72 @@ const handlePreview = async (file) => {
   }
 };
 
+// 修改文件变化处理方法
+const handleFileChange = async(file, fileList, question) => {
+    console.log('文件变化:', {
+        file,
+        fileList,
+        questionId: question.questionId
+    });
+    
+    // 分离新文件和已有文件
+    const newFiles = fileList.filter(f => !f.isExisting && f.raw);
+    
+    // 使用响应式更新
+    const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId);
+    if (questionIndex !== -1) {
+        questions.value[questionIndex] = {
+            ...questions.value[questionIndex],
+            uploadedFiles: fileList,
+            newUploadedFiles: newFiles
+        };
+    }
+    
+    console.log('更新后的文件列表:', {
+        uploadedFiles: questions.value[questionIndex].uploadedFiles,
+        newUploadedFiles: questions.value[questionIndex].newUploadedFiles
+    });
+};
+
+// 修改文件删除处理方法
+const handleFileRemove = async(file, fileList, question) => {
+    console.log('删除文件:', {
+        file,
+        fileList,
+        questionId: question.questionId
+    });
+    
+    const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId);
+    if (questionIndex !== -1) {
+        // 如果是已有文件，记录其 responseId
+        if (file.isExisting && file.responseId) {
+            deletedFileIds.value.add(file.responseId);
+        }
+        
+        // 如果是新上传的文件，从newUploadedFiles中也移除
+        let newUploadedFiles = [...(questions.value[questionIndex].newUploadedFiles || [])];
+        if (!file.isExisting) {
+            newUploadedFiles = newUploadedFiles.filter(f => f.uid !== file.uid);
+        }
+        
+        // 使用响应式更新
+        questions.value[questionIndex] = {
+            ...questions.value[questionIndex],
+            uploadedFiles: fileList,
+            newUploadedFiles: newUploadedFiles
+        };
+    }
+    
+    console.log('删除后的文件列表:', {
+        uploadedFiles: questions.value[questionIndex].uploadedFiles,
+        newUploadedFiles: questions.value[questionIndex].newUploadedFiles,
+        deletedFileIds: Array.from(deletedFileIds.value)
+    });
+};
+
+const handleExceed = async(files, fileList) => {
+    ElMessage.warning(`最多上传3个文件，您选择了${files.length}个文件，共${files.length + fileList.length}个文件`);
+}
 // 在打开表单的方法中
 
 </script>
@@ -656,22 +763,25 @@ const handlePreview = async (file) => {
                                 <!-- 文件上传题 -->
                                 <template v-if="question.type === '文件上传题'">
                                     <el-upload
-                                    class="upload-demo"
-                                    action="" 
-                                    :auto-upload="false"
-                                    :file-list="question.uploadedFiles"
-                                    :on-change="(file, fileList) => question.uploadedFiles = fileList"
-                                    :on-remove="(file, fileList) => question.uploadedFiles = fileList"
-                                    :on-preview="handlePreview"
-                                    multiple
-                                    :limit="3"
-                                    :on-exceed="handleExceed"
-                                    :required="question.isRequired">
-                                    <el-button type="primary" @click="resetForm()">点击上传</el-button>
-                                    <template #tip>
-                                        <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
-                                    </template>
-                                </el-upload>
+                                        class="upload-demo"
+                                        action="" 
+                                        :auto-upload="false"
+                                        :file-list="question.uploadedFiles"
+                                        :on-change="(file, fileList) => handleFileChange(file, fileList, question)"
+                                        :on-remove="(file, fileList) => handleFileRemove(file, fileList, question)"
+                                        :on-preview="handlePreview"
+                                        multiple
+                                        :limit="3"
+                                        :on-exceed="handleExceed"
+                                        :required="question.isRequired">
+                                        <el-button type="primary">点击上传</el-button>
+                                        <template #tip>
+                                            <div class="el-upload__tip">
+                                                支持 jpg/png/pdf/docx 文件
+                                                <span v-if="question.isRequired" class="required">*</span>
+                                            </div>
+                                        </template>
+                                    </el-upload>
                                 </template>
 
                             </div>
