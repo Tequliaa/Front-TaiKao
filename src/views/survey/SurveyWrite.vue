@@ -29,8 +29,6 @@ const loading = ref(true)
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
-// 在 script setup 中添加新的响应式变量
-const deletedFileIds = ref(new Set());
 
 // 处理选项选择变化
 const handleOptionChange = (question, optionId, checked) => {
@@ -303,7 +301,6 @@ const validateRequiredQuestions = () => {
                     uploadedFiles: question.uploadedFiles,
                     newUploadedFiles: question.newUploadedFiles
                 });
-                // 检查是否有文件（包括已有文件和新上传的文件）
                 const hasFiles = question.uploadedFiles && question.uploadedFiles.length > 0;
                 if (!hasFiles) {
                     isValid = false;
@@ -320,7 +317,7 @@ const validateRequiredQuestions = () => {
     return invalidQuestions
 }
 
-// 修改提交方法
+// 提交方法
 const submitSurvey = async (isSaveAction = false) => {
     try {
         // 如果不是保存操作，先验证必答题
@@ -348,31 +345,42 @@ const submitSurvey = async (isSaveAction = false) => {
             // 跳过被隐藏的问题
             if (!visibleQuestions.value.has(question.questionId)) return
             
+            console.log('处理问题:', question.questionId, question.type)
+            
             switch (question.type) {
                 case '单选':
-                    formData.append(`question_${question.questionId}`, question.selectedOption || '')
+                    if (question.selectedOption) {
+                        console.log('单选答案:', question.selectedOption)
+                        formData.append(`question_${question.questionId}_optionId_${question.selectedOption}`,'on')
+                    }
                     break
                 case '多选':
-                    // 多选题需要为每个选项创建一个记录
-                    question.selectedOptions.forEach(optionId => {
-                        formData.append(`question_${question.questionId}`, optionId)
-                    })
+                    console.log('多选答案:', question.selectedOptions)
+                    if (question.selectedOptions && question.selectedOptions.length > 0) {
+                        // 为每个选中的选项创建一个记录
+                        question.selectedOptions.forEach(optionId => {
+                            formData.append(`question_${question.questionId}_optionId_${optionId}`, 'on')
+                        })
+                    }
                     break
                 case '填空':
-                    formData.append(`question_${question.questionId}`, question.answer || '')
+                    if (question.answer) {
+                        formData.append(`question_${question.questionId}`, question.answer)
+                    }
                     break
                 case '矩阵单选':
                     Object.entries(question.matrixAnswers).forEach(([rowId, colId]) => {
                         if (colId) {  // 只提交有选择的答案
-                            formData.append(`question_${question.questionId}_row_${rowId}`, colId)
+                            formData.append(`question_${question.questionId}_row_${rowId}_col_${colId}`, 'on')
                         }
                     })
                     break
                 case '矩阵多选':
                     Object.entries(question.matrixAnswers).forEach(([rowId, colIds]) => {
                         if (colIds && colIds.length > 0) {  // 只提交有选择的答案
+                            // 为每个选中的列选项创建一个记录
                             colIds.forEach(colId => {
-                                formData.append(`question_${question.questionId}_row_${rowId}`, colId)
+                                formData.append(`question_${question.questionId}_row_${rowId}_col_${colId}`, 'on')
                             })
                         }
                     })
@@ -394,14 +402,13 @@ const submitSurvey = async (isSaveAction = false) => {
                         });
                     }
 
-                    // 传递未删除的已有文件信息
-                    const existingFiles = question.uploadedFiles.filter(f => f.isExisting && !deletedFileIds.value.has(f.responseId));
+                    // 必须传递已有文件信息
+                    const existingFiles = question.uploadedFiles.filter(f => f.isExisting);
                     if (existingFiles.length > 0) {
                         formData.append(`existing_files_${question.questionId}`, 
                                     existingFiles.map(f => f.responseId).join(','));
                     }
                     break;
-
             }
 
             // 处理开放选项
@@ -413,6 +420,12 @@ const submitSurvey = async (isSaveAction = false) => {
                 })
             }
         })
+
+        // 打印所有表单数据
+        console.log('提交的表单数据:')
+        for (let [key, value] of formData.entries()) {
+            console.log(key, value)
+        }
 
         // 发送请求
         const result = await submitResponseService(formData)
@@ -426,6 +439,7 @@ const submitSurvey = async (isSaveAction = false) => {
             ElMessage.error(result.message || '操作失败')
         }
     } catch (error) {
+        console.error('提交失败:', error)
         ElMessage.error('操作失败：' + error.message)
     }
 }
@@ -555,11 +569,6 @@ const handleFileRemove = async(file, fileList, question) => {
     
     const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId);
     if (questionIndex !== -1) {
-        // 如果是已有文件，记录其 responseId
-        if (file.isExisting && file.responseId) {
-            deletedFileIds.value.add(file.responseId);
-        }
-        
         // 如果是新上传的文件，从newUploadedFiles中也移除
         let newUploadedFiles = [...(questions.value[questionIndex].newUploadedFiles || [])];
         if (!file.isExisting) {
@@ -576,8 +585,7 @@ const handleFileRemove = async(file, fileList, question) => {
     
     console.log('删除后的文件列表:', {
         uploadedFiles: questions.value[questionIndex].uploadedFiles,
-        newUploadedFiles: questions.value[questionIndex].newUploadedFiles,
-        deletedFileIds: Array.from(deletedFileIds.value)
+        newUploadedFiles: questions.value[questionIndex].newUploadedFiles
     });
 };
 

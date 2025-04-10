@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAllQuestionsService,getAllQuestionsBySurveyIdService } from '@/api/question'
+import { getAllQuestionsBySurveyIdService } from '@/api/question'
 import { ElMessage } from 'element-plus'
 
 // 问卷ID

@@ -20,6 +20,11 @@ export const getResponseDetailsService = (surveyId,userId) => {
     return request.get(`/response/details?surveyId=`+surveyId+'&userId='+userId)
 }
 
+// 获取问卷答题统计
+export const getStatisticsService = (surveyId,departmentId) => {
+    return request.get(`/response/statistics?surveyId=`+surveyId)
+}
+
 // 删除问卷响应
 export const deleteResponseService = (responseId) => {
     return request.delete(`/response/delete/${responseId}`)

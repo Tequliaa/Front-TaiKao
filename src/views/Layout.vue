@@ -105,7 +105,7 @@ const handleCommand = (command) => {
                         </el-icon>
                         <span>问卷管理</span>
                     </template>
-                    <el-menu-item index="/manage/survey">
+                    <el-menu-item index="/survey/survey">
                         <el-icon>
                             <User />
                         </el-icon>

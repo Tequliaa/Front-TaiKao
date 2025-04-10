@@ -1,14 +1,10 @@
 <script setup>
 import {
-    Edit,
-    Delete,
     Pointer,
-    View,
-    Connection
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import { nextTick, onMounted } from 'vue';
-import { ref,reactive } from 'vue'
+import {  onMounted } from 'vue';
+import { ref } from 'vue'
 //问卷列表查询
 import { getResponseListService } from '@/api/response.js'
 //导入接口函数
@@ -135,19 +131,7 @@ const options = [
     label: '否',
   }
 ]
-import { debounce } from 'lodash';
 
-const handleInputChange = debounce(() => {
-    console.log("触发函数了")
-    getSurveys()
-    }, 500);  // 延时 500ms
-
-const getPlainText = (htmlContent)=> {
-      // 使用正则去掉 HTML 标签，获取纯文本
-      const div = document.createElement('div');
-      div.innerHTML = htmlContent;
-      return div.textContent || div.innerText || '';
-}
 
 // 添加查看答题情况的方法
 const viewResponse = (row) => {
@@ -161,6 +145,17 @@ const viewResponse = (row) => {
     })
 }
 
+// 添加查看统计数据的方法
+const OverallResponse = () => {
+    router.push({
+        name: 'SurveyStatistics',
+        params: {
+            surveyId: props.surveyId,
+            departmentId: 0
+        }
+    })
+}
+
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -168,6 +163,8 @@ const viewResponse = (row) => {
             <template #header>
                 <div class="header">
                     <span>{{ props.surveyName }}-答题情况</span>
+                    <el-button type="primary" @click="OverallResponse">总体答题情况</el-button>
+                    <!-- <el-button type="primary" @click="exportExcel">导出Excel</el-button> -->
                 </div>
             </template>
 

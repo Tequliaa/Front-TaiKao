@@ -218,12 +218,24 @@ public class ResponseController {
 
 
     private void processFormData(Map<String, String> formData, int surveyId, int userId, String ipAddress, boolean isSaveAction) throws Exception {
+        // 创建一个Map来存储多选和矩阵多选的答案
+        Map<String, List<String>> multiSelectAnswers = new HashMap<>();
+        Map<String, List<String>> matrixMultiSelectAnswers = new HashMap<>();
+
+        // 首先收集所有的答案
         for (Map.Entry<String, String> entry : formData.entrySet()) {
             String paramName = entry.getKey();
             String paramValue = entry.getValue();
+            
             if (paramName.startsWith("question_")) {
-                int questionId = Integer.parseInt(paramName.split("_")[1]);
-                processQuestionAnswer(paramName, paramValue, surveyId, questionId, ipAddress, userId, isSaveAction);
+                if (paramName.contains("_row_")) {
+                    // 矩阵多选
+                    String key = paramName.substring(0, paramName.lastIndexOf("_"));
+                    matrixMultiSelectAnswers.computeIfAbsent(key, k -> new ArrayList<>()).add(paramValue);
+                } else {
+                    // 普通多选
+                    multiSelectAnswers.computeIfAbsent(paramName, k -> new ArrayList<>()).add(paramValue);
+                }
             } else if (paramName.startsWith("rating_")) {
                 processRatingAnswer(paramName, paramValue, surveyId, ipAddress, userId);
             } else if (paramName.startsWith("open_answer_")) {
@@ -234,15 +246,34 @@ public class ResponseController {
                 processExistingFiles(questionId, paramValue);
             }
         }
-    }
 
-    private void processQuestionAnswer(String paramName, String paramValue, int surveyId, int questionId, 
-                                     String ipAddress, int userId, boolean isSaveAction) throws Exception {
-        if (paramName.contains("_row_")) {
-            String rowOptionId = paramName.split("_")[3];
-            saveMatrixResponse(surveyId, questionId, rowOptionId, paramValue, ipAddress, userId, isSaveAction);
-        } else {
-            saveResponse(surveyId, questionId, paramValue, ipAddress, userId, isSaveAction);
+        // 处理多选答案
+        for (Map.Entry<String, List<String>> entry : multiSelectAnswers.entrySet()) {
+            String paramName = entry.getKey();
+            List<String> values = entry.getValue();
+            String[] parts = paramName.split("_");
+            if (parts.length >= 2) {  // 确保参数名称格式正确
+                int questionId = Integer.parseInt(parts[1]);
+                // 处理每个选中的选项
+                for (String value : values) {
+                    saveResponse(surveyId, questionId, value, ipAddress, userId, isSaveAction);
+                }
+            }
+        }
+
+        // 处理矩阵多选答案
+        for (Map.Entry<String, List<String>> entry : matrixMultiSelectAnswers.entrySet()) {
+            String paramName = entry.getKey();
+            List<String> values = entry.getValue();
+            String[] parts = paramName.split("_");
+            if (parts.length >= 4) {  // 确保参数名称格式正确
+                int questionId = Integer.parseInt(parts[1]);
+                String rowOptionId = parts[3];
+                // 处理每个选中的列选项
+                for (String value : values) {
+                    saveMatrixResponse(surveyId, questionId, rowOptionId, value, ipAddress, userId, isSaveAction);
+                }
+            }
         }
     }
 
