@@ -44,3 +44,11 @@ export const userInfoGetService = ()=>{
 export const userPasswordUpdateService = (userInfo)=>{
   return request.post('/user/updatePassword',userInfo)
 }
+
+//导出用户列表
+export const userExportService = (params) => {
+  return request.get('/user/export', {
+    params,
+    responseType: 'blob'
+  })
+}

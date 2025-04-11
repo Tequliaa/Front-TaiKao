@@ -12,6 +12,10 @@ const props = defineProps({
     departmentId: {
         type: [String, Number],
         required: false
+    },
+    departmentName: {
+        type: String,
+        required: false
     }
 })
 
@@ -36,7 +40,7 @@ const visibleQuestions = ref(new Set())
 const getStatistics = async () => {
     loading.value = true
     try {
-        const response = await getStatisticsService(props.surveyId)
+        const response = await getStatisticsService(props.surveyId,props.departmentId)
         if (response.code === 0) {
             // 直接使用返回的 questions 数组
             questions.value = response.data.questions
@@ -93,7 +97,8 @@ const goToUnfinishedList = () => {
         params: {
             surveyId: props.surveyId,
             departmentId: props.departmentId,
-            surveyName: surveyInfo.value.name
+            surveyName: surveyInfo.value.name,
+            departmentName: props.departmentName
         }
     })
 }
@@ -126,8 +131,7 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
                     <div class="survey-header">
                         <h1 class="survey-title">{{ surveyInfo.name }}</h1>
                         <div class="unfinished-info">
-                            <h4>未完成人数：{{ unfinishedTotalRecords }}</h4>
-                            <el-button type="primary" @click="goToUnfinishedList">查看未完成列表</el-button>
+                            <h4>{{props.departmentName}}——未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span></h4>
                         </div>
                         <h6 class="survey-description">{{ surveyInfo.description }}</h6>
                     </div>
@@ -296,15 +300,27 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
     }
 
     .unfinished-info {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-        margin: 15px 0;
+        margin-bottom: 20px;
+        text-align: center;
 
         h4 {
+            font-size: 18px;
+            color: #2c3e50;
             margin: 0;
-            color: #606266;
+
+            .unfinished-count {
+                color: #409EFF;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 500;
+                position: relative;
+                padding: 0 4px;
+
+                &:hover {
+                    color: #66b1ff;
+                    text-decoration: underline;
+                }
+            }
         }
     }
 }

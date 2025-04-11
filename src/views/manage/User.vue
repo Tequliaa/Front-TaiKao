@@ -2,11 +2,12 @@
 import {
     Edit,
     Delete,
-    Pointer
+    Pointer,
+    Download
 } from '@element-plus/icons-vue'
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { userListService, userUpdateService, userDeleteService } from '@/api/user.js'
+import { userListService, userUpdateService, userDeleteService, userExportService } from '@/api/user.js'
 import { getAllSurveysService } from '@/api/department.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
@@ -223,6 +224,44 @@ const goToUserSurveyPage = (row) => {
       params: { userId: row.id ,
                 username: row.name }  // 传递参数
     })}
+
+// 导出用户列表
+const exportUsers = async () => {
+    try {
+        const response = await userExportService({
+            keyword: keyword.value,
+            departmentId: 0
+        })
+
+        // 获取文件名
+        const contentDisposition = response.headers['content-disposition']
+        let fileName = `用户列表-${new Date().toLocaleDateString()}.xlsx`
+        if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+            if (fileNameMatch && fileNameMatch[1]) {
+                fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''))
+            }
+        }
+
+        // 下载文件
+        const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        ElMessage.success('导出成功')
+    } catch (error) {
+        console.error('导出失败:', error)
+        ElMessage.error('导出失败：' + (error.response?.data?.message || error.message))
+    }
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -232,6 +271,10 @@ const goToUserSurveyPage = (row) => {
                     <span>用户管理</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
+                        <el-button type="primary" @click="exportUsers">
+                            <el-icon><Download /></el-icon>
+                            导出
+                        </el-button>
                     </div>
                     
                 </div>
@@ -306,6 +349,11 @@ const goToUserSurveyPage = (row) => {
     }
     .el-input {
         width: 240px;  /* 输入框的宽度 */
+    }
+    .extra {
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 }
 </style>

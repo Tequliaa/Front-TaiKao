@@ -30,8 +30,8 @@ const router = createRouter({
       redirect: '/survey/survey',
       //子路由
       children:[
-        { path: '/manage/unfinishedList/:surveyId/:departmentId?/:surveyName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},
-        { path: '/survey/surveyStatistics/:surveyId/:departmentId?',component:SurveyStatisticsVue,props:true,name:'SurveyStatistics'},
+        { path: '/manage/unfinishedList/:surveyId/:departmentId?/:surveyName?/:departmentName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},
+        { path: '/survey/surveyStatistics/:surveyId/:departmentId?/:departmentName?',component:SurveyStatisticsVue,props:true,name:'SurveyStatistics'},
         { path: '/survey/surveyView/:surveyId/:userId?/:userName?',component:SurveyViewVue,props:true,name:'SurveyView'},
         { path: '/survey/surveyWrite/:surveyId?',component:SurveyWriteVue,props:true,name:'SurveyWrite'},
         { path: '/manage/response/:surveyId?/:surveyName?',component:ResponseVue,props:true,name:'Response'},

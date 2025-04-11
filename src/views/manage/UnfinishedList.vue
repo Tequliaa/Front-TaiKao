@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { unfinishedListService } from '@/api/userSurvey'
+import { unfinishedListService, exportUnfinishedListService } from '@/api/userSurvey'
 import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 // 定义props
 const props = defineProps({
@@ -14,6 +16,10 @@ const props = defineProps({
         required: true
     },
     surveyName: {
+        type: String,
+        required: true
+    },
+    departmentName: {
         type: String,
         required: true
     }
@@ -43,6 +49,41 @@ const getUnfinishedList = async () => {
     }
 }
 
+// 导出未完成列表
+const exportUnfinishedList = async () => {
+    try {
+        const response = await exportUnfinishedListService(props.surveyId, props.departmentId)
+
+        // 获取文件名
+        const contentDisposition = response.headers['content-disposition']
+        let fileName = `${props.surveyName}-未完成名单-${new Date().toLocaleDateString()}.xlsx`
+        if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+            if (fileNameMatch && fileNameMatch[1]) {
+                fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''))
+            }
+        }
+
+        // 下载文件
+        const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        ElMessage.success('导出成功')
+    } catch (error) {
+        console.error('导出失败:', error)
+        ElMessage.error('导出失败：' + (error.response?.data?.message || error.message))
+    }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
     getUnfinishedList()
@@ -57,8 +98,17 @@ onMounted(() => {
                 <template #default>
                     <!-- 标题和总数 -->
                     <div class="list-header">
-                        <h2>{{ props.surveyName }}问卷——未完成名单</h2>
-                        <div class="total-count">总人数：{{ totalCount }}</div>
+                        <h2>{{ props.surveyName }}问卷</h2>
+                        <div class="total-count-wrapper">
+                            <div class="total-count">未完成人数：{{ totalCount }}</div>
+                            <el-button 
+                                type="primary" 
+                                :icon="Download" 
+                                @click="exportUnfinishedList"
+                                class="export-btn">
+                                导出
+                            </el-button>
+                        </div>
                     </div>
 
                     <!-- 用户列表 -->
@@ -112,36 +162,29 @@ onMounted(() => {
         }
 
         .list-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 24px;
             padding-bottom: 16px;
             border-bottom: 1px solid #ebeef5;
 
             h2 {
-                margin: 0;
+                margin: 0 0 12px 0;
                 color: #2c3e50;
                 font-size: 22px;
                 font-weight: 600;
                 letter-spacing: 0.5px;
-                flex: 1;
                 text-align: center;
             }
 
-            .total-count {
-                color: #409EFF;
-                font-size: 16px;
-                font-weight: 500;
-                padding: 8px 24px;
-                background-color: #ecf5ff;
-                border-radius: 6px;
-                transition: all 0.3s ease;
-                white-space: nowrap;
+            .total-count-wrapper {
+                display: flex;
+                justify-content: flex-end;
+                clear: both;
+                align-items: center;
+                gap: 12px;
 
-                &:hover {
-                    background-color: #409EFF;
-                    color: #fff;
+                .export-btn {
+                    font-size: 14px;
+                    padding: 4px 12px;
                 }
             }
         }

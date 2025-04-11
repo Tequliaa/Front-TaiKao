@@ -146,25 +146,64 @@ const viewResponse = (row) => {
 }
 
 // 添加查看统计数据的方法
-const OverallResponse = () => {
+const OverallResponse = (departmentId,departmentName) => {
     router.push({
         name: 'SurveyStatistics',
         params: {
             surveyId: props.surveyId,
-            departmentId: 0
+            departmentId: departmentId,
+            departmentName: departmentName
         }
     })
 }
+import { getStatisticsService } from '@/api/response'
+const unfinishedTotalRecords = ref(0)
+const userSurveys = ref([])
+// 获取统计数据
+const getStatistics = async () => {
+    loading.value = true
+    try {
+        const response = await getStatisticsService(props.surveyId,0)
+        if (response.code === 0) {
+            unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
+            userSurveys.value = response.data.userSurveys
+        } else {
+            ElMessage.error('获取统计数据失败')
+        }
+    } catch (error) {
+        console.error('获取统计数据失败:', error)
+        ElMessage.error('获取统计数据失败：' + error.message)
+    } finally {
+        loading.value = false
+    }
+}
 
+getStatistics()
+
+// 跳转到未完成列表
+const goToUnfinishedList = () => {
+    router.push({
+        name: 'UnfinishedList',
+        params: {
+            surveyId: props.surveyId,
+            departmentId: 0,
+            surveyName: props.surveyName
+        }
+    })
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
         <el-card class="page-container">
             <template #header>
-                <div class="header">
-                    <span>{{ props.surveyName }}-答题情况</span>
-                    <el-button type="primary" @click="OverallResponse">总体答题情况</el-button>
-                    <!-- <el-button type="primary" @click="exportExcel">导出Excel</el-button> -->
+                <div class="header-container">
+                    <h2 class="survey-title">{{ props.surveyName }}-答题情况（未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span>）</h2>
+                    <div class="header">
+                        <el-button type="primary" size="large" @click="OverallResponse(0)">总体答题情况</el-button>
+                        <template v-for="(userSurvey, index) in userSurveys" :key="index">
+                            <h4 class="unfinished-count" @click="OverallResponse(userSurvey.departmentId,userSurvey.departmentName)">{{ userSurvey.departmentName }}</h4>
+                        </template>
+                    </div>
                 </div>
             </template>
 
@@ -203,11 +242,82 @@ const OverallResponse = () => {
     min-height: 100%;
     box-sizing: border-box;
 
-    .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    .header-container {
+        text-align: center;
+        margin-bottom: 16px;
+        padding: 0 20px;
+
+        .survey-title {
+            font-size: 22px;
+            color: #2c3e50;
+            margin-bottom: 16px;
+            font-weight: 600;
+
+            .unfinished-count {
+                color: #409EFF;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 500;
+                position: relative;
+                padding: 0 4px;
+
+                &:hover {
+                    color: #66b1ff;
+                    text-decoration: underline;
+                }
+            }
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+
+            .unfinished-count {
+                color: #409EFF;
+                cursor: pointer;
+                margin: 0;
+                padding: 6px 12px;
+                background-color: #ecf5ff;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+                font-size: 14px;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
+
+                &:hover {
+                    background-color: #409EFF;
+                    color: #fff;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(64, 158, 255, 0.2);
+                }
+
+                &:active {
+                    transform: translateY(0);
+                    box-shadow: 0 1px 3px rgba(64, 158, 255, 0.2);
+                }
+            }
+
+            :deep(.el-button) {
+                font-size: 14px;
+                padding: 6px 12px;
+                height: auto;
+            }
+        }
     }
+
+    :deep(.el-card__header) {
+        padding: 16px 0;
+    }
+
+    :deep(.el-table) {
+        margin-top: 8px;
+    }
+
     .extra {
         display: flex;
         align-items: center;  /* 确保垂直居中对齐 */

@@ -26,3 +26,14 @@ export const userSurveyUpdateService = (surveyId,userId,status)=>{
 export const userSurveyGetService = (params) => {
   return request.get('/userSurvey/getUserSurvey',{params})  
 }
+
+// 导出未完成名单
+export const exportUnfinishedListService = (surveyId, departmentId) => {
+  return request.get('/userSurvey/exportUnfinishedList', {
+    params: {
+      surveyId,
+      departmentId
+    },
+    responseType: 'blob'
+  })
+}

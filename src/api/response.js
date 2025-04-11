@@ -22,7 +22,7 @@ export const getResponseDetailsService = (surveyId,userId) => {
 
 // 获取问卷答题统计
 export const getStatisticsService = (surveyId,departmentId) => {
-    return request.get(`/response/statistics?surveyId=`+surveyId)
+    return request.get(`/response/statistics?surveyId=`+surveyId+'&departmentId='+departmentId)
 }
 
 // 删除问卷响应
