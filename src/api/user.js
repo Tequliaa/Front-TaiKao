@@ -42,7 +42,11 @@ export const userInfoGetService = ()=>{
 
 //修改个人密码
 export const userPasswordUpdateService = (userInfo)=>{
-  return request.post('/user/updatePassword',userInfo)
+  var params = new URLSearchParams()
+  for (let key in userInfo) {
+    params.append(key, userInfo[key])
+  }
+  return request.post('/user/updatePassword', params)
 }
 
 //导出用户列表
@@ -50,5 +54,15 @@ export const userExportService = (params) => {
   return request.get('/user/export', {
     params,
     responseType: 'blob'
+  })
+}
+
+//导入用户列表
+export const userImportService = (formData) => {
+  return request.post('/user/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    transformRequest: [(data) => data] // 防止axios对FormData进行处理
   })
 }

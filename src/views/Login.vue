@@ -19,7 +19,8 @@ const tokenStore = useTokenStore();
 const registerData = ref({
     username: '',
     password: '',
-    rePassword: ''
+    rePassword: '',
+    departmentId: 0
 })
 //自定义确认密码的校验函数
 const rePasswordValid = (rule, value, callback) => {

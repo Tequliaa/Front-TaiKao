@@ -8,6 +8,7 @@ import {
 import { nextTick, onMounted } from 'vue';
 import { ref } from 'vue'
 import LoadingWrapper from '@/components/LoadingWrapper.vue'
+import { useRouter } from 'vue-router'
 
 //部门列表查询
 import { departmentListService, departmentAddService, departmentDelService, departmentUpdateService } from '@/api/department.js'
@@ -24,6 +25,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
 
 const userInfoStore = useUserInfoStore();
+const router = useRouter()
 
 //获取个人信息
 const getUserInf = async () => {
@@ -209,6 +211,16 @@ const getPlainText = (htmlContent)=> {
       div.innerHTML = htmlContent;
       return div.textContent || div.innerText || '';
     }
+
+// 查看部门用户
+const viewDepartment = (row) => {
+    router.push({
+        name: 'User',
+        query: {
+            departmentId: row.id
+        }
+    })
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -237,7 +249,7 @@ const getPlainText = (htmlContent)=> {
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary"></el-button>
+                            <el-button :icon="Pointer" circle plain type="primary" @click="viewDepartment(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button :icon="Edit" circle plain type="primary" @click="editDepartmentEcho(row)"></el-button>

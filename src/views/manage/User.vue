@@ -3,17 +3,19 @@ import {
     Edit,
     Delete,
     Pointer,
-    Download
+    Download,
+    Upload
 } from '@element-plus/icons-vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { userListService, userUpdateService, userDeleteService, userExportService } from '@/api/user.js'
+import { userListService, userUpdateService, userDeleteService, userExportService, userImportService } from '@/api/user.js'
 import { getAllSurveysService } from '@/api/department.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
 import LoadingWrapper from '@/components/LoadingWrapper.vue'
+import { useRouter, useRoute } from 'vue-router'
 const userInfoStore = useUserInfoStore();
 
 const users = ref([
@@ -34,13 +36,17 @@ const departments = ref([])
 // 添加加载状态
 const loading = ref(true)
 
+const router = useRouter()
+const route = useRoute()
+
 // 修改获取用户数据的方法
 const getUsers = async () => {
     try {
         let params = {
             keyword: keyword.value,
             pageNum: pageNum.value,
-            pageSize: pageSize.value
+            pageSize: pageSize.value,
+            departmentId: route.query.departmentId || 0
         }
         let result = await userListService(params);
         //渲染总条数
@@ -99,6 +105,17 @@ const initData = async () => {
 onMounted(() => {
     initData()
 })
+
+// 监听路由参数变化
+watch(
+    () => route.query.departmentId,
+    (newVal) => {
+        if (newVal) {
+            pageNum.value = 1
+            getUsers()
+        }
+    }
+)
 
 // 用户角色
 const roles = [
@@ -215,8 +232,6 @@ const getPlainText = (htmlContent)=> {
     div.innerHTML = htmlContent;
     return div.textContent || div.innerText || '';
 }
-import { useRouter } from 'vue-router';
-const router = useRouter();
 const goToUserSurveyPage = (row) => {
     console.log(row.name)
     router.push({
@@ -262,6 +277,23 @@ const exportUsers = async () => {
         ElMessage.error('导出失败：' + (error.response?.data?.message || error.message))
     }
 }
+
+// 导入用户
+const handleImport = async (file, fileList) => {
+    const formData = new FormData()
+    formData.append('file', file.raw)
+    try {
+        const response = await userImportService(formData)
+        if (response.code === 1) {
+            ElMessage.success('导入成功')
+            getUsers() // 刷新数据
+        } else {
+            ElMessage.error(response.message || '导入失败')
+        }
+    } catch (error) {
+        ElMessage.error('导入失败：' + (error.response?.data?.message || error.message))
+    }
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -271,6 +303,28 @@ const exportUsers = async () => {
                     <span>用户管理</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
+                        <el-upload
+                            class="upload-btn"
+                            action=""
+                            :auto-upload="false"
+                            :show-file-list="false"
+                            accept=".xlsx,.xls"
+                            :on-change="handleImport"
+                            :before-upload="(file) => {
+                                const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                                              file.type === 'application/vnd.ms-excel'
+                                if (!isExcel) {
+                                    ElMessage.error('只能上传Excel文件！')
+                                    return false
+                                }
+                                return true
+                            }"
+                        >
+                            <el-button type="primary">
+                                <el-icon><Upload /></el-icon>
+                                导入
+                            </el-button>
+                        </el-upload>
                         <el-button type="primary" @click="exportUsers">
                             <el-icon><Download /></el-icon>
                             导出
