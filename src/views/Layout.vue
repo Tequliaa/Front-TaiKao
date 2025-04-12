@@ -10,10 +10,15 @@ import {
     CaretBottom,
     Avatar,
     List,
-    Menu
+    Menu,
+    HomeFilled,
+    Setting,
+    Bell,
+    Expand,
+    Fold
 } from '@element-plus/icons-vue'
 import avatar from '@/assets/default.png'
-
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -70,131 +75,236 @@ const handleCommand = (command) => {
     }
 }
 
+// 控制侧边栏折叠状态
+const isCollapse = ref(false)
+const toggleSidebar = () => {
+    isCollapse.value = !isCollapse.value
+}
+
+// 检测是否为移动设备
+const isMobile = ref(window.innerWidth <= 768)
+
+// 监听窗口大小变化
+const handleResize = () => {
+    const wasMobile = isMobile.value
+    isMobile.value = window.innerWidth <= 768
+    
+    if (isMobile.value) {
+        isCollapse.value = true
+    } else if (wasMobile) {
+        // 从移动端切换到桌面端时，恢复侧边栏宽度
+        isCollapse.value = false
+    }
+}
+
+// 在组件挂载时添加窗口大小变化监听
+onMounted(() => {
+    // 初始化时检查窗口大小
+    handleResize()
+    // 强制重新计算布局
+    nextTick(() => {
+        handleResize()
+        // 再次检查以确保样式已应用
+        setTimeout(() => {
+            handleResize()
+        }, 100)
+    })
+    window.addEventListener('resize', handleResize)
+})
+
+// 在组件卸载时移除监听
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <template>
-    <el-container class="layout-container">
-        <!-- 左侧菜单 -->
-        <el-aside width="200px">
-            <div class="el-aside__logo">问卷管理平台</div>
-            <el-menu active-text-color="#ffd04b" background-color="#232323" text-color="#fff" router>
-                <el-menu-item index="/manage/userSurvey">
-                    <el-icon>
-                        <Avatar />
+    <el-container class="layout-container" :class="{ 'mobile-layout': isMobile }">
+        <!-- 左侧菜单 - 在移动端变为顶部菜单 -->
+        <el-aside :width="isMobile ? '100%' : (isCollapse ? '64px' : '240px')" class="sidebar-container" :class="{ 'mobile-sidebar': isMobile }">
+            <!-- 移动端菜单 -->
+            <div v-if="isMobile" class="mobile-menu">
+                <el-menu 
+                    active-text-color="#4a90e2" 
+                    background-color="#2c3e50" 
+                    text-color="#ecf0f1" 
+                    router
+                    mode="horizontal"
+                    class="mobile-menu-container">
+                    <el-menu-item index="/manage/userSurvey" class="mobile-menu-item">
+                        <el-icon><Avatar /></el-icon>
+                        <span>我的问卷</span>
+                    </el-menu-item>
+                    <el-menu-item index="/manage/user" class="mobile-menu-item">
+                        <el-icon><Management /></el-icon>
+                        <span>用户管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/manage/department" class="mobile-menu-item">
+                        <el-icon><List /></el-icon>
+                        <span>部门管理</span>
+                    </el-menu-item>
+                    <el-sub-menu index="geren1" class="mobile-submenu">
+                        <template #title>
+                            <el-icon><Menu /></el-icon>
+                            <span>问卷管理</span>
+                        </template>
+                        <el-menu-item index="/survey/survey" class="mobile-submenu-item">
+                            <el-icon><User /></el-icon>
+                            <span>问卷管理</span>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/category" class="mobile-submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <span>分类管理</span>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/question" class="mobile-submenu-item">
+                            <el-icon><Crop /></el-icon>
+                            <span>问题管理</span>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/option" class="mobile-submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <span>选项管理</span>
+                        </el-menu-item>
+                    </el-sub-menu>
+                    <el-sub-menu index="geren2" class="mobile-submenu">
+                        <template #title>
+                            <el-icon><UserFilled /></el-icon>
+                            <span>个人中心</span>
+                        </template>
+                        <el-menu-item index="/user/info" class="mobile-submenu-item">
+                            <el-icon><User /></el-icon>
+                            <span>基本资料</span>
+                        </el-menu-item>
+                        <el-menu-item index="/user/avatar" class="mobile-submenu-item">
+                            <el-icon><Crop /></el-icon>
+                            <span>更换头像</span>
+                        </el-menu-item>
+                        <el-menu-item index="/user/password" class="mobile-submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <span>重置密码</span>
+                        </el-menu-item>
+                    </el-sub-menu>
+                </el-menu>
+            </div>
+            <!-- 桌面端头部 -->
+            <div v-else class="sidebar-header">
+                <div class="logo-container">
+                    <span class="logo-text" v-if="!isCollapse">问卷管理平台</span>
+                    <el-icon class="collapse-btn" @click="toggleSidebar">
+                        <component :is="isCollapse ? 'Expand' : 'Fold'" />
                     </el-icon>
-                    <span>我的问卷</span>
+                </div>
+            </div>
+            <!-- 桌面端菜单 -->
+            <el-menu 
+                v-if="!isMobile"
+                active-text-color="#4a90e2" 
+                background-color="#2c3e50" 
+                text-color="#ecf0f1" 
+                router
+                :collapse="isCollapse"
+                :collapse-transition="false"
+                class="sidebar-menu">
+                <el-menu-item index="/manage/userSurvey" class="menu-item">
+                    <el-icon><Avatar /></el-icon>
+                    <template #title>我的问卷</template>
                 </el-menu-item>
-                <el-menu-item index="/manage/user">
-                    <el-icon>
-                        <Management />
-                    </el-icon>
-                    <span>用户管理</span>
+                <el-menu-item index="/manage/user" class="menu-item">
+                    <el-icon><Management /></el-icon>
+                    <template #title>用户管理</template>
+                </el-menu-item>
+                <el-menu-item index="/manage/department" class="menu-item">
+                    <el-icon><List /></el-icon>
+                    <template #title>部门管理</template>
                 </el-menu-item>
 
-                <el-menu-item index="/manage/department">
-                    <el-icon>
-                        <List />
-                    </el-icon>
-                    <span>部门管理</span>
-                </el-menu-item>
-
-                <el-sub-menu index="geren1">
+                <el-sub-menu index="geren1" class="submenu">
                     <template #title>
-                        <el-icon>
-                            <Menu />
-                        </el-icon>
+                        <el-icon><Menu /></el-icon>
                         <span>问卷管理</span>
                     </template>
-                    <el-menu-item index="/survey/survey">
-                        <el-icon>
-                            <User />
-                        </el-icon>
-                        <span>问卷管理</span>
+                    <el-menu-item index="/survey/survey" class="submenu-item">
+                        <el-icon><User /></el-icon>
+                        <template #title>问卷管理</template>
                     </el-menu-item>
-                    <el-menu-item index="/manage/category">
-                        <el-icon>
-                            <EditPen />
-                        </el-icon>
-                        <span>分类管理</span>
+                    <el-menu-item index="/manage/category" class="submenu-item">
+                        <el-icon><EditPen /></el-icon>
+                        <template #title>分类管理</template>
                     </el-menu-item>
-                    <el-menu-item index="/manage/question">
-                        <el-icon>
-                            <Crop />
-                        </el-icon>
-                        <span>问题管理</span>
+                    <el-menu-item index="/manage/question" class="submenu-item">
+                        <el-icon><Crop /></el-icon>
+                        <template #title>问题管理</template>
                     </el-menu-item>
-                    <el-menu-item index="/manage/option">
-                        <el-icon>
-                            <EditPen />
-                        </el-icon>
-                        <span>选项管理</span>
+                    <el-menu-item index="/manage/option" class="submenu-item">
+                        <el-icon><EditPen /></el-icon>
+                        <template #title>选项管理</template>
                     </el-menu-item>
                 </el-sub-menu>
-                <!-- <el-menu-item index="/manage/survey">
-                    <el-icon>
-                        <Promotion />
-                    </el-icon>
-                    <span>问卷管理</span>
-                </el-menu-item> -->
 
-                <el-sub-menu index="geren2">
+                <el-sub-menu index="geren2" class="submenu">
                     <template #title>
-                        <el-icon>
-                            <UserFilled />
-                        </el-icon>
+                        <el-icon><UserFilled /></el-icon>
                         <span>个人中心</span>
                     </template>
-                    <el-menu-item index="/user/info">
-                        <el-icon>
-                            <User />
-                        </el-icon>
-                        <span>基本资料</span>
+                    <el-menu-item index="/user/info" class="submenu-item">
+                        <el-icon><User /></el-icon>
+                        <template #title>基本资料</template>
                     </el-menu-item>
-                    <el-menu-item index="/user/avatar">
-                        <el-icon>
-                            <Crop />
-                        </el-icon>
-                        <span>更换头像</span>
+                    <el-menu-item index="/user/avatar" class="submenu-item">
+                        <el-icon><Crop /></el-icon>
+                        <template #title>更换头像</template>
                     </el-menu-item>
-                    <el-menu-item index="/user/password">
-                        <el-icon>
-                            <EditPen />
-                        </el-icon>
-                        <span>重置密码</span>
+                    <el-menu-item index="/user/password" class="submenu-item">
+                        <el-icon><EditPen /></el-icon>
+                        <template #title>重置密码</template>
                     </el-menu-item>
                 </el-sub-menu>
             </el-menu>
         </el-aside>
         <!-- 右侧主区域 -->
-        <el-container>
+        <el-container class="main-container" :class="{ 'mobile-main': isMobile }">
             <!-- 头部区域 -->
-            <el-header>
-                <div>软件学院：<strong>{{ userInfoStore.info.name }}</strong></div>
-                <el-dropdown placement="bottom-end" @command="handleCommand">
-                    <span class="el-dropdown__box">
-                        <el-avatar :src="avatar" />
-                        <el-icon>
-                            <CaretBottom />
-                        </el-icon>
-                    </span>
-                    <template #dropdown>
-                        <el-dropdown-menu>
-                            <el-dropdown-item command="info" :icon="User">基本资料</el-dropdown-item>
-                            <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item>
-                            <el-dropdown-item command="password" :icon="EditPen">重置密码</el-dropdown-item>
-                            <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
-                        </el-dropdown-menu>
-                    </template>
-                </el-dropdown>
+            <el-header class="main-header">
+                <div class="header-left">
+                    <el-breadcrumb separator="/">
+                        <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                        <el-breadcrumb-item>当前页面</el-breadcrumb-item>
+                    </el-breadcrumb>
+                </div>
+                <div class="header-right">
+                    <div class="user-info" v-if="!isMobile">
+                        <el-icon class="notification-icon"><Bell /></el-icon>
+                        <div class="department-info">
+                            <span class="department-label">软件学院：</span>
+                            <span class="user-name">{{ userInfoStore.info.name }}</span>
+                        </div>
+                    </div>
+                    <el-dropdown placement="bottom-end" @command="handleCommand" class="user-dropdown">
+                        <div class="avatar-container">
+                            <el-avatar :src="avatar" class="user-avatar" />
+                            <span class="user-name-mobile" v-if="!isMobile">{{ userInfoStore.info.name }}</span>
+                            <el-icon class="dropdown-icon"><CaretBottom /></el-icon>
+                        </div>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="info" :icon="User">基本资料</el-dropdown-item>
+                                <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item>
+                                <el-dropdown-item command="password" :icon="EditPen">重置密码</el-dropdown-item>
+                                <el-dropdown-item divided command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
             </el-header>
             <!-- 中间区域 -->
-            <el-main>
-                <div>
-                    <router-view></router-view>
-                </div>
+            <el-main class="main-content">
+                <router-view></router-view>
             </el-main>
             <!-- 底部区域 -->
-            <el-footer>问卷调查管理系统 ©2025 Created by 饭得标</el-footer>
+            <el-footer class="main-footer">
+                <div class="footer-content">
+                    <span>问卷调查管理系统 ©2025 Created by 饭得标</span>
+                </div>
+            </el-footer>
         </el-container>
     </el-container>
 </template>
@@ -202,53 +312,339 @@ const handleCommand = (command) => {
 <style lang="scss" scoped>
 .layout-container {
     height: 100vh;
-
-    .el-aside {
-        background-color: #232323;
-
-        &__logo {
-            height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 20px;
-            font-weight: 550;
-        }
-
-        .el-menu {
-            border-right: none;
-        }
+    width: 100vw;
+    overflow: hidden;
+    
+    &.mobile-layout {
+        flex-direction: column;
     }
+}
 
-    .el-header {
-        background-color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        .el-dropdown__box {
-            display: flex;
-            align-items: center;
-
-            .el-icon {
-                color: #999;
-                margin-left: 10px;
-            }
-
-            &:active,
-            &:focus {
-                outline: none;
-            }
-        }
+.sidebar-container {
+    background-color: #2c3e50;
+    transition: all 0.3s;
+    overflow: hidden;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    
+    &.mobile-sidebar {
+        width: 100% !important;
+        height: auto;
+        position: relative;
+        transform: translateY(0);
+        transition: all 0.3s ease;
     }
-
-    .el-footer {
+    
+    .sidebar-header {
+        height: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        padding: 0 16px;
+        overflow: hidden;
+        background-color: #34495e;
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            
+            .logo-img {
+                height: 32px;
+                margin-right: 8px;
+            }
+            
+            .logo-text {
+                color: #fff;
+                font-size: 18px;
+                font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                text-align: center;
+                flex: 1;
+                margin-right: 16px;
+            }
+            
+            .collapse-btn {
+                color: #ecf0f1;
+                font-size: 20px;
+                cursor: pointer;
+                transition: all 0.3s;
+                
+                &:hover {
+                    color: #4a90e2;
+                }
+            }
+        }
+    }
+    
+    .sidebar-menu {
+        border-right: none;
+        
+        :deep(.el-menu-item) {
+            height: 50px;
+            line-height: 50px;
+            margin: 4px 0;
+            border-radius: 4px;
+            margin-left: 16px;
+            margin-right: 16px;
+            
+            &.is-active {
+                background-color: #4a90e2;
+                color: #fff;
+                
+                &::before {
+                    display: none;
+                }
+            }
+            
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.08);
+            }
+            
+            .el-icon {
+                font-size: 18px;
+                margin-right: 8px;
+            }
+        }
+        
+        :deep(.el-sub-menu__title) {
+            height: 50px;
+            line-height: 50px;
+            margin: 4px 0;
+            border-radius: 4px;
+            margin-left: 16px;
+            margin-right: 16px;
+            
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.08);
+            }
+            
+            .el-icon {
+                font-size: 18px;
+                margin-right: 8px;
+            }
+        }
+        
+        :deep(.el-menu-item.is-active) {
+            background-color: #4a90e2;
+            color: #fff;
+        }
+    }
+    
+    .mobile-menu {
+        height: 64px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background-color: #2c3e50;
+        display: flex;
+        align-items: center;
+        
+        .mobile-menu-container {
+            display: flex;
+            flex-direction: row;
+            height: 64px;
+            border-bottom: none;
+            min-width: max-content;
+            width: 100%;
+            
+            :deep(.el-menu-item), :deep(.el-sub-menu__title) {
+                height: 64px;
+                line-height: 64px;
+                padding: 0 16px;
+                white-space: nowrap;
+                flex-shrink: 0;
+                
+                .el-icon {
+                    margin-right: 4px;
+                }
+            }
+            
+            :deep(.el-sub-menu) {
+                .el-menu {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    width: auto;
+                    min-width: 150px;
+                    background-color: #2c3e50;
+                    border-radius: 0 0 4px 4px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    z-index: 100;
+                }
+            }
+        }
+    }
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    background-color: #f5f7fa;
+    transition: margin-left 0.3s;
+    
+    &.mobile-main {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+.main-header {
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 64px;
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+    position: relative;
+    z-index: 9;
+    
+    .header-left {
+        .el-breadcrumb {
+            font-size: 14px;
+        }
+    }
+    
+    .header-right {
+        display: flex;
+        align-items: center;
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-right: 24px;
+            
+            .notification-icon {
+                font-size: 20px;
+                color: #666;
+                margin-right: 16px;
+                cursor: pointer;
+                
+                &:hover {
+                    color: #4a90e2;
+                }
+            }
+            
+            .department-info {
+                display: flex;
+                align-items: center;
+                
+                .department-label {
+                    color: #666;
+                    margin-right: 4px;
+                }
+                
+                .user-name {
+                    font-weight: 500;
+                    color: #333;
+                }
+            }
+        }
+        
+        .user-dropdown {
+            .avatar-container {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                padding: 4px 8px;
+                border-radius: 4px;
+                transition: all 0.3s;
+                
+                &:hover {
+                    background-color: rgba(0, 0, 0, 0.025);
+                }
+                
+                .user-avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    margin-right: 8px;
+                }
+                
+                .user-name-mobile {
+                    font-size: 14px;
+                    color: #333;
+                    margin-right: 4px;
+                }
+                
+                .dropdown-icon {
+                    color: #999;
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    transition: padding 0.3s;
+}
+
+.main-footer {
+    height: 48px;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 -1px 4px rgba(0, 21, 41, 0.08);
+    
+    .footer-content {
         color: #666;
+        font-size: 14px;
+    }
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+    .layout-container {
+        flex-direction: column;
+    }
+    
+    .sidebar-container {
+        width: 100% !important;
+        height: auto;
+    }
+    
+    .main-header {
+        padding: 0 16px;
+        
+        .header-left {
+            display: none;
+        }
+    }
+    
+    .main-content {
+        padding: 16px;
+    }
+    
+    .main-footer {
+        height: 40px;
+        
+        .footer-content {
+            font-size: 12px;
+        }
+    }
+}
+
+/* 添加遮罩层样式 */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9;
+    display: none;
+    
+    &.visible {
+        display: block;
     }
 }
 </style>

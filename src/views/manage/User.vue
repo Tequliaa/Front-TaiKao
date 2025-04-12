@@ -284,9 +284,61 @@ const handleImport = async (file, fileList) => {
     formData.append('file', file.raw)
     try {
         const response = await userImportService(formData)
-        if (response.code === 1) {
-            ElMessage.success('导入成功')
-            getUsers() // 刷新数据
+        if (response.code === 0) {
+            const result = response.data
+            
+            // 使用HTML格式构建消息，居中显示
+            let message = `
+                <div class="import-result">
+                    <div class="import-result-title">导入完成！</div>
+                    <div class="import-result-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${result.total}</div>
+                            <div class="stat-label">总计</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${result.success}</div>
+                            <div class="stat-label">成功</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${result.skip}</div>
+                            <div class="stat-label">跳过</div>
+                        </div>
+                    </div>`
+            
+            if (result.skip > 0) {
+                message += `
+                    <div class="import-result-reasons">
+                        <div class="reasons-title">跳过原因</div>
+                        <ul class="reasons-list">`
+                
+                // 只显示前3条跳过原因
+                const displayReasons = result.skipReasons.slice(0, 3)
+                displayReasons.forEach(reason => {
+                    message += `<li class="reason-item">${reason}</li>`
+                })
+                
+                // 如果有更多跳过原因，显示提示
+                if (result.skipReasons.length > 3) {
+                    message += `<li class="reason-more">... 还有 ${result.skipReasons.length - 3} 条原因未显示</li>`
+                }
+                
+                message += `
+                        </ul>
+                    </div>`
+            }
+            
+            message += `</div>`
+            
+            // 使用ElMessageBox在页面中间显示结果
+            ElMessageBox.alert(message, '导入结果', {
+                confirmButtonText: '确定',
+                dangerouslyUseHTMLString: true,
+                customClass: 'import-result-dialog',
+                callback: () => {
+                    getUsers() // 刷新数据
+                }
+            })
         } else {
             ElMessage.error(response.message || '导入失败')
         }
@@ -409,5 +461,97 @@ const handleImport = async (file, fileList) => {
         align-items: center;
         gap: 12px;
     }
+}
+</style>
+
+<style>
+.import-result-dialog {
+    max-width: 350px !important;
+}
+.import-result-dialog .el-message-box__content {
+    padding: 15px 20px !important;
+    text-align: center !important;
+}
+.import-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+}
+.import-result-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #409EFF;
+    text-align: center;
+    width: 100%;
+}
+.import-result-stats {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 10px;
+    flex: 1;
+}
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #303133;
+    text-align: center;
+}
+.stat-label {
+    font-size: 14px;
+    color: #606266;
+    margin-top: 5px;
+    text-align: center;
+}
+.import-result-reasons {
+    width: 100%;
+    margin-top: 10px;
+    border-top: 1px solid #EBEEF5;
+    padding-top: 10px;
+    text-align: center;
+}
+.reasons-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    width: 100%;
+}
+.reasons-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+.reason-item {
+    padding: 5px 0;
+    text-align: center;
+    color: #606266;
+    width: 100%;
+}
+.reason-more {
+    padding: 5px 0;
+    text-align: center;
+    color: #909399;
+    font-style: italic;
+    width: 100%;
+}
+
+/* 修复Element Plus对话框的样式 */
+.import-result-dialog .el-message-box__message {
+    text-align: center !important;
+    width: 100% !important;
+}
+.import-result-dialog .el-message-box__message p {
+    text-align: center !important;
 }
 </style>

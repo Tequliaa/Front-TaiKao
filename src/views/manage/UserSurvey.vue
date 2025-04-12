@@ -174,100 +174,94 @@ onMounted(() => {
 })
 </script>
 <template>
-<LoadingWrapper :loading="loading">
-    <el-card class="page-container">
-        <template #header>
-            <div class="header">
-                <span>{{ props.username || userInfoStore.info.name }}的问卷</span>
-                <div class="extra">
-                    <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
+    <LoadingWrapper :loading="loading">
+        <el-card class="page-container">
+            <template #header>
+                <div class="header">
+                    <span>{{ props.username || userInfoStore.info.name }}的问卷</span>
+                    <div class="extra">
+                        <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问卷名称或描述" />
+                    </div>
                 </div>
-            </div>
-        </template>
-
-        <!-- 问卷列表 -->
-        <el-table 
-            v-loading="loading"
-            :data="userSurveys" 
-            style="width: 100%">
-            <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
-            <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-            <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
-            <el-table-column label="问卷描述" style="text-align: center;" align="center">
-            <template #default="scope">
-                <!-- 通过 row.description 获取每行数据的问卷描述，并去掉 HTML 标签 -->
-                <span>{{ getPlainText(scope.row.surveyDescription) }}</span>
             </template>
-            </el-table-column>
-            <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
-            <el-table-column label="发布于" style="text-align: center;" align="center" prop="assignedAt"
-            :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"></el-table-column>
-            <!-- <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView">
-                <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
-                </template>
-            </el-table-column> -->
-            <el-table-column label="操作" style="text-align: center;" align="center" width="200">
-                <template #default="{ row }">
-                    <!-- 未完成状态显示答题按钮 -->
-                    <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
-                        <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
-                    </el-tooltip>
-                    <!-- 已完成状态显示查看按钮 -->
-                    <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
-                        <el-button 
-                            v-if="row.status === '已完成'" 
-                            :icon="Pointer" 
-                            circle 
-                            plain 
-                            :type="row.allowView === 1 ? 'primary' : 'info'"
-                            :disabled="row.allowView !== 1"
-                            @click="row.allowView === 1 && viewResponse(row)"
-                        ></el-button>
-                    </el-tooltip>        
-                </template>
-            </el-table-column>
 
-            <template #empty>
-                <el-empty description="没有数据" />
-            </template>
-        </el-table>
+            <!-- 问卷列表 -->
+            <el-table 
+                v-loading="loading"
+                :data="userSurveys" 
+                style="width: 100%">
+                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+                <el-table-column label="问卷描述" style="text-align: center;" align="center">
+                    <template #default="scope">
+                        <span>{{ getPlainText(scope.row.surveyDescription) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
+                <el-table-column label="发布于" style="text-align: center;" align="center" prop="assignedAt"
+                    :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"></el-table-column>
+                <el-table-column label="操作" style="text-align: center;" align="center" width="200">
+                    <template #default="{ row }">
+                        <!-- 未完成状态显示答题按钮 -->
+                        <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
+                            <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
+                        </el-tooltip>
+                        <!-- 已完成状态显示查看按钮 -->
+                        <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
+                            <el-button 
+                                v-if="row.status === '已完成'" 
+                                :icon="Pointer" 
+                                circle 
+                                plain 
+                                :type="row.allowView === 1 ? 'primary' : 'info'"
+                                :disabled="row.allowView !== 1"
+                                @click="row.allowView === 1 && viewResponse(row)"
+                            ></el-button>
+                        </el-tooltip>        
+                    </template>
+                </el-table-column>
 
-        <!-- 分页条 -->
-        <el-pagination 
-            v-loading="loading"
-            v-model:current-page="pageNum" 
-            v-model:page-size="pageSize" 
-            :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" 
-            background 
-            :total="total" 
-            @size-change="onSizeChange"
-            @current-change="onCurrentChange" 
-            style="margin-top: 20px; justify-content: flex-end" />
-    </el-card>
-</LoadingWrapper>
+                <template #empty>
+                    <el-empty description="没有数据" />
+                </template>
+            </el-table>
+
+            <!-- 分页条 -->
+            <el-pagination 
+                v-loading="loading"
+                v-model:current-page="pageNum" 
+                v-model:page-size="pageSize" 
+                :page-sizes="[3, 5, 10, 15]"
+                layout="jumper, total, sizes, prev, pager, next" 
+                background 
+                :total="total" 
+                @size-change="onSizeChange"
+                @current-change="onCurrentChange" 
+                style="margin-top: 20px; justify-content: flex-end" />
+        </el-card>
+    </LoadingWrapper>
 </template>
 
 <style lang="scss" scoped>
 .page-container {
-    min-height: 100%;
-    box-sizing: border-box;
+    margin: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 
     .header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-    }
-    .extra {
-        display: flex;
-        align-items: center;  /* 确保垂直居中对齐 */
-        gap: 10px;  /* 在所有子元素之间添加 10px 的间隔 */
+        align-items: center;
+        padding: 0 20px;
+
+        .extra {
+            width: 300px;
+        }
     }
 
-    .el-input {
-        width: 240px;  /* 输入框的宽度 */
+    :deep(.el-table) {
+        margin: 20px 0;
     }
-
 }
 
 /* 抽屉样式 */

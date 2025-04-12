@@ -1,9 +1,11 @@
 package SurveySystem.Controller;
 
+import SurveySystem.Model.Department;
 import SurveySystem.Model.Result;
 import SurveySystem.Model.User;
 import SurveySystem.Service.DepartmentService;
 import SurveySystem.Service.UserService;
+import lombok.Data;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import SurveySystem.Utils.HashUtils;
@@ -208,39 +211,63 @@ public class UserController {
     }
 
     @PostMapping("/import")
-    public Result<Void> importUsers(@RequestParam("file") MultipartFile file) {
+    public Result<ImportResult> importUsers(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return Result.error("请选择要导入的文件");
         }
-        
+
         try {
             // 检查文件类型
             String fileName = file.getOriginalFilename();
             if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
                 return Result.error("请上传Excel文件");
             }
-            
+
             Workbook workbook = WorkbookFactory.create(file.getInputStream());
             Sheet sheet = workbook.getSheetAt(0);
-            
+
+            List<User> userList = new ArrayList<>();
+            int totalRows = sheet.getLastRowNum();
+            int successCount = 0;
+            int skipCount = 0;
+            List<String> skipReasons = new ArrayList<>();
+
             // 跳过标题行
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            for (int i = 1; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
-                if (row == null) continue;
-                
+                if (row == null) {
+                    skipCount++;
+                    skipReasons.add("第" + (i+1) + "行为空");
+                    continue;
+                }
+
                 User user = new User();
-                user.setUsername(getCellValueAsString(row.getCell(1))); // 用户名
-                user.setName(getCellValueAsString(row.getCell(2))); // 用户昵称
-                String departmentName = getCellValueAsString(row.getCell(3)); // 部门名称
-                user.setRole(getCellValueAsString(row.getCell(4))); // 角色
-                
+                user.setUsername(getCellValueAsString(row.getCell(0))); // 用户名
+                user.setName(getCellValueAsString(row.getCell(1))); // 用户昵称
+                String departmentName = getCellValueAsString(row.getCell(2)); // 部门名称
+                user.setRole(getCellValueAsString(row.getCell(3))); // 角色
+
+                // 检查用户名是否为空
+                if (user.getUsername() == null || user.getUsername().isEmpty()) {
+                    skipCount++;
+                    skipReasons.add("第" + (i+1) + "行用户名为空");
+                    continue;
+                }
+
+                // 检查用户名是否已存在
+                if (userService.getUserByUsername(user.getUsername()) != null) {
+                    skipCount++;
+                    skipReasons.add("第" + (i+1) + "行用户名已存在");
+                    continue;
+                }
+
                 // 设置默认密码
                 String defaultPassword = "123456";
                 String salt = HashUtils.getSalt();
                 String hashedPassword = HashUtils.hashPassword(defaultPassword, salt);
                 user.setPassword(hashedPassword);
                 user.setSalt(salt);
-                
+
                 // 根据部门名称查找部门ID
                 if (!departmentName.isEmpty()) {
                     Department department = departmentService.getDepartmentByName(departmentName);
@@ -248,23 +275,42 @@ public class UserController {
                         user.setDepartmentId(department.getId());
                     }
                 }
-                
-                // 检查用户名是否已存在
-                if (userService.getUserByUsername(user.getUsername()) == null) {
-                    userService.registerUser(user);
-                }
+
+                userList.add(user);
             }
-            
+
+            // 批量插入
+            if (!userList.isEmpty()) {
+                successCount = userService.batchInsertUsers(userList);
+            }
+
             workbook.close();
-            return Result.success();
+
+            // 返回导入结果统计
+            ImportResult result = new ImportResult();
+            result.setTotal(totalRows);
+            result.setSuccess(successCount);
+            result.setSkip(skipCount);
+            result.setSkipReasons(skipReasons);
+
+            return Result.success(result);
         } catch (Exception e) {
             return Result.error("导入失败：" + e.getMessage());
         }
     }
-    
+
+    // 导入结果类
+    @Data
+    public static class ImportResult {
+        private int total;      // 总行数
+        private int success;    // 成功数量
+        private int skip;       // 跳过数量
+        private List<String> skipReasons; // 跳过原因
+    }
+
     private String getCellValueAsString(Cell cell) {
         if (cell == null) return "";
-        
+
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue();

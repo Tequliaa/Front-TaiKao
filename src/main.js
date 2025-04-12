@@ -1,5 +1,5 @@
 import './assets/main.scss'
-
+import './styles/responsive.scss'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 //导入持久化插件

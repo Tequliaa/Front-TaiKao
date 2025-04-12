@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getResponseDetailsService } from '@/api/response'
 import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/user'
@@ -26,12 +26,17 @@ const surveyInfo = ref({
 })
 
 const userInfoStore = useUserInfoStore()
-
 const loading = ref(true)
 
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
+// 添加一个计算属性来检查用户角色
+const canHitBack = computed(() => {
+    return userInfoStore.info && 
+           userInfoStore.info.role && 
+           userInfoStore.info.role !== '普通用户'
+})
 
 // 修改获取问卷数据的方法
 const getSurveyData = async () => {
@@ -252,6 +257,7 @@ const handlePreview = async (file) => {
     ElMessage.error('文件预览失败: ' + error.message);
   }
 };
+console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
 </script>
 
 <template>
@@ -269,7 +275,7 @@ const handlePreview = async (file) => {
                         </div>
                         
                         <div class="extra">
-                            <el-button type="primary" v-if="userInfoStore.info.userRole!=='普通用户'" @click="HitBackSurvey()">打回问卷</el-button>
+                            <el-button type="primary" v-if="canHitBack" @click="HitBackSurvey()">打回问卷</el-button>
                         </div>    
                     </div>
 

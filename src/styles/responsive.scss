@@ -1,0 +1,283 @@
+// 响应式断点
+$breakpoints: (
+  xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px,
+  xxl: 1400px
+);
+
+// 响应式混入
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @warn "未知的断点: #{$breakpoint}";
+  }
+}
+
+// 响应式隐藏类
+.hide-mobile {
+  @media (max-width: map-get($breakpoints, md) - 1px) {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  @media (min-width: map-get($breakpoints, md)) {
+    display: none !important;
+  }
+}
+
+// 响应式显示类
+.show-xs {
+  display: none !important;
+  @include respond-to(xs) {
+    display: block !important;
+  }
+}
+
+.show-sm {
+  display: none !important;
+  @include respond-to(sm) {
+    display: block !important;
+  }
+}
+
+.show-md {
+  display: none !important;
+  @include respond-to(md) {
+    display: block !important;
+  }
+}
+
+.show-lg {
+  display: none !important;
+  @include respond-to(lg) {
+    display: block !important;
+  }
+}
+
+.show-xl {
+  display: none !important;
+  @include respond-to(xl) {
+    display: block !important;
+  }
+}
+
+// 响应式容器
+.responsive-container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+
+  @include respond-to(sm) {
+    max-width: 540px;
+  }
+
+  @include respond-to(md) {
+    max-width: 720px;
+  }
+
+  @include respond-to(lg) {
+    max-width: 960px;
+  }
+
+  @include respond-to(xl) {
+    max-width: 1140px;
+  }
+
+  @include respond-to(xxl) {
+    max-width: 1320px;
+  }
+
+  &.fluid {
+    max-width: none;
+  }
+}
+
+// 响应式网格
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(1, 1fr);
+
+  @include respond-to(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// 响应式卡片
+.responsive-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  
+  @include respond-to(md) {
+    padding: 1.5rem;
+  }
+  
+  @include respond-to(lg) {
+    padding: 2rem;
+  }
+}
+
+// 响应式表格
+.responsive-table {
+  width: 100%;
+  overflow-x: auto;
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    th, td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid #ebeef5;
+      
+      @include respond-to(md) {
+        padding: 0.75rem;
+      }
+    }
+  }
+}
+
+// 响应式表单
+.responsive-form {
+  .form-group {
+    margin-bottom: 1rem;
+    
+    @include respond-to(md) {
+      margin-bottom: 1.5rem;
+    }
+  }
+  
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    
+    @include respond-to(md) {
+      flex-direction: row;
+      gap: 1.5rem;
+    }
+  }
+  
+  .form-col {
+    flex: 1;
+  }
+}
+
+// 响应式按钮组
+.responsive-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  @include respond-to(md) {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+// 响应式导航
+.responsive-nav {
+  display: flex;
+  flex-direction: column;
+  
+  @include respond-to(md) {
+    flex-direction: row;
+  }
+  
+  .nav-item {
+    padding: 0.5rem;
+    
+    @include respond-to(md) {
+      padding: 0.75rem 1rem;
+    }
+  }
+}
+
+// 响应式间距
+@each $breakpoint, $value in $breakpoints {
+  @include respond-to($breakpoint) {
+    .m-#{$breakpoint}-0 { margin: 0 !important; }
+    .m-#{$breakpoint}-1 { margin: 0.25rem !important; }
+    .m-#{$breakpoint}-2 { margin: 0.5rem !important; }
+    .m-#{$breakpoint}-3 { margin: 1rem !important; }
+    .m-#{$breakpoint}-4 { margin: 1.5rem !important; }
+    .m-#{$breakpoint}-5 { margin: 3rem !important; }
+
+    .p-#{$breakpoint}-0 { padding: 0 !important; }
+    .p-#{$breakpoint}-1 { padding: 0.25rem !important; }
+    .p-#{$breakpoint}-2 { padding: 0.5rem !important; }
+    .p-#{$breakpoint}-3 { padding: 1rem !important; }
+    .p-#{$breakpoint}-4 { padding: 1.5rem !important; }
+    .p-#{$breakpoint}-5 { padding: 3rem !important; }
+  }
+}
+
+// 响应式字体大小
+@each $breakpoint, $value in $breakpoints {
+  @include respond-to($breakpoint) {
+    .text-#{$breakpoint}-small { font-size: 0.875rem !important; }
+    .text-#{$breakpoint}-normal { font-size: 1rem !important; }
+    .text-#{$breakpoint}-large { font-size: 1.25rem !important; }
+    .text-#{$breakpoint}-xlarge { font-size: 1.5rem !important; }
+  }
+}
+
+// 响应式布局
+.responsive-layout {
+  display: flex;
+  flex-direction: column;
+
+  @include respond-to(md) {
+    flex-direction: row;
+  }
+}
+
+// 响应式侧边栏
+.responsive-sidebar {
+  width: 100%;
+  transition: all 0.3s ease;
+
+  @include respond-to(md) {
+    width: 240px;
+    min-width: 240px;
+  }
+
+  &.collapsed {
+    @include respond-to(md) {
+      width: 64px;
+      min-width: 64px;
+    }
+  }
+}
+
+// 响应式主内容区
+.responsive-main {
+  flex: 1;
+  min-width: 0;
+  transition: all 0.3s ease;
+  padding: 1rem;
+
+  @include respond-to(md) {
+    padding: 1.5rem;
+  }
+} 
