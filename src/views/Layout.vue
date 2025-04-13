@@ -116,6 +116,13 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
 })
+
+// 添加退出登录处理函数
+const handleLogout = () => {
+    // 实现退出登录的逻辑
+    // 这里可以根据需要调用API或执行其他操作
+    console.log('退出登录')
+}
 </script>
 
 <template>
@@ -134,14 +141,6 @@ onUnmounted(() => {
                     <el-menu-item index="/manage/userSurvey" class="mobile-menu-item">
                         <el-icon><Avatar /></el-icon>
                         <span>我的问卷</span>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/user" class="mobile-menu-item">
-                        <el-icon><Management /></el-icon>
-                        <span>用户管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/department" class="mobile-menu-item">
-                        <el-icon><List /></el-icon>
-                        <span>部门管理</span>
                     </el-menu-item>
                     <el-sub-menu index="geren1" class="mobile-submenu">
                         <template #title>
@@ -165,6 +164,15 @@ onUnmounted(() => {
                             <span>选项管理</span>
                         </el-menu-item>
                     </el-sub-menu>
+
+                    <el-menu-item index="/manage/department" class="mobile-menu-item">
+                        <el-icon><List /></el-icon>
+                        <span>部门管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/manage/user" class="mobile-menu-item">
+                        <el-icon><Management /></el-icon>
+                        <span>用户管理</span>
+                    </el-menu-item>
                     <el-sub-menu index="geren2" class="mobile-submenu">
                         <template #title>
                             <el-icon><UserFilled /></el-icon>
@@ -178,9 +186,13 @@ onUnmounted(() => {
                             <el-icon><Crop /></el-icon>
                             <span>更换头像</span>
                         </el-menu-item>
-                        <el-menu-item index="/user/password" class="mobile-submenu-item">
+                        <el-menu-item index="/user/password" class="mobile-submenu-item" @click="handleLogout">
                             <el-icon><EditPen /></el-icon>
                             <span>重置密码</span>
+                        </el-menu-item>
+                        <el-menu-item index="/user/logout" class="mobile-submenu-item" @click="handleCommand('logout')">
+                            <el-icon><SwitchButton /></el-icon>
+                            <span>退出登录</span>
                         </el-menu-item>
                     </el-sub-menu>
                 </el-menu>
@@ -204,19 +216,11 @@ onUnmounted(() => {
                 :collapse="isCollapse"
                 :collapse-transition="false"
                 class="sidebar-menu">
+                
                 <el-menu-item index="/manage/userSurvey" class="menu-item">
                     <el-icon><Avatar /></el-icon>
                     <template #title>我的问卷</template>
                 </el-menu-item>
-                <el-menu-item index="/manage/user" class="menu-item">
-                    <el-icon><Management /></el-icon>
-                    <template #title>用户管理</template>
-                </el-menu-item>
-                <el-menu-item index="/manage/department" class="menu-item">
-                    <el-icon><List /></el-icon>
-                    <template #title>部门管理</template>
-                </el-menu-item>
-
                 <el-sub-menu index="geren1" class="submenu">
                     <template #title>
                         <el-icon><Menu /></el-icon>
@@ -240,6 +244,16 @@ onUnmounted(() => {
                     </el-menu-item>
                 </el-sub-menu>
 
+                <el-menu-item index="/manage/department" class="menu-item">
+                    <el-icon><List /></el-icon>
+                    <template #title>部门管理</template>
+                </el-menu-item>
+                <el-menu-item index="/manage/user" class="menu-item">
+                    <el-icon><Management /></el-icon>
+                    <template #title>用户管理</template>
+                </el-menu-item>
+
+
                 <el-sub-menu index="geren2" class="submenu">
                     <template #title>
                         <el-icon><UserFilled /></el-icon>
@@ -257,20 +271,24 @@ onUnmounted(() => {
                         <el-icon><EditPen /></el-icon>
                         <template #title>重置密码</template>
                     </el-menu-item>
+                    <el-menu-item index="/user/logout" class="submenu-item">
+                        <el-icon><SwitchButton /></el-icon>
+                        <template #title>退出登录</template>
+                    </el-menu-item>
                 </el-sub-menu>
             </el-menu>
         </el-aside>
         <!-- 右侧主区域 -->
         <el-container class="main-container" :class="{ 'mobile-main': isMobile }">
             <!-- 头部区域 -->
-            <el-header class="main-header">
+            <el-header class="main-header" v-if="!isMobile">
                 <div class="header-left">
                     <el-breadcrumb separator="/">
                         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
                         <el-breadcrumb-item>当前页面</el-breadcrumb-item>
                     </el-breadcrumb>
                 </div>
-                <div class="header-right">
+                <div class="header-right" v-if="!isMobile">
                     <div class="user-info" v-if="!isMobile">
                         <el-icon class="notification-icon"><Bell /></el-icon>
                         <div class="department-info">
@@ -317,6 +335,8 @@ onUnmounted(() => {
     
     &.mobile-layout {
         flex-direction: column;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -488,6 +508,8 @@ onUnmounted(() => {
     &.mobile-main {
         margin-left: 0;
         width: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -584,6 +606,10 @@ onUnmounted(() => {
     padding: 24px;
     overflow-y: auto;
     transition: padding 0.3s;
+    
+    @media (max-width: 768px) {
+        overflow-y: visible;
+    }
 }
 
 .main-footer {

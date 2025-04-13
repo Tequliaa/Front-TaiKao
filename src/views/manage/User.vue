@@ -6,7 +6,7 @@ import {
     Download,
     Upload
 } from '@element-plus/icons-vue'
-import { ref, onMounted, watch } from 'vue'
+import { ref, nextTick,onMounted, watch,computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userListService, userUpdateService, userDeleteService, userExportService, userImportService } from '@/api/user.js'
 import { getAllSurveysService } from '@/api/department.js'
@@ -100,10 +100,19 @@ const initData = async () => {
         loading.value = false
     }
 }
-
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
 // 在组件挂载时初始化数据
 onMounted(() => {
     initData()
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
 
 // 监听路由参数变化
@@ -346,6 +355,15 @@ const handleImport = async (file, fileList) => {
         ElMessage.error('导入失败：' + (error.response?.data?.message || error.message))
     }
 }
+
+onMounted(() => {
+window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
+})
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -355,32 +373,34 @@ const handleImport = async (file, fileList) => {
                     <span>用户管理</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
-                        <el-upload
-                            class="upload-btn"
-                            action=""
-                            :auto-upload="false"
-                            :show-file-list="false"
-                            accept=".xlsx,.xls"
-                            :on-change="handleImport"
-                            :before-upload="(file) => {
-                                const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-                                              file.type === 'application/vnd.ms-excel'
-                                if (!isExcel) {
-                                    ElMessage.error('只能上传Excel文件！')
-                                    return false
-                                }
-                                return true
-                            }"
-                        >
-                            <el-button type="primary">
-                                <el-icon><Upload /></el-icon>
-                                导入
+                        <div class="button-group">
+                            <el-upload
+                                class="upload-btn"
+                                action=""
+                                :auto-upload="false"
+                                :show-file-list="false"
+                                accept=".xlsx,.xls"
+                                :on-change="handleImport"
+                                :before-upload="(file) => {
+                                    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                                                  file.type === 'application/vnd.ms-excel'
+                                    if (!isExcel) {
+                                        ElMessage.error('只能上传Excel文件！')
+                                        return false
+                                    }
+                                    return true
+                                }"
+                            >
+                                <el-button type="primary" class="action-button">
+                                    <el-icon><Upload /></el-icon>
+                                    导入
+                                </el-button>
+                            </el-upload>
+                            <el-button type="primary" @click="exportUsers" class="action-button">
+                                <el-icon><Download /></el-icon>
+                                导出
                             </el-button>
-                        </el-upload>
-                        <el-button type="primary" @click="exportUsers">
-                            <el-icon><Download /></el-icon>
-                            导出
-                        </el-button>
+                        </div>
                     </div>
                     
                 </div>
@@ -408,9 +428,18 @@ const handleImport = async (file, fileList) => {
                 </template>
             </el-table>
             <!-- 分页条 -->
-            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-            layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-            @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+            <el-pagination 
+                v-model:current-page="pageNum" 
+                v-model:page-size="pageSize" 
+                :page-sizes="[3, 5, 10, 15]"
+                :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
+                background 
+                :pager-count="5"
+                :total="total" 
+                @size-change="onSizeChange"
+                @current-change="onCurrentChange" 
+                class="pagination-container" />
+
         </el-card>
 
         <!-- 修改用户弹窗 -->
@@ -452,14 +481,94 @@ const handleImport = async (file, fileList) => {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+        gap: 10px; /* 添加间距 */
+        
+        span {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap; /* 防止文字换行 */
+        }
     }
-    .el-input {
-        width: 240px;  /* 输入框的宽度 */
-    }
+    
     .extra {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+    }
+
+    .el-input {
+        width: 240px; /* 输入框的宽度 */
+    }
+    
+    /* 按钮组样式 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        
+        .action-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            
+            .el-icon {
+                margin-right: 5px;
+            }
+        }
+    }
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            
+            span {
+                margin-bottom: 10px;
+            }
+        }
+        
+        .extra {
+            width: 100%;
+            flex-direction: column;
+            
+            .el-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .button-group {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                
+                .action-button {
+                    width: 100px;
+                    margin: 0;
+                }
+            }
+        }
+    }
+}
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
+
+/* 隐藏移动端元素 */
+:deep(.hide-on-mobile) {
+    @media (max-width: 768px) {
+        display: none !important;
     }
 }
 </style>

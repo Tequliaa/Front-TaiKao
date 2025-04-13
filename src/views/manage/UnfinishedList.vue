@@ -99,7 +99,7 @@ onMounted(() => {
                     <!-- 标题和总数 -->
                     <div class="list-header">
                         <h2>{{ props.surveyName }}问卷</h2>
-                        <div class="total-count-wrapper">
+                        <div class="info-row">
                             <div class="total-count">未完成人数：{{ totalCount }}</div>
                             <el-button 
                                 type="primary" 
@@ -119,19 +119,21 @@ onMounted(() => {
                         <el-table-column 
                             prop="username" 
                             label="用户名称" 
-                            width="180"
+                            min-width="100"
                             align="center"
                             header-align="center">
                         </el-table-column>
                         <el-table-column 
                             prop="departmentName" 
                             label="所属部门"
+                            min-width="100"
                             align="center"
                             header-align="center">
                         </el-table-column>
                         <el-table-column 
                             prop="status" 
                             label="答题状态"
+                            min-width="80"
                             align="center"
                             header-align="center">
                         </el-table-column>
@@ -144,7 +146,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .unfinished-list {
-    padding: 24px;
+    padding: 12px;
     background-color: #f5f7fa;
     min-height: 100vh;
 
@@ -152,56 +154,79 @@ onMounted(() => {
         max-width: 1200px;
         margin: 0 auto;
         background-color: #fff;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        padding: 12px;
+        border-radius: 6px;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
 
         &:hover {
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
         }
 
         .list-header {
-            margin-bottom: 24px;
-            padding-bottom: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 1px solid #ebeef5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
 
             h2 {
-                margin: 0 0 12px 0;
+                margin: 0 0 8px 0;
                 color: #2c3e50;
-                font-size: 22px;
+                font-size: 18px;
                 font-weight: 600;
                 letter-spacing: 0.5px;
                 text-align: center;
+                word-break: break-word;
             }
 
-            .total-count-wrapper {
+            .info-row {
                 display: flex;
-                justify-content: flex-end;
-                clear: both;
+                justify-content: space-between;
                 align-items: center;
-                gap: 12px;
+                margin-bottom: 8px;
+                width: 100%;
+                position: relative;
+
+                .total-count {
+                    font-size: 16px;
+                    color: #606266;
+                    position: absolute;
+                    left: 50%;
+                    transform: translateX(-50%);
+                }
 
                 .export-btn {
-                    font-size: 14px;
-                    padding: 4px 12px;
+                    font-size: 13px;
+                    padding: 3px 10px;
+                    margin-left: auto;
                 }
             }
         }
 
         :deep(.el-table) {
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
+            width: 100%;
             
             th {
                 background-color: #f5f7fa !important;
                 color: #2c3e50;
                 font-weight: 600;
-                padding: 12px 0;
+                padding: 6px 0;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             td {
-                padding: 12px 0;
+                padding: 6px 0;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .el-table__row {
@@ -209,6 +234,54 @@ onMounted(() => {
 
                 &:hover {
                     background-color: #f5f7fa;
+                }
+            }
+        }
+    }
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        padding: 8px;
+        
+        .list-container {
+            padding: 8px;
+            
+            .list-header {
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+                
+                h2 {
+                    font-size: 16px;
+                    margin-bottom: 6px;
+                }
+                
+                .info-row {
+                    .total-count {
+                        font-size: 14px;
+                        margin-right: 8px;
+                    }
+                    
+                    .export-btn {
+                        padding: 2px 8px;
+                        font-size: 12px;
+                    }
+                }
+            }
+            
+            :deep(.el-table) {
+                th, td {
+                    padding: 4px 0;
+                    font-size: 12px;
+                }
+                
+                .el-table__column-resize-proxy {
+                    display: none;
+                }
+                
+                .el-table__header-wrapper,
+                .el-table__body-wrapper {
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
                 }
             }
         }

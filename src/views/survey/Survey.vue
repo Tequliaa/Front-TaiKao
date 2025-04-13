@@ -7,7 +7,7 @@ import {
     Connection,
     DataLine
 } from '@element-plus/icons-vue'
-import { nextTick, onMounted } from 'vue';
+import { nextTick, onMounted, computed } from 'vue';
 import { ref,reactive } from 'vue'
 //问卷列表查询
 import { surveyListService, surveyAddService, surveyDelService, surveyUpdateService } from '@/api/survey.js'
@@ -161,6 +161,12 @@ const initData = async () => {
 // 在组件挂载时初始化数据
 onMounted(() => {
     initData()
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
 
 //打开添加问卷窗口
@@ -317,6 +323,20 @@ const checkResponse = (row) => {
 const dialogFormVisible = ref(false)
 const formLabelWidth = '140px'
 
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
+
+// 监听窗口大小变化
+onMounted(() => {
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
+});
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -326,7 +346,7 @@ const formLabelWidth = '140px'
                     <span>问卷管理</span>
                     <div class="extra">
                         <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
-                        <el-button type="primary" @click="openAddDialog()">添加问卷</el-button>
+                        <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加问卷</el-button>
                     </div>
                 </div>
             </template>
@@ -336,32 +356,34 @@ const formLabelWidth = '140px'
                 <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
-                <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName"> </el-table-column>
-                <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
-                <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView">
+                <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName" class-name="hide-on-mobile"> </el-table-column>
+                <el-table-column label="状态" style="text-align: center;" align="center" prop="status" class-name="hide-on-mobile"></el-table-column>
+                <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView" class-name="hide-on-mobile">
                     <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" style="text-align: center;" align="center" width="300">
                     <template #default="{ row }">
-                        <el-tooltip content="预览" placement="top">
-                            <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
-                        </el-tooltip>
-                        <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
-                        </el-tooltip>
-                        <el-tooltip content="发布" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
-                        </el-tooltip>
-                        <el-tooltip content="查看答题情况" placement="top">
-                            <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
-                        </el-tooltip>
-                        <el-tooltip content="编辑" placement="top">
-                            <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
-                        </el-tooltip>
-                        <el-tooltip content="删除" placement="top">
-                            <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
-                        </el-tooltip>          
+                        <div class="action-buttons">
+                            <el-tooltip content="预览" placement="top">
+                                <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="查看" placement="top" class-name="hide-on-mobile">
+                                <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="发布" placement="top">
+                                <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="查看答题情况" placement="top">
+                                <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="编辑" placement="top">
+                                <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="删除" placement="top" class-name="hide-on-mobile">
+                                <el-button :icon="Delete" cirle plain type="danger" @click="delsurvey(row)"></el-button>
+                            </el-tooltip>
+                        </div>
                     </template>
                 </el-table-column>
 
@@ -371,30 +393,40 @@ const formLabelWidth = '140px'
             </el-table>
 
             <!-- 分页条 -->
-            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+            <el-pagination 
+                v-model:current-page="pageNum" 
+                v-model:page-size="pageSize" 
+                :page-sizes="[3, 5, 10, 15]"
+                :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
+                background 
+                :total="total" 
+                @size-change="onSizeChange"
+                @current-change="onCurrentChange" 
+                class="pagination-container" />
         </el-card>
     </LoadingWrapper>
     <!-- 分配问卷对话框 -->
-    <el-dialog class="custom-dialog" v-model="dialogFormVisible" title="分发问卷" width="500">
+    <el-dialog 
+        class="custom-dialog" 
+        v-model="dialogFormVisible" 
+        title="分发问卷" 
+        :width="isMobile ? '300px' : '500px'"
+        :style="{ '--el-dialog-width': isMobile ? '300px' : '500px' }">
         <el-form :model="assignForm">
-        <el-form-item label="问卷名称" :label-width="formLabelWidth">
-            <el-input v-model="assignForm.name" aria-disabled="true" autocomplete="off" />
-        </el-form-item>
-        <el-form-item label="分发部门" :label-width="formLabelWidth">
-            <el-select v-model="assignForm.departmentId" clearable placeholder="所要分发部门">
+            <el-form-item label="问卷名称" :label-width="formLabelWidth">
+                <el-input v-model="assignForm.name" aria-disabled="true" autocomplete="off" />
+            </el-form-item>
+            <el-form-item label="分发部门" :label-width="formLabelWidth">
+                <el-select v-model="assignForm.departmentId" clearable placeholder="所要分发部门">
                     <el-option v-for="item in departments" :key="item.id" :label="item.name" :value="item.id"/>
-            </el-select>
-        </el-form-item>
+                </el-select>
+            </el-form-item>
         </el-form>
         <template #footer>
-        <div class="dialog-footer">
-            <el-button @click="dialogFormVisible = false">取消</el-button>
-            <el-button type="primary" @click="assignSurvey()">
-            确认发布
-            </el-button>
-        </div>
+            <div class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取消</el-button>
+                <el-button type="primary" @click="assignSurvey()">确认发布</el-button>
+            </div>
         </template>
     </el-dialog>
     
@@ -448,17 +480,104 @@ const formLabelWidth = '140px'
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+        gap: 10px; /* 添加间距 */
+        
+        span {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap; /* 防止文字换行 */
+        }
     }
+    
     .extra {
         display: flex;
-        align-items: center;  /* 确保垂直居中对齐 */
-        gap: 10px;  /* 在所有子元素之间添加 10px 的间隔 */
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap; /* 允许在移动端换行 */
     }
 
     .el-input {
-        width: 240px;  /* 输入框的宽度 */
+        width: 240px; /* 输入框的宽度 */
     }
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            
+            span {
+                margin-bottom: 10px;
+            }
+        }
+        
+        .extra {
+            width: 100%;
+            justify-content: space-between;
+            
+            .el-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .el-button {
+                width: 100%;
+            }
+        }
+    }
+}
 
+/* 隐藏移动端元素 */
+:deep(.hide-on-mobile) {
+    @media (max-width: 768px) {
+        display: none !important;
+    }
+}
+/* 调整移动端表格样式 */
+:deep(.el-table) {
+    @media (max-width: 768px) {
+        .el-table__header-wrapper,
+        .el-table__body-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .el-table__column-resize-proxy {
+            display: none;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            gap: 5px;
+            
+            .el-button {
+                padding: 4px;
+                font-size: 12px;
+            }
+        }
+    }
+}
+
+/* 操作按钮样式 */
+:deep(.action-buttons) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    // gap: 8px;
+}
+
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
 }
 
 /* 抽屉样式 */
@@ -498,6 +617,42 @@ const formLabelWidth = '140px'
 
     :deep(.ql-editor) {
         min-height: 200px;
+    }
+}
+
+/* 对话框样式 */
+:deep(.el-dialog) {
+    @media (max-width: 768px) {
+        --el-dialog-width: 300px !important;
+        width: 90% !important;
+        margin: 5vh auto !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        
+        .el-dialog__body {
+            padding: 10px;
+        }
+        
+        .el-form-item {
+            margin-bottom: 15px;
+        }
+        
+        .el-form-item__label {
+            padding-right: 8px;
+        }
+        
+        .el-input, .el-select {
+            width: 100%;
+        }
+    }
+}
+
+/* 抽屉样式 */
+:deep(.el-drawer) {
+    @media (max-width: 768px) {
+        width: 90% !important;
     }
 }
 </style>

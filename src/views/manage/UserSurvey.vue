@@ -5,7 +5,7 @@ import {
     Pointer,
     View
 } from '@element-plus/icons-vue'
-import { ref,reactive, onMounted } from 'vue'
+import {nextTick, ref,reactive, computed,onMounted } from 'vue'
 import dayjs from 'dayjs'
 //问卷列表查询
 import {userSurveyListService} from '@/api/userSurvey.js'
@@ -168,10 +168,28 @@ const viewResponse = (row) => {
         }
     })
 }
-
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
+onMounted(() => {
+window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
+})
 onMounted(() => {
     initData();
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
+
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -194,7 +212,13 @@ onMounted(() => {
                 <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
                 <el-table-column label="问卷描述" style="text-align: center;" align="center">
                     <template #default="scope">
-                        <span>{{ getPlainText(scope.row.surveyDescription) }}</span>
+                        <el-tooltip 
+                            :content="getPlainText(scope.row.surveyDescription)" 
+                            placement="top" 
+                            :show-after="500"
+                            popper-class="description-tooltip">
+                            <span class="description-text">{{ getPlainText(scope.row.surveyDescription) }}</span>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
                 <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
@@ -226,44 +250,89 @@ onMounted(() => {
                 </template>
             </el-table>
 
+            
             <!-- 分页条 -->
             <el-pagination 
-                v-loading="loading"
                 v-model:current-page="pageNum" 
                 v-model:page-size="pageSize" 
                 :page-sizes="[3, 5, 10, 15]"
-                layout="jumper, total, sizes, prev, pager, next" 
+                :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
                 background 
                 :total="total" 
+                :pager-count="5"
                 @size-change="onSizeChange"
                 @current-change="onCurrentChange" 
-                style="margin-top: 20px; justify-content: flex-end" />
+                class="pagination-container" />
         </el-card>
     </LoadingWrapper>
 </template>
 
 <style lang="scss" scoped>
 .page-container {
-    margin: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    min-height: 100%;
+    box-sizing: border-box;
 
     .header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 0 20px;
-
-        .extra {
-            width: 300px;
+        justify-content: space-between;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+        gap: 10px; /* 添加间距 */
+        
+        span {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap; /* 防止文字换行 */
         }
     }
+    
+    .extra {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+    }
 
-    :deep(.el-table) {
-        margin: 20px 0;
+    .el-input {
+        width: 240px; /* 输入框的宽度 */
+    }
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            
+            span {
+                margin-bottom: 10px;
+            }
+        }
+        
+        .extra {
+            width: 100%;
+            justify-content: space-between;
+            
+            .el-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .el-button {
+                width: 100%;
+            }
+        }
     }
 }
-
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
 /* 抽屉样式 */
 .avatar-uploader {
     :deep() {
@@ -303,4 +372,27 @@ onMounted(() => {
         min-height: 200px;
     }
 }
+
+.description-text {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .description-text {
+        max-width: 120px;
+    }
+}
+
+:deep(.description-tooltip) {
+    max-width: 200px !important;
+    
+    @media (max-width: 768px) {
+        max-width: 150px !important;
+    }
+}
+
 </style>

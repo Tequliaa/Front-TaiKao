@@ -372,53 +372,65 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
 
                                 <!-- 矩阵单选题 -->
                                 <template v-if="question.type === '矩阵单选'">
-                                    <el-table 
-                                        :data="question.options.filter(opt => opt.type === '行选项')" 
-                                        border
-                                        style="width: 100%">
-                                        <el-table-column 
-                                            prop="description" 
-                                            label="行选项"
-                                            width="180" />
-                                        <el-table-column 
-                                            v-for="col in question.options.filter(opt => opt.type === '列选项')"
-                                            :key="col.optionId"
-                                            :label="col.description"
-                                            align="center"
-                                            width="120">
-                                            <template #default="{ row }">
-                                                <el-radio 
-                                                    v-model="question.matrixAnswers[row.optionId]" 
-                                                    :label="col.optionId"
-                                                    disabled />
-                                            </template>
-                                        </el-table-column>
-                                    </el-table>
+                                    <div class="matrix-container">
+                                        <table class="matrix-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center">行/列</th>
+                                                    <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        {{ col.description }}
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                    :key="row.optionId">
+                                                    <td>{{ row.description }}</td>
+                                                    <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        <el-radio 
+                                                            v-model="question.matrixAnswers[row.optionId]" 
+                                                            :label="col.optionId"
+                                                            disabled />
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </template>
 
                                 <!-- 矩阵多选题 -->
                                 <template v-if="question.type === '矩阵多选'">
-                                    <el-table 
-                                        :data="question.options.filter(opt => opt.type === '行选项')" 
-                                        border
-                                        style="width: 100%">
-                                        <el-table-column 
-                                            prop="description" 
-                                            label="行选项"
-                                            width="180" />
-                                        <el-table-column 
-                                            v-for="col in question.options.filter(opt => opt.type === '列选项')"
-                                            :key="col.optionId"
-                                            :label="col.description"
-                                            align="center"
-                                            width="120">
-                                            <template #default="{ row }">
-                                                <el-checkbox 
-                                                    :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                    disabled />
-                                            </template>
-                                        </el-table-column>
-                                    </el-table>
+                                    <div class="matrix-container">
+                                        <table class="matrix-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center">行/列</th>
+                                                    <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        {{ col.description }}
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                    :key="row.optionId">
+                                                    <td>{{ row.description }}</td>
+                                                    <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        <el-checkbox 
+                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
+                                                            disabled />
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </template>
 
                                 <!-- 评分题 -->
@@ -571,7 +583,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
         .question-options {
             margin-left: 20px;
             // 添加内容溢出控制
-            overflow: hidden;
+            // overflow: hidden;
 
             .form-check {
                 .form-check-option {
@@ -627,21 +639,55 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                 }
             }
 
-            // 修改矩阵单选题的样式
-            :deep(.el-table) {
-                // 添加表格滚动优化
-                transform: translateZ(0);
-                -webkit-transform: translateZ(0);
-                will-change: transform;
-                backface-visibility: hidden;
-                -webkit-backface-visibility: hidden;
-
-                .el-radio {
-                    .el-radio__label {
-                        display: none;
+            // 矩阵表格容器
+            .matrix-container {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 1px; // 添加内边距确保边框显示
+                margin: 0 -1px; // 抵消内边距对容器宽度的影响
+                
+                .matrix-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    border: 1px solid #dcdfe6;
+                    margin-bottom: 10px;
+                    table-layout: fixed; // 使用固定表格布局
+                    
+                    th, td {
+                        padding: 8px;
+                        border: 1px solid #dcdfe6;
+                        text-align: left;
+                        font-size: 14px;
+                        white-space: normal; // 允许文本换行
+                        word-break: break-word; // 允许在任意字符间换行
                     }
-                    .el-radio__inner {
-                        margin-right: 0;
+                    
+                    th {
+                        background-color: #f5f7fa;
+                        font-weight: 500;
+                        color: #606266;
+                    }
+                    
+                    td {
+                        color: #606266;
+                    }
+                    
+                    .text-center {
+                        text-align: center;
+                    }
+                    
+                    :deep(.el-radio), :deep(.el-checkbox) {
+                        margin: 0;
+                        padding: 0;
+                        
+                        .el-radio__label, .el-checkbox__label {
+                            display: none;
+                        }
+                        
+                        .el-radio__inner, .el-checkbox__inner {
+                            margin: 0;
+                        }
                     }
                 }
             }
@@ -655,6 +701,36 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
         .el-button {
             margin: 0 10px;
             min-width: 100px;
+        }
+    }
+}
+
+// 添加响应式样式
+@media (max-width: 768px) {
+    .survey-preview {
+        .survey-container {
+            padding: 0 10px;
+        }
+        
+        .question-item {
+            padding: 12px;
+            
+            .question-options {
+                margin-left: 10px;
+                
+                .matrix-container {
+                    margin: 0 -18px;
+                    width: calc(100% + 24px);
+                    padding: 1px; // 确保移动端边框也显示
+                    
+                    .matrix-table {
+                        th, td {
+                            padding: 6px;
+                            font-size: 13px;
+                        }
+                    }
+                }
+            }
         }
     }
 }

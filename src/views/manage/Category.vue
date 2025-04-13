@@ -5,7 +5,7 @@ import {
     Pointer
 } from '@element-plus/icons-vue'
 
-import { nextTick, onMounted } from 'vue';
+import { nextTick, onMounted,computed, watch ,reactive} from 'vue';
 import { ref } from 'vue'
 //分类列表查询
 import { getParentCategories, categoryListService, categoryAddService, categoryDelService, categoryUpdateService } from '@/api/category.js'
@@ -89,6 +89,12 @@ const initData = async () => {
 // 在组件挂载时初始化数据
 onMounted(() => {
     initData()
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
 
 const parentCategories = ref({
@@ -239,6 +245,19 @@ const getPlainText = (htmlContent)=> {
       return div.textContent || div.innerText || '';
     }
 
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
+
+onMounted(() => {
+window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
+})
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -248,7 +267,7 @@ const getPlainText = (htmlContent)=> {
                     <span>分类管理</span>
                     <div class="extra">
                         <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入分类名称或描述" />
-                        <el-button type="primary" @click="openAddDialog()">添加分类</el-button>
+                        <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加分类</el-button>
                     </div>
                 </div>
             </template>
@@ -288,9 +307,17 @@ const getPlainText = (htmlContent)=> {
             </el-table>
 
             <!-- 分页条 -->
-            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+            <el-pagination 
+                v-model:current-page="pageNum" 
+                v-model:page-size="pageSize" 
+                :page-sizes="[3, 5, 10, 15]"
+                :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
+                background 
+                :pager-count="5"
+                :total="total" 
+                @size-change="onSizeChange"
+                @current-change="onCurrentChange" 
+                class="pagination-container" />
         </el-card>
     </LoadingWrapper>
 
@@ -338,19 +365,69 @@ const getPlainText = (htmlContent)=> {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+        gap: 10px; /* 添加间距 */
+        
+        span {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap; /* 防止文字换行 */
+        }
     }
+    
     .extra {
         display: flex;
-        align-items: center;  /* 确保垂直居中对齐 */
-        gap: 10px;  /* 在所有子元素之间添加 10px 的间隔 */
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap; /* 允许在移动端换行 */
     }
 
     .el-input {
-        width: 240px;  /* 输入框的宽度 */
+        width: 240px; /* 输入框的宽度 */
     }
-
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            
+            span {
+                margin-bottom: 10px;
+            }
+        }
+        
+        .extra {
+            width: 100%;
+            justify-content: space-between;
+            
+            .el-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .el-button {
+                width: 100%;
+            }
+        }
+    }
 }
-
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
+/* 隐藏移动端元素 */
+:deep(.hide-on-mobile) {
+    @media (max-width: 768px) {
+        display: none !important;
+    }
+}
 /* 抽屉样式 */
 .avatar-uploader {
     :deep() {
