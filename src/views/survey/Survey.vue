@@ -381,7 +381,7 @@ onMounted(() => {
                                 <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="删除" placement="top" class-name="hide-on-mobile">
-                                <el-button :icon="Delete" cirle plain type="danger" @click="delsurvey(row)"></el-button>
+                                <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
                             </el-tooltip>
                         </div>
                     </template>

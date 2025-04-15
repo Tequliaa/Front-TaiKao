@@ -3,6 +3,7 @@ package SurveySystem.Controller;
 import SurveySystem.Model.*;
 import SurveySystem.Service.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -95,7 +96,7 @@ public class ResponseController {
     @GetMapping("/statistics")
     public Result<Map<String, Object>> getResponseStatistics(
             @RequestParam int surveyId,
-            @RequestParam(required = false) Integer departmentId) {
+            @RequestParam(defaultValue = "0") int departmentId) {
         try {
             Survey survey = surveyService.getSurveyById(surveyId);
             List<Question> questions = questionService.getQuestionsBySurveyId(surveyId);
@@ -104,11 +105,13 @@ public class ResponseController {
                 List<Option> options = optionService.getOptionsWithCheckCountByQuestionId(question.getQuestionId(), departmentId);
                 question.setOptions(options);
             }
+            List<UserSurvey> userSurveys=userSurveyService.getUserDepartmentInfoBySurveyId(surveyId);
 
             int unfinishedTotalRecords = userSurveyService.getUserInfoCount(surveyId, departmentId);
 
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("survey", survey);
+            resultMap.put("userSurveys",userSurveys);
             resultMap.put("questions", questions);
             resultMap.put("unfinishedTotalRecords", unfinishedTotalRecords);
             resultMap.put("departmentId", departmentId);
@@ -168,9 +171,10 @@ public class ResponseController {
     }
 
     private void handleFileUploads(Map<String, MultipartFile> fileMap, int surveyId, int userId, String ipAddress) throws IOException {
-        String uploadPath = System.getProperty("user.dir") + File.separator + "/uploads" + File.separator;
-        //"static/uploads"
-        File uploadDir = new File(uploadPath);
+        // 使用明确的相对路径，基于应用根目录
+        //String uploadPath = new File("").getAbsolutePath() + File.separator + "uploads" + File.separator;
+        String staticPath = new ClassPathResource("static/uploads").getFile().getAbsolutePath();
+        File uploadDir = new File(staticPath);
         if (!uploadDir.exists()) {
             uploadDir.mkdirs();
         }
@@ -178,14 +182,11 @@ public class ResponseController {
         List<String> allowedFileTypes = Arrays.asList("jpg", "jpeg", "png", "gif", "pdf", "docx", "xlsx");
 
         for (Map.Entry<String, MultipartFile> entry : fileMap.entrySet()) {
-            String paramName = entry.getKey(); // 例如 file_123
+            String paramName = entry.getKey();
             MultipartFile file = entry.getValue();
 
             if (!file.isEmpty()) {
-                // 解析 questionId
                 int questionId = Integer.parseInt(paramName.split("_")[1]);
-
-                // 获取文件后缀
                 String fileExtension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1).toLowerCase();
 
                 if (!allowedFileTypes.contains(fileExtension)) {
@@ -196,84 +197,68 @@ public class ResponseController {
                     throw new IllegalArgumentException("文件过大，请上传小于 20MB 的文件");
                 }
 
-                // 生成唯一文件名
                 String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
                 File destFile = new File(uploadDir, fileName);
-                file.transferTo(destFile);
 
-                // 记录文件路径
-                //String filePath = "/static/uploads/" + fileName;
-                String filePath = "/uploads/" + fileName;
-                System.out.println("filePath: "+filePath);
-                Response response = new Response();
-                response.setSurveyId(surveyId);
-                response.setQuestionId(questionId);
-                response.setUserId(userId);
-                response.setIpAddress(ipAddress);
-                response.setFilePath(filePath);
-                responseService.saveFilePathToDatabase(response);
+                try {
+                    file.transferTo(destFile.toPath().toAbsolutePath());
+
+                    // 记录文件路径 - 使用相对路径
+                    String filePath = "/uploads/" + fileName;
+                    System.out.println("文件保存到: " + destFile.getAbsolutePath());
+                    System.out.println("访问路径: " + filePath);
+
+                    Response response = new Response();
+                    response.setSurveyId(surveyId);
+                    response.setQuestionId(questionId);
+                    response.setUserId(userId);
+                    response.setIpAddress(ipAddress);
+                    response.setFilePath(filePath);
+                    responseService.saveFilePathToDatabase(response);
+                } catch (IOException e) {
+                    System.err.println("文件保存失败: " + e.getMessage());
+                    throw e;
+                }
             }
         }
     }
 
 
     private void processFormData(Map<String, String> formData, int surveyId, int userId, String ipAddress, boolean isSaveAction) throws Exception {
-        // 创建一个Map来存储多选和矩阵多选的答案
-        Map<String, List<String>> multiSelectAnswers = new HashMap<>();
-        Map<String, List<String>> matrixMultiSelectAnswers = new HashMap<>();
-
-        // 首先收集所有的答案
+        // 调试输出开始
+        //System.out.println("=== 完整的formData内容 ===");
+        //for (Map.Entry<String, String> entry : formData.entrySet()) {
+        //    System.out.println(entry.getKey() + " = " + entry.getValue());
+        //}
+        //System.out.println("=======================");
+        // 调试输出结束
         for (Map.Entry<String, String> entry : formData.entrySet()) {
             String paramName = entry.getKey();
             String paramValue = entry.getValue();
-            
             if (paramName.startsWith("question_")) {
-                if (paramName.contains("_row_")) {
-                    // 矩阵多选
-                    String key = paramName.substring(0, paramName.lastIndexOf("_"));
-                    matrixMultiSelectAnswers.computeIfAbsent(key, k -> new ArrayList<>()).add(paramValue);
-                } else {
-                    // 普通多选
-                    multiSelectAnswers.computeIfAbsent(paramName, k -> new ArrayList<>()).add(paramValue);
-                }
+                int questionId = Integer.parseInt(paramName.split("_")[1]);
+                processQuestionAnswer(paramName,paramValue, surveyId, questionId, ipAddress, userId, isSaveAction);
             } else if (paramName.startsWith("rating_")) {
                 processRatingAnswer(paramName, paramValue, surveyId, ipAddress, userId);
             } else if (paramName.startsWith("open_answer_")) {
                 processOpenAnswer(paramName, paramValue);
             } else if (paramName.startsWith("existing_files_")) {
+                System.out.println("到existing_files_了");
                 // 处理文件上传题中的已有文件
                 int questionId = Integer.parseInt(paramName.split("_")[2]);
                 processExistingFiles(questionId, paramValue);
             }
         }
+    }
 
-        // 处理多选答案
-        for (Map.Entry<String, List<String>> entry : multiSelectAnswers.entrySet()) {
-            String paramName = entry.getKey();
-            List<String> values = entry.getValue();
-            String[] parts = paramName.split("_");
-            if (parts.length >= 2) {  // 确保参数名称格式正确
-                int questionId = Integer.parseInt(parts[1]);
-                // 处理每个选中的选项
-                for (String value : values) {
-                    saveResponse(surveyId, questionId, value, ipAddress, userId, isSaveAction);
-                }
-            }
-        }
-
-        // 处理矩阵多选答案
-        for (Map.Entry<String, List<String>> entry : matrixMultiSelectAnswers.entrySet()) {
-            String paramName = entry.getKey();
-            List<String> values = entry.getValue();
-            String[] parts = paramName.split("_");
-            if (parts.length >= 4) {  // 确保参数名称格式正确
-                int questionId = Integer.parseInt(parts[1]);
-                String rowOptionId = parts[3];
-                // 处理每个选中的列选项
-                for (String value : values) {
-                    saveMatrixResponse(surveyId, questionId, rowOptionId, value, ipAddress, userId, isSaveAction);
-                }
-            }
+    private void processQuestionAnswer(String paramName,String paramValue, int surveyId, int questionId,
+                                     String ipAddress, int userId, boolean isSaveAction) throws Exception {
+        if (paramName.contains("_row_")) {
+            String rowOptionId = paramName.split("_")[3];
+            String columnOptionId = paramName.split("_")[5];
+            saveMatrixResponse(surveyId, questionId, rowOptionId, columnOptionId, ipAddress, userId, isSaveAction);
+        } else {
+            saveResponse(surveyId, questionId,paramName, paramValue, ipAddress, userId, isSaveAction);
         }
     }
 
@@ -303,20 +288,20 @@ public class ResponseController {
         response.setIsValid(paramValue == null || "".equals(paramValue) ? 0 : 1);
         responseService.updateResponseData(response);
     }
-
-    private void saveResponse(int surveyId, int questionId, String answer, String ipAddress, int userId, boolean isSaveAction) throws Exception {
+    //处理单选多选和填空
+    private void saveResponse(int surveyId, int questionId,String paramName, String answer, String ipAddress, int userId, boolean isSaveAction) throws Exception {
         Response response = new Response();
         response.setSurveyId(surveyId);
         response.setQuestionId(questionId);
 
-        if (answer.matches("\\d+")) {
-            response.setOptionId(Integer.parseInt(answer));
+        if ("on".equals(answer)) {
+            response.setOptionId(Integer.parseInt(paramName.split("_")[3]));
             response.setResponseData("");
         } else {
             response.setOptionId(0);
             response.setResponseData(answer);
         }
-        
+
         response.setRowId(0);
         response.setColumnId(0);
         response.setUserId(userId);
@@ -327,6 +312,8 @@ public class ResponseController {
 
     private void saveMatrixResponse(int surveyId, int questionId, String rowOptionId, String columnOptionId, 
                                   String ipAddress, int userId, boolean isSaveAction){
+        //System.out.println("行列Id分别如下："+rowOptionId+" "+columnOptionId);
+
         Response response = new Response();
         response.setSurveyId(surveyId);
         response.setQuestionId(questionId);
@@ -344,11 +331,14 @@ public class ResponseController {
         if (!isSaveAction) {
             userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "已完成", 
                 new Timestamp(System.currentTimeMillis()));
+        }else{
+            userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "保存未提交",
+                    new Timestamp(System.currentTimeMillis()));
         }
     }
 
     private void remakeSurvey(int surveyId, int userId){
-        userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "未完成", 
+        userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "保存未提交",
             new Timestamp(System.currentTimeMillis()));
     }
 
@@ -388,16 +378,21 @@ public class ResponseController {
             
             responseService.saveResponses(initialResponses);
         }
-
-        // 获取所有已有文件的 responseId
-        List<Response> existingFileResponses = responseService.getExistingFileResponses(userId, surveyId);
-        Set<Integer> existingResponseIds = new HashSet<>();
-        for (Response response : existingFileResponses) {
-            existingResponseIds.add(response.getId());
+        else{
+            // 获取所有已有文件的 responseId
+            List<Response> existingFileResponses = responseService.selectExistingFileResponses(userId, surveyId);
+            Set<Integer> existingResponseIds = new HashSet<>();
+            for (Response response : existingFileResponses) {
+                existingResponseIds.add(response.getResponseId());
+            }
+            if(!existingFileResponses.isEmpty()){
+                // 重置 isValid，但排除已有文件的记录
+                responseService.resetIsValidForResponsesExcludingIds(userId, surveyId, existingResponseIds);
+            }else {
+                responseService.resetIsValidForResponses(userId,surveyId);
+            }
         }
 
-        // 重置 isValid，但排除已有文件的记录
-        responseService.resetIsValidForResponsesExcludingIds(userId, surveyId, existingResponseIds);
     }
 
     private Response createInitialResponse(int surveyId, int questionId, int userId, String ipAddress, 
@@ -417,35 +412,25 @@ public class ResponseController {
 
     // 添加处理已有文件的方法
     private void processExistingFiles(int questionId, String existingFileIds) {
+        System.out.println("到处理已有文件了 existingFileIds: "+existingFileIds);
         if (existingFileIds != null && !existingFileIds.isEmpty()) {
             // 将逗号分隔的ID字符串转换为整数列表
             List<Integer> validFileIds = Arrays.stream(existingFileIds.split(","))
-                .map(Integer::parseInt)
-                .collect(Collectors.toList());
-            
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+
             // 获取该问题的所有文件记录
             List<Response> allFileResponses = responseService.getExistingFileResponses(questionId);
-            
+
+            System.out.println("validFileId为："+validFileIds);
             // 将不在validFileIds中的记录设置为无效
             for (Response response : allFileResponses) {
-                if (!validFileIds.contains(response.getId())) {
+                if (!validFileIds.contains(response.getResponseId())) {
                     response.setIsValid(0);
                     responseService.updateResponse(response);
                 }
             }
         }
-    }
-
-    // 新增Service方法
-    //public void resetIsValidExcludingExistingFiles(int userId, int surveyId, Set<Integer> excludedQuestionIds) {
-    //    if (excludedQuestionIds.isEmpty()) {
-    //        responseService.resetAllIsValid(userId, surveyId);
-    //    } else {
-    //        responseService.resetIsValidExcludingQuestions(userId, surveyId, excludedQuestionIds);
-    //    }
-    //}
-    private int extractQuestionIdFromFileName(String fileName) {
-        return Integer.parseInt(fileName.split("_")[1]);
     }
 }
 

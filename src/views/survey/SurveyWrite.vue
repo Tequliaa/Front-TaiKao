@@ -186,8 +186,8 @@ const getSurveyData = async () => {
                                     name: response.filePath.split('/').pop(),
                                     url: "http://localhost:8082" + response.filePath,
                                     isExisting: true,  // 标记为已有文件
-                                    fileId: response.id || response.fileId,  // 保留文件ID
-                                    responseId: response.id,  // 保留响应记录ID
+                                    fileId: response.responseId || response.responseId,  // 保留文件ID
+                                    responseId: response.responseId,  // 保留响应记录ID
                                     raw: null  // 明确设置raw为null
                                 }));
                             // 初始化新上传文件数组
@@ -404,10 +404,17 @@ const submitSurvey = async (isSaveAction = false) => {
 
                     // 必须传递已有文件信息
                     const existingFiles = question.uploadedFiles.filter(f => f.isExisting);
+                    console.log('文件上传题目部分——————已有文件信息:', existingFiles);
                     if (existingFiles.length > 0) {
-                        formData.append(`existing_files_${question.questionId}`, 
-                                    existingFiles.map(f => f.responseId).join(','));
+                        // 将responseId转换为逗号分隔的字符串
+                        const responseIds = existingFiles.map(f => f.responseId).join(',');
+                        console.log('已有文件的responseId字符串:', responseIds);
+                        formData.append(`existing_files_${question.questionId}`, responseIds);
+                    } else {
+                        // 如果没有已有文件，添加空字符串
+                        formData.append(`existing_files_${question.questionId}`, '');
                     }
+                    console.log('文件上传题目部分——————提交的表单数据:', formData);
                     break;
             }
 

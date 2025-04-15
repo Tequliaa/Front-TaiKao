@@ -3,7 +3,7 @@ import {
     Pointer,
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import {  onMounted } from 'vue';
+import {  onMounted, computed, nextTick } from 'vue';
 import { ref } from 'vue'
 //问卷列表查询
 import { getResponseListService } from '@/api/response.js'
@@ -103,9 +103,20 @@ const initData = async () => {
     }
 }
 
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
+
 // 在组件挂载时初始化数据
 onMounted(() => {
     initData()
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
 
 console.log("123")
@@ -231,14 +242,25 @@ const goToUnfinishedList = () => {
             </el-table>
 
             <!-- 分页条 -->
-            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[3, 5, 10, 15]"
-                layout="jumper, total, sizes, prev, pager, next" background :total="total" @size-change="onSizeChange"
-                @current-change="onCurrentChange" style="margin-top: 20px; justify-content: flex-end" />
+            <el-pagination 
+                v-model:current-page="pageNum" 
+                v-model:page-size="pageSize" 
+                :page-sizes="[3, 5, 10, 15]"
+                :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
+                background 
+                :pager-count="5"
+                :total="total" 
+                @size-change="onSizeChange"
+                @current-change="onCurrentChange" 
+                class="pagination-container" />
+
         </el-card>
     </LoadingWrapper>
 </template>
 <style lang="scss" scoped>
 .page-container {
+
+    
     min-height: 100%;
     box-sizing: border-box;
 
@@ -367,6 +389,24 @@ const goToUnfinishedList = () => {
 
     :deep(.ql-editor) {
         min-height: 200px;
+    }
+}
+
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
+
+/* 隐藏移动端元素 */
+:deep(.hide-on-mobile) {
+    @media (max-width: 768px) {
+        display: none !important;
     }
 }
 </style>

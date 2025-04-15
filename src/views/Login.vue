@@ -70,6 +70,7 @@ const clearRegisterData = () => {
         rePassword: ''
     }
 }
+
 //用于登录的事件函数
 const login = async () => {
     let result = await loginService(registerData.value)
@@ -80,7 +81,7 @@ const login = async () => {
 
         // alert('登录成功!')
         ElMessage.success(result.message ? result.message : '登录成功!');
-        router.push('/')
+        router.push('/manage/userSurvey')
     } else {
         //alert('登录失败!')
         ElMessage.error(result.message ? result.message : '登录失败!');

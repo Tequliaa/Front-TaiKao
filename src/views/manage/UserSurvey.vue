@@ -204,51 +204,89 @@ onMounted(() => {
             </template>
 
             <!-- 问卷列表 -->
-            <el-table 
-                v-loading="loading"
-                :data="userSurveys" 
-                style="width: 100%">
-                <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
-                <el-table-column label="问卷描述" style="text-align: center;" align="center">
-                    <template #default="scope">
-                        <el-tooltip 
-                            :content="getPlainText(scope.row.surveyDescription)" 
-                            placement="top" 
-                            :show-after="500"
-                            popper-class="description-tooltip">
-                            <span class="description-text">{{ getPlainText(scope.row.surveyDescription) }}</span>
-                        </el-tooltip>
-                    </template>
-                </el-table-column>
-                <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
-                <el-table-column label="发布于" style="text-align: center;" align="center" prop="assignedAt"
-                    :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"></el-table-column>
-                <el-table-column label="操作" style="text-align: center;" align="center" width="200">
-                    <template #default="{ row }">
-                        <!-- 未完成状态显示答题按钮 -->
-                        <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
-                            <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
-                        </el-tooltip>
-                        <!-- 已完成状态显示查看按钮 -->
-                        <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
-                            <el-button 
-                                v-if="row.status === '已完成'" 
-                                :icon="Pointer" 
-                                circle 
-                                plain 
-                                :type="row.allowView === 1 ? 'primary' : 'info'"
-                                :disabled="row.allowView !== 1"
-                                @click="row.allowView === 1 && viewResponse(row)"
-                            ></el-button>
-                        </el-tooltip>        
-                    </template>
-                </el-table-column>
+            <template v-if="!isMobile">
+                <el-table 
+                    v-loading="loading"
+                    :data="userSurveys" 
+                    style="width: 100%">
+                    <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
+                    <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+                    <el-table-column label="问卷描述" style="text-align: center;" align="center">
+                        <template #default="scope">
+                            <el-tooltip 
+                                :content="getPlainText(scope.row.surveyDescription)" 
+                                placement="top" 
+                                :show-after="500"
+                                popper-class="description-tooltip">
+                                <span class="description-text">{{ getPlainText(scope.row.surveyDescription) }}</span>
+                            </el-tooltip>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="状态" style="text-align: center;" align="center" prop="status"></el-table-column>
+                    <el-table-column label="发布于" style="text-align: center;" align="center" prop="assignedAt"
+                        :formatter="(row, col, val) => dayjs(val).format('YYYY-MM-DD HH:mm')"></el-table-column>
+                    <el-table-column label="操作" style="text-align: center;" align="center" width="200">
+                        <template #default="{ row }">
+                            <!-- 未完成状态显示答题按钮 -->
+                            <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
+                                <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
+                            </el-tooltip>
+                            <!-- 已完成状态显示查看按钮 -->
+                            <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
+                                <el-button 
+                                    v-if="row.status === '已完成'" 
+                                    :icon="Pointer" 
+                                    circle 
+                                    plain 
+                                    :type="row.allowView === 1 ? 'primary' : 'info'"
+                                    :disabled="row.allowView !== 1"
+                                    @click="row.allowView === 1 && viewResponse(row)"
+                                ></el-button>
+                            </el-tooltip>        
+                        </template>
+                    </el-table-column>
 
-                <template #empty>
-                    <el-empty description="没有数据" />
-                </template>
-            </el-table>
+                    <template #empty>
+                        <el-empty description="没有数据" />
+                    </template>
+                </el-table>
+            </template>
+
+            <!-- 移动端卡片视图 -->
+            <template v-else>
+                <div class="mobile-cards">
+                    <el-card v-for="(row, index) in userSurveys" :key="index" class="survey-card">
+                        <div class="card-content">
+                            <h3 class="survey-name">{{ row.surveyName }}</h3>
+                            <p class="survey-time">发布于: {{ dayjs(row.assignedAt).format('YYYY-MM-DD HH:mm') }}</p>
+                            <div class="card-actions">
+                                <!-- 未完成状态显示答题按钮 -->
+                                <el-button 
+                                    v-if="row.status === '未完成'"
+                                    type="primary" 
+                                    @click="fillOutSurvey(row)">
+                                    开始答题
+                                </el-button>
+                                <el-button 
+                                    v-if="row.status === '保存未提交'"
+                                    type="primary" 
+                                    @click="fillOutSurvey(row)">
+                                    继续答题
+                                </el-button>
+                                <!-- 已完成状态显示查看按钮 -->
+                                <el-button 
+                                    v-if="row.status === '已完成'"
+                                    :type="row.allowView === 1 ? 'primary' : 'info'"
+                                    :disabled="row.allowView !== 1"
+                                    @click="row.allowView === 1 && viewResponse(row)">
+                                    {{ row.allowView === 1 ? '查看答题情况' : '答后不允许查看' }}
+                                </el-button>
+                            </div>
+                        </div>
+                    </el-card>
+                    <el-empty v-if="userSurveys.length === 0" description="没有数据" />
+                </div>
+            </template>
 
             
             <!-- 分页条 -->
@@ -395,4 +433,45 @@ onMounted(() => {
     }
 }
 
+/* 移动端卡片样式 */
+.mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    
+    .survey-card {
+        width: 100%;
+        
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            
+            .survey-name {
+                // text-align: center;
+                font-size: 16px;
+                font-weight: 500;
+                margin: 0;
+                color: #303133;
+            }
+            
+            .survey-time {
+                font-size: 14px;
+                color: #909399;
+                margin: 0;
+            }
+            
+            .card-actions {
+                margin-top: 12px;
+                display: flex;
+                justify-content: flex-end;
+                
+                .el-button {
+                    width: 100%;
+                }
+            }
+        }
+    }
+}
 </style>

@@ -18,7 +18,7 @@ export default defineConfig({
   },
   //配置代理
   server: {
-    port: 3000,  // 修改为其他端口
+    port: 9527,  // 修改为其他端口
     open: true,   // 自动打开浏览器
     proxy: {
       '/api': {

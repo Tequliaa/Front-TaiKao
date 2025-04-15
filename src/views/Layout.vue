@@ -143,36 +143,40 @@ const handleLogout = () => {
                         <span>我的问卷</span>
                     </el-menu-item>
                     <el-sub-menu index="geren1" class="mobile-submenu">
-                        <template #title>
-                            <el-icon><Menu /></el-icon>
-                            <span>问卷管理</span>
-                        </template>
-                        <el-menu-item index="/survey/survey" class="mobile-submenu-item">
-                            <el-icon><User /></el-icon>
-                            <span>问卷管理</span>
-                        </el-menu-item>
-                        <el-menu-item index="/manage/category" class="mobile-submenu-item">
-                            <el-icon><EditPen /></el-icon>
-                            <span>分类管理</span>
-                        </el-menu-item>
-                        <el-menu-item index="/manage/question" class="mobile-submenu-item">
-                            <el-icon><Crop /></el-icon>
-                            <span>问题管理</span>
-                        </el-menu-item>
-                        <el-menu-item index="/manage/option" class="mobile-submenu-item">
-                            <el-icon><EditPen /></el-icon>
-                            <span>选项管理</span>
-                        </el-menu-item>
-                    </el-sub-menu>
+                            <template #title>
+                                <el-icon><Menu /></el-icon>
+                                <span>问卷管理</span>
+                            </template>
+                            <el-menu-item index="/survey/survey" class="mobile-submenu-item">
+                                <el-icon><User /></el-icon>
+                                <span>问卷管理</span>
+                            </el-menu-item>
+                            <el-menu-item index="/manage/category" class="mobile-submenu-item">
+                                <el-icon><EditPen /></el-icon>
+                                <span>分类管理</span>
+                            </el-menu-item>
+                            <el-menu-item index="/manage/question" class="mobile-submenu-item">
+                                <el-icon><Crop /></el-icon>
+                                <span>问题管理</span>
+                            </el-menu-item>
+                            <el-menu-item index="/manage/option" class="mobile-submenu-item">
+                                <el-icon><EditPen /></el-icon>
+                                <span>选项管理</span>
+                            </el-menu-item>
+                        </el-sub-menu>
+                    <!-- 管理员菜单 -->
+                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
 
-                    <el-menu-item index="/manage/department" class="mobile-menu-item">
-                        <el-icon><List /></el-icon>
-                        <span>部门管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/user" class="mobile-menu-item">
-                        <el-icon><Management /></el-icon>
-                        <span>用户管理</span>
-                    </el-menu-item>
+                        <el-menu-item index="/manage/department" class="mobile-menu-item">
+                            <el-icon><List /></el-icon>
+                            <span>部门管理</span>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/user" class="mobile-menu-item">
+                            <el-icon><Management /></el-icon>
+                            <span>用户管理</span>
+                        </el-menu-item>
+                    </template>
+
                     <el-sub-menu index="geren2" class="mobile-submenu">
                         <template #title>
                             <el-icon><UserFilled /></el-icon>
@@ -186,7 +190,7 @@ const handleLogout = () => {
                             <el-icon><Crop /></el-icon>
                             <span>更换头像</span>
                         </el-menu-item>
-                        <el-menu-item index="/user/password" class="mobile-submenu-item" @click="handleLogout">
+                        <el-menu-item index="/user/password" class="mobile-submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <span>重置密码</span>
                         </el-menu-item>
@@ -222,37 +226,39 @@ const handleLogout = () => {
                     <template #title>我的问卷</template>
                 </el-menu-item>
                 <el-sub-menu index="geren1" class="submenu">
-                    <template #title>
-                        <el-icon><Menu /></el-icon>
-                        <span>问卷管理</span>
-                    </template>
-                    <el-menu-item index="/survey/survey" class="submenu-item">
-                        <el-icon><User /></el-icon>
-                        <template #title>问卷管理</template>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/category" class="submenu-item">
-                        <el-icon><EditPen /></el-icon>
-                        <template #title>分类管理</template>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/question" class="submenu-item">
-                        <el-icon><Crop /></el-icon>
-                        <template #title>问题管理</template>
-                    </el-menu-item>
-                    <el-menu-item index="/manage/option" class="submenu-item">
-                        <el-icon><EditPen /></el-icon>
-                        <template #title>选项管理</template>
-                    </el-menu-item>
-                </el-sub-menu>
+                        <template #title>
+                            <el-icon><Menu /></el-icon>
+                            <span>问卷管理</span>
+                        </template>
+                        <el-menu-item index="/survey/survey" class="submenu-item">
+                            <el-icon><User /></el-icon>
+                            <template #title>问卷管理</template>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/category" class="submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <template #title>分类管理</template>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/question" class="submenu-item">
+                            <el-icon><Crop /></el-icon>
+                            <template #title>问题管理</template>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/option" class="submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <template #title>选项管理</template>
+                        </el-menu-item>
+                    </el-sub-menu>
+                <!-- 管理员菜单 -->
+                <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
 
-                <el-menu-item index="/manage/department" class="menu-item">
-                    <el-icon><List /></el-icon>
-                    <template #title>部门管理</template>
-                </el-menu-item>
-                <el-menu-item index="/manage/user" class="menu-item">
-                    <el-icon><Management /></el-icon>
-                    <template #title>用户管理</template>
-                </el-menu-item>
-
+                    <el-menu-item index="/manage/department" class="menu-item">
+                        <el-icon><List /></el-icon>
+                        <template #title>部门管理</template>
+                    </el-menu-item>
+                    <el-menu-item index="/manage/user" class="menu-item">
+                        <el-icon><Management /></el-icon>
+                        <template #title>用户管理</template>
+                    </el-menu-item>
+                </template>
 
                 <el-sub-menu index="geren2" class="submenu">
                     <template #title>
