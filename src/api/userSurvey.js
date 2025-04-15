@@ -8,8 +8,8 @@ export const userSurveyListService = (params) => {
 }
 
 //未完成用户列表
-export const unfinishedListService = (surveyId,departmentId)=>{
-  return request.get('/userSurvey/unfinishedUsers?surveyId='+surveyId+'&departmentId='+departmentId)
+export const unfinishedListService = (params)=>{
+  return request.get('/userSurvey/unfinishedUsers',{params})
 }
 
 // 向部门成员分配问卷

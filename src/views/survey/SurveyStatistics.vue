@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { getStatisticsService } from '@/api/response'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
 // 问卷ID
 const props = defineProps({
     surveyId: {
@@ -35,6 +36,266 @@ const loading = ref(true)
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
+// 添加图表实例存储
+const chartInstances = ref({})
+
+// 添加矩阵单元格数据
+const matrixCellData = ref({})
+
+// 初始化图表
+const initChart = (questionId, type, options) => {
+    console.log('初始化图表:', questionId, type, options)
+    
+    // 如果已经有图表实例，先销毁
+    if (chartInstances.value[questionId]) {
+        chartInstances.value[questionId].dispose()
+    }
+    
+    // 创建新的图表实例
+    const chartDom = document.getElementById(`chart_${questionId}`)
+    if (!chartDom) {
+        console.error('找不到图表容器:', `chart_${questionId}`)
+        return
+    }
+    
+    const chart = echarts.init(chartDom)
+    chartInstances.value[questionId] = chart
+    
+    // 根据问题类型设置不同的图表配置
+    let option = {}
+    
+    if (type === '单选' || type === '多选') {
+        // 计算总人数
+        const total = options.reduce((sum, opt) => sum + (parseInt(opt.checkCount) || 0), 0)
+        console.log('总人数:', total)
+        
+        // 准备数据
+        const data = options.map(opt => ({
+            name: opt.description,
+            value: parseInt(opt.checkCount) || 0,
+            percentage: total > 0 ? ((parseInt(opt.checkCount) || 0) / total * 100).toFixed(1) : 0
+        }))
+        console.log('饼图数据:', data)
+        
+        // 设置图表配置
+        option = {
+            tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                right: 10,
+                top: 'center',
+                data: data.map(item => item.name)
+            },
+            series: [
+                {
+                    name: '答题情况',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '14',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: data
+                }
+            ]
+        }
+    } else if (type === '评分题') {
+        // 准备数据
+        const data = options.map(opt => ({
+            name: opt.description,
+            value: parseFloat(opt.checkCount) || 0
+        }))
+        console.log('柱状图数据:', data)
+        
+        // 设置图表配置
+        option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: data.map(item => item.name),
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '平均分'
+            },
+            series: [
+                {
+                    name: '平均分',
+                    type: 'bar',
+                    data: data.map(item => item.value),
+                    itemStyle: {
+                        color: function(params) {
+                            // 根据分数设置不同颜色
+                            const value = params.value
+                            if (value >= 8) return '#67C23A'
+                            if (value >= 6) return '#409EFF'
+                            if (value >= 4) return '#E6A23C'
+                            return '#F56C6C'
+                        }
+                    }
+                }
+            ]
+        }
+    } else if (type === '矩阵单选' || type === '矩阵多选') {
+        // 获取行和列选项
+        const rowOptions = options.filter(opt => opt.type === '行选项')
+        const colOptions = options.filter(opt => opt.type === '列选项')
+        
+        console.log('矩阵题行选项:', rowOptions)
+        console.log('矩阵题列选项:', colOptions)
+        
+        // 准备热力图数据
+        const data = []
+        let maxValue = 0 // 用于计算颜色渐变的最大值
+        
+        // 获取该问题的单元格数据
+        const cellData = matrixCellData.value[questionId] || []
+        console.log('矩阵单元格数据:', cellData)
+        
+        // 创建单元格数据映射
+        const cellDataMap = {}
+        cellData.forEach(cell => {
+            const key = `${cell.rowOptionId}-${cell.colOptionId}`
+            cellDataMap[key] = parseInt(cell.checkCount) || 0
+            maxValue = Math.max(maxValue, cellDataMap[key])
+        })
+        console.log('单元格数据映射:', cellDataMap)
+        
+        // 遍历每个单元格，获取选择人数
+        rowOptions.forEach((row, rowIndex) => {
+            colOptions.forEach((col, colIndex) => {
+                // 获取该单元格的选择人数
+                const key = `${row.optionId}-${col.optionId}`
+                const checkCount = cellDataMap[key] || 0
+                data.push([colIndex, rowIndex, checkCount])
+            })
+        })
+        
+        console.log('矩阵热力图数据:', data)
+        console.log('最大选择人数:', maxValue)
+        
+        // 设置图表配置
+        option = {
+            tooltip: {
+                position: 'top',
+                formatter: function(params) {
+                    const rowName = rowOptions[params.value[1]].description
+                    const colName = colOptions[params.value[0]].description
+                    return `${rowName} - ${colName}: ${params.value[2]}人`
+                }
+            },
+            animation: false, // 禁用动画以提高性能
+            grid: {
+                top: '15%',
+                bottom: '20%',
+                left: '15%',
+                right: '5%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: colOptions.map(opt => opt.description),
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30,
+                    fontSize: 12,
+                    width: 100,
+                    overflow: 'break'
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: rowOptions.map(opt => opt.description),
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    fontSize: 12,
+                    width: 100,
+                    overflow: 'break'
+                }
+            },
+            visualMap: {
+                min: 0,
+                max: maxValue || 1,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                bottom: '0%',
+                inRange: {
+                    color: ['#f5f7fa', '#409EFF']
+                },
+                textStyle: {
+                    fontSize: 12
+                }
+            },
+            series: [{
+                name: '选择人数',
+                type: 'heatmap',
+                data: data,
+                label: {
+                    show: true,
+                    formatter: function(params) {
+                        return params.value[2] > 0 ? params.value[2] : ''
+                    },
+                    fontSize: 12
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }]
+        }
+    }
+    
+    // 设置图表配置
+    console.log('图表配置:', option)
+    chart.setOption(option)
+    
+    // 添加自适应大小
+    window.addEventListener('resize', () => {
+        chart.resize()
+    })
+}
 
 // 获取统计数据
 const getStatistics = async () => {
@@ -45,8 +306,12 @@ const getStatistics = async () => {
             // 直接使用返回的 questions 数组
             questions.value = response.data.questions
             unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
+            // 设置矩阵单元格数据
+            matrixCellData.value = response.data.matrixCellData || {}
+            console.log('获取到的矩阵单元格数据:', matrixCellData.value)
+            
             // 设置问卷信息
-                    // 处理每个问题，添加必要的响应式数据
+            // 处理每个问题，添加必要的响应式数据
             questions.value = response.data.questions.map(question => {
                 if (question.type === '矩阵单选' || question.type === '矩阵多选') {
                     question.matrixAnswers = {}
@@ -72,6 +337,11 @@ const getStatistics = async () => {
                 questions.value.forEach(question => {
                     visibleQuestions.value.add(question.questionId)
                 })
+                
+                // 初始化图表
+                nextTick(() => {
+                    initCharts()
+                })
             }
         } else {
             ElMessage.error('获取统计数据失败')
@@ -88,6 +358,13 @@ const getStatistics = async () => {
 onMounted(() => {
     console.log('组件挂载，开始获取数据')
     getStatistics()
+    
+    // 监听窗口大小变化，调整图表大小
+    window.addEventListener('resize', () => {
+        Object.values(chartInstances.value).forEach(chart => {
+            chart && chart.resize()
+        })
+    })
 })
 
 // 跳转到未完成列表
@@ -103,27 +380,67 @@ const goToUnfinishedList = () => {
     })
 }
 
-const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
-    if (!question.matrixAnswers[rowId]) {
-        question.matrixAnswers[rowId] = []
-    }
-    
-    if (checked) {
-        if (!question.matrixAnswers[rowId].includes(colId)) {
-            question.matrixAnswers[rowId].push(colId)
+// 在数据加载完成后初始化图表
+const initCharts = () => {
+    console.log('开始初始化所有图表')
+    questions.value.forEach(question => {
+        if (question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
+            question.type === '矩阵单选' || question.type === '矩阵多选') {
+            console.log('处理问题:', question.questionId, question.type)
+            // 使用 nextTick 确保 DOM 已经渲染
+            nextTick(() => {
+                initChart(question.questionId, question.type, question.options)
+            })
         }
-    } else {
-        const index = question.matrixAnswers[rowId].indexOf(colId)
-        if (index !== -1) {
-            question.matrixAnswers[rowId].splice(index, 1)
-        }
-    }
+    })
 }
+
+// 添加调试函数
+// const debugMatrixData = () => {
+//     console.log('矩阵单元格数据:', matrixCellData.value)
+    
+//     // 遍历所有矩阵题
+//     questions.value.forEach(question => {
+//         if (question.type === '矩阵单选' || question.type === '矩阵多选') {
+//             console.log(`问题 ${question.questionId} (${question.type}) 的矩阵数据:`, matrixCellData.value[question.questionId])
+            
+//             // 获取行和列选项
+//             const rowOptions = question.options.filter(opt => opt.type === '行选项')
+//             const colOptions = question.options.filter(opt => opt.type === '列选项')
+            
+//             console.log('行选项:', rowOptions)
+//             console.log('列选项:', colOptions)
+            
+//             // 检查每个单元格的数据
+//             const cellData = matrixCellData.value[question.questionId] || []
+//             console.log('单元格数据:', cellData)
+            
+//             // 创建单元格数据映射
+//             const cellDataMap = {}
+//             cellData.forEach(cell => {
+//                 const key = `${cell.rowOptionId}-${cell.colOptionId}`
+//                 cellDataMap[key] = parseInt(cell.checkCount) || 0
+//             })
+//             console.log('单元格数据映射:', cellDataMap)
+            
+//             // 检查每个单元格是否有数据
+//             rowOptions.forEach(row => {
+//                 colOptions.forEach(col => {
+//                     const key = `${row.optionId}-${col.optionId}`
+//                     console.log(`单元格 (${row.description}, ${col.description}): ${cellDataMap[key] || 0}`)
+//                 })
+//             })
+//         }
+//     })
+// }
 </script>
 
 <template>
     <div class="survey-statistics">
         <div class="survey-container">
+            <!-- 添加调试按钮 -->
+            <!-- <el-button type="primary" @click="debugMatrixData" style="margin-bottom: 20px;">调试矩阵数据</el-button> -->
+            
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
@@ -153,122 +470,144 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
                                 <span v-if="question.isRequired" class="required">*</span>
                             </div>
 
-                            <!-- 根据问题类型显示不同的选项 -->
-                            <div class="question-options">
-                                <!-- 单选题 -->
-                                <template v-if="question.type === '单选'">
-                                    <div class="form-check">
-                                        <div v-for="(option, optIndex) in question.options" 
-                                            :key="option.optionId" 
-                                            class="form-check-option">
-                                            <span class="option-label">
-                                                {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
-                                                <span class="check-count">(选择人数: {{ option.checkCount }})</span>
-                                            </span>
+                            <!-- 问题内容和图表容器 -->
+                            <div class="question-content">
+                                <!-- 根据问题类型显示不同的选项 -->
+                                <div class="question-options">
+                                    <!-- 单选题 -->
+                                    <template v-if="question.type === '单选'">
+                                        <div class="form-check">
+                                            <div v-for="(option, optIndex) in question.options" 
+                                                :key="option.optionId" 
+                                                class="form-check-option">
+                                                <span class="option-label">
+                                                    {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
+                                                    <span class="check-count">(选择人数: {{ option.checkCount }})</span>
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </template>
-
-                                <!-- 多选题 -->
-                                <template v-if="question.type === '多选'">
-                                    <div class="form-check">
-                                        <div v-for="(option, optIndex) in question.options" 
-                                            :key="option.optionId" 
-                                            class="form-check-option">
-                                            <span class="option-label">
-                                                {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
-                                                <span class="check-count">(选择人数: {{ option.checkCount }})</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- 填空题 -->
-                                <template v-if="question.type === '填空'">
-                                    <div class="text-answer">
-                                        <span class="check-count">(回答人数: {{ question.options[0]?.checkCount || 0 }})</span>
-                                    </div>
-                                </template>
-
-                                <!-- 矩阵单选题 -->
-                                <template v-if="question.type === '矩阵单选'">
-                                    <el-table 
-                                        :data="question.options.filter(opt => opt.type === '行选项')" 
-                                        border
-                                        style="width: 100%">
-                                        <el-table-column 
-                                            prop="description" 
-                                            label="行选项"
-                                            width="180" />
-                                        <el-table-column 
-                                            v-for="col in question.options.filter(opt => opt.type === '列选项')"
-                                            :key="col.optionId"
-                                            :label="col.description"
-                                            align="center"
-                                            width="120">
-                                            <template #default="{ row }">
-                                                <el-radio 
-                                                    v-model="question.matrixAnswers[row.optionId]" 
-                                                    :label="col.optionId"
-                                                    @change="(val) => handleMatrixRadioChange(question, row.optionId, col.optionId, val)" />
-                                            </template>
-                                        </el-table-column>
-                                    </el-table>
-                                </template>
-                            <!-- 矩阵多选题 -->
-                            <template v-if="question.type === '矩阵多选'">
-                                <el-table 
-                                    :data="question.options.filter(opt => opt.type === '行选项')" 
-                                    border
-                                    style="width: 100%">
-                                    <el-table-column 
-                                        prop="description" 
-                                        label="行选项"
-                                        width="180" />
-                                    <el-table-column 
-                                        v-for="col in question.options.filter(opt => opt.type === '列选项')"
-                                        :key="col.optionId"
-                                        :label="col.description"
-                                        align="center"
-                                        width="120">
-                                        <template #default="{ row }">
-                                            <el-checkbox 
-                                                :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                @update:model-value="(val) => handleMatrixCheckboxChange(question, row.optionId, col.optionId, val)" />
-                                        </template>
-                                    </el-table-column>
-                                </el-table>
-                            </template>
-
-                                <!-- 评分题 -->
-                                <template v-if="question.type === '评分题'">
-                                    <div class="rating-question">
-                                        <div v-for="option in question.options" :key="option.optionId" class="rating-item">
-                                            <label class="rating-label">{{ option.description }}:</label>
-                                            <span class="check-count">(平均分: {{ option.checkCount }})</span>
-                                        </div>
-                                    </div>
-                                </template>
-                                <!-- 文件上传题 -->
-                                <template v-if="question.type === '文件上传题'">
-                                    <el-upload
-                                    class="upload-demo"
-                                    action="" 
-                                    :auto-upload="false"
-                                    :file-list="question.uploadedFiles"
-                                    :on-change="(file, fileList) => question.uploadedFiles = fileList"
-                                    :on-remove="(file, fileList) => question.uploadedFiles = fileList"
-                                    :on-preview="handlePreview"
-                                    multiple
-                                    :limit="3"
-                                    :on-exceed="handleExceed"
-                                    :required="question.isRequired">
-                                    <el-button type="primary">点击上传</el-button>
-                                    <template #tip>
-                                        <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
                                     </template>
-                                </el-upload>
+
+                                    <!-- 多选题 -->
+                                    <template v-if="question.type === '多选'">
+                                        <div class="form-check">
+                                            <div v-for="(option, optIndex) in question.options" 
+                                                :key="option.optionId" 
+                                                class="form-check-option">
+                                                <span class="option-label">
+                                                    {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
+                                                    <span class="check-count">(选择人数: {{ option.checkCount }})</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- 填空题 -->
+                                    <template v-if="question.type === '填空'">
+                                        <div class="text-answer">
+                                            <span class="check-count">(回答人数: {{ question.options[0]?.checkCount || 0 }})</span>
+                                        </div>
+                                    </template>
+
+                                    <!-- 矩阵单选题 -->
+                                    <template v-if="question.type === '矩阵单选'">
+                                        <div class="matrix-container">
+                                            <table class="matrix-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center">行/列</th>
+                                                        <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                            :key="col.optionId" 
+                                                            class="text-center">
+                                                            {{ col.description }}
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                        :key="row.optionId">
+                                                        <td>{{ row.description }}</td>
+                                                        <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                            :key="col.optionId" 
+                                                            class="text-center">
+                                                            <el-radio 
+                                                                v-model="question.matrixAnswers[row.optionId]" 
+                                                                :label="col.optionId"
+                                                                disabled />
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </template>
+                                <!-- 矩阵多选题 -->
+                                <template v-if="question.type === '矩阵多选'">
+                                    <div class="matrix-container">
+                                        <table class="matrix-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center">行/列</th>
+                                                    <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        {{ col.description }}
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                    :key="row.optionId">
+                                                    <td>{{ row.description }}</td>
+                                                    <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                        :key="col.optionId" 
+                                                        class="text-center">
+                                                        <el-checkbox 
+                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
+                                                            disabled />
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </template>
+
+                                    <!-- 评分题 -->
+                                    <template v-if="question.type === '评分题'">
+                                        <div class="rating-question">
+                                            <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                                <label class="rating-label">{{ option.description }}:</label>
+                                                <span class="check-count">(平均分: {{ option.checkCount }})</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <!-- 文件上传题 -->
+                                    <template v-if="question.type === '文件上传题'">
+                                        <el-upload
+                                        class="upload-demo"
+                                        action="" 
+                                        :auto-upload="false"
+                                        :file-list="question.uploadedFiles"
+                                        :on-change="(file, fileList) => question.uploadedFiles = fileList"
+                                        :on-remove="(file, fileList) => question.uploadedFiles = fileList"
+                                        :on-preview="handlePreview"
+                                        multiple
+                                        :limit="3"
+                                        :on-exceed="handleExceed"
+                                        :required="question.isRequired">
+                                        <el-button type="primary">点击上传</el-button>
+                                        <template #tip>
+                                            <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
+                                        </template>
+                                    </el-upload>
+                                    </template>
+                                </div>
+                                
+                                <!-- 图表容器 -->
+                                <div v-if="question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
+                                    question.type === '矩阵单选' || question.type === '矩阵多选'" 
+                                    class="chart-container" 
+                                    :id="'chart_' + question.questionId">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -406,80 +745,157 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
             }
         }
 
-        .question-options {
-            margin-left: 20px;
-            // 添加内容溢出控制
-            overflow: hidden;
+        .question-content {
+            display: flex;
+            flex-wrap: wrap;
+            
+            .question-options {
+                flex: 1;
+                min-width: 300px;
+                margin-left: 20px;
+                // 添加内容溢出控制
+                // overflow: hidden;
+                
+                .form-check {
+                    .form-check-option {
+                        margin-bottom: 8px;
 
-            .form-check {
-                .form-check-option {
-                    margin-bottom: 8px;
+                        .option-label {
+                            font-size: 14px;
+                            color: #606266;
+                        }
 
-                    .option-label {
-                        font-size: 14px;
-                        color: #606266;
+                        .check-count {
+                            color: #409EFF;
+                            margin-left: 8px;
+                            font-size: 13px;
+                        }
                     }
+                }
 
+                .rating-question {
+                    .rating-item {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 12px;
+
+                        .rating-label {
+                            width: 120px;
+                            font-size: 14px;
+                            color: #606266;
+                        }
+
+                        .check-count {
+                            color: #409EFF;
+                            margin-left: 8px;
+                            font-size: 13px;
+                        }
+                    }
+                }
+
+                .text-answer {
                     .check-count {
                         color: #409EFF;
-                        margin-left: 8px;
                         font-size: 13px;
                     }
                 }
-            }
 
-            .rating-question {
-                .rating-item {
-                    display: flex;
-                    align-items: center;
-                    margin-bottom: 12px;
-
-                    .rating-label {
-                        width: 120px;
-                        font-size: 14px;
-                        color: #606266;
+                .upload-demo {
+                    .el-upload__tip {
+                        color: #909399;
+                        font-size: 12px;
+                        margin-top: 8px;
                     }
+                }
 
-                    .check-count {
-                        color: #409EFF;
-                        margin-left: 8px;
-                        font-size: 13px;
+                // 修改矩阵单选题的样式
+                :deep(.el-table) {
+                    // 添加表格滚动优化
+                    transform: translateZ(0);
+                    -webkit-transform: translateZ(0);
+                    will-change: transform;
+                    backface-visibility: hidden;
+                    -webkit-backface-visibility: hidden;
+
+                    .el-radio {
+                        .el-radio__label {
+                            display: none;
+                        }
+                        .el-radio__inner {
+                            margin-right: 0;
+                        }
+                    }
+                }
+
+                // 矩阵表格容器
+                .matrix-container {
+                    width: 100%;
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                    padding: 1px; // 添加内边距确保边框显示
+                    margin: 0 -1px; // 抵消内边距对容器宽度的影响
+                    
+                    .matrix-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border: 1px solid #dcdfe6;
+                        margin-bottom: 10px;
+                        table-layout: fixed; // 使用固定表格布局
+                        
+                        th, td {
+                            padding: 8px;
+                            border: 1px solid #dcdfe6;
+                            text-align: left;
+                            font-size: 14px;
+                            white-space: normal; // 允许文本换行
+                            word-break: break-word; // 允许在任意字符间换行
+                        }
+                        
+                        th {
+                            background-color: #f5f7fa;
+                            font-weight: 500;
+                            color: #606266;
+                        }
+                        
+                        td {
+                            color: #606266;
+                        }
+                        
+                        .text-center {
+                            text-align: center;
+                        }
+                        
+                        .check-count {
+                            display: block;
+                            font-size: 12px;
+                            color: #409EFF;
+                            margin-top: 4px;
+                        }
+                        
+                        :deep(.el-radio), :deep(.el-checkbox) {
+                            margin: 0;
+                            padding: 0;
+                            
+                            .el-radio__label, .el-checkbox__label {
+                                display: none;
+                            }
+                            
+                            .el-radio__inner, .el-checkbox__inner {
+                                margin: 0;
+                            }
+                        }
                     }
                 }
             }
-
-            .text-answer {
-                .check-count {
-                    color: #409EFF;
-                    font-size: 13px;
-                }
-            }
-
-            .upload-demo {
-                .el-upload__tip {
-                    color: #909399;
-                    font-size: 12px;
-                    margin-top: 8px;
-                }
-            }
-
-            // 修改矩阵单选题的样式
-            :deep(.el-table) {
-                // 添加表格滚动优化
-                transform: translateZ(0);
-                -webkit-transform: translateZ(0);
-                will-change: transform;
-                backface-visibility: hidden;
-                -webkit-backface-visibility: hidden;
-
-                .el-radio {
-                    .el-radio__label {
-                        display: none;
-                    }
-                    .el-radio__inner {
-                        margin-right: 0;
-                    }
-                }
+            
+            .chart-container {
+                width: 300px;
+                height: 250px;
+                margin-left: 20px;
+                margin-bottom: 20px;
+                border: 1px solid #ebeef5;
+                border-radius: 4px;
+                background-color: #fff;
             }
         }
     }
@@ -491,6 +907,40 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
         .el-button {
             margin: 0 10px;
             min-width: 100px;
+        }
+    }
+}
+
+// 添加响应式样式
+@media (max-width: 768px) {
+    .survey-statistics {
+        .survey-container {
+            padding: 0 10px;
+        }
+        
+        .question-item {
+            padding: 12px;
+            
+            .question-options {
+                margin-left: 10px;
+                
+                .matrix-container {
+                    margin: 0 -18px;
+                    width: calc(100% + 24px);
+                    padding: 1px; // 确保移动端边框也显示
+                    
+                    .matrix-table {
+                        th, td {
+                            padding: 6px;
+                            font-size: 13px;
+                        }
+                        
+                        .check-count {
+                            font-size: 11px;
+                        }
+                    }
+                }
+            }
         }
     }
 }

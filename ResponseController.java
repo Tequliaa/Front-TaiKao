@@ -101,9 +101,18 @@ public class ResponseController {
             Survey survey = surveyService.getSurveyById(surveyId);
             List<Question> questions = questionService.getQuestionsBySurveyId(surveyId);
             
+            // 存储矩阵题单元格选择情况的Map
+            Map<Integer, List<Map<String, Object>>> matrixCellData = new HashMap<>();
+            
             for (Question question : questions) {
                 List<Option> options = optionService.getOptionsWithCheckCountByQuestionId(question.getQuestionId(), departmentId);
                 question.setOptions(options);
+                
+                // 如果是矩阵题，获取单元格选择情况
+                if (question.getType().equals("矩阵单选") || question.getType().equals("矩阵多选")) {
+                    List<Map<String, Object>> cellData = optionService.getMatrixCellCheckCount(question.getQuestionId(), departmentId);
+                    matrixCellData.put(question.getQuestionId(), cellData);
+                }
             }
             List<UserSurvey> userSurveys=userSurveyService.getUserDepartmentInfoBySurveyId(surveyId);
 
@@ -115,6 +124,7 @@ public class ResponseController {
             resultMap.put("questions", questions);
             resultMap.put("unfinishedTotalRecords", unfinishedTotalRecords);
             resultMap.put("departmentId", departmentId);
+            resultMap.put("matrixCellData", matrixCellData); // 添加矩阵单元格数据
 
             return Result.success(resultMap);
         } catch (Exception e) {
@@ -171,6 +181,7 @@ public class ResponseController {
     }
 
     private void handleFileUploads(Map<String, MultipartFile> fileMap, int surveyId, int userId, String ipAddress) throws IOException {
+        System.out.println("有新文件上传");
         // 使用明确的相对路径，基于应用根目录
         //String uploadPath = new File("").getAbsolutePath() + File.separator + "uploads" + File.separator;
         String staticPath = new ClassPathResource("static/uploads").getFile().getAbsolutePath();
@@ -244,6 +255,7 @@ public class ResponseController {
                 processOpenAnswer(paramName, paramValue);
             } else if (paramName.startsWith("existing_files_")) {
                 System.out.println("到existing_files_了");
+                System.out.println("existing_files_ ——————"+paramValue);
                 // 处理文件上传题中的已有文件
                 int questionId = Integer.parseInt(paramName.split("_")[2]);
                 processExistingFiles(questionId, paramValue);
@@ -272,6 +284,7 @@ public class ResponseController {
         response.setQuestionId(questionId);
         response.setOptionId(optionId);
         response.setRowId(0);
+        response.setIsValid(1);
         response.setColumnId(0);
         response.setResponseData(paramValue);
         response.setUserId(userId);
@@ -301,7 +314,7 @@ public class ResponseController {
             response.setOptionId(0);
             response.setResponseData(answer);
         }
-
+        response.setIsValid(1);
         response.setRowId(0);
         response.setColumnId(0);
         response.setUserId(userId);
@@ -310,6 +323,7 @@ public class ResponseController {
         responseService.updateResponse(response);
     }
 
+    //处理矩阵题
     private void saveMatrixResponse(int surveyId, int questionId, String rowOptionId, String columnOptionId, 
                                   String ipAddress, int userId, boolean isSaveAction){
         //System.out.println("行列Id分别如下："+rowOptionId+" "+columnOptionId);
@@ -321,12 +335,14 @@ public class ResponseController {
         response.setColumnId(Integer.parseInt(columnOptionId));
         response.setResponseData("");
         response.setOptionId(0);
+        response.setIsValid(1);
         response.setUserId(userId);
         response.setIpAddress(ipAddress);
         response.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         responseService.updateResponse(response);
     }
 
+    //完成问卷
     private void completeSurvey(int surveyId, int userId, boolean isSaveAction){
         if (!isSaveAction) {
             userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "已完成", 
@@ -337,11 +353,13 @@ public class ResponseController {
         }
     }
 
+    //打回问卷
     private void remakeSurvey(int surveyId, int userId){
         userSurveyService.updateSurveyStatusBySurveyAndUser(surveyId, userId, "保存未提交",
             new Timestamp(System.currentTimeMillis()));
     }
 
+    //初始化答题情况
     private void initializeResponses(int surveyId, int userId, String ipAddress){
         List<Question> questions = questionService.getQuestionsBySurveyId(surveyId);
         if (!responseService.checkResponseExists(userId, surveyId)) {
@@ -395,6 +413,7 @@ public class ResponseController {
 
     }
 
+    //创建初始答案
     private Response createInitialResponse(int surveyId, int questionId, int userId, String ipAddress, 
                                          int rowId, int columnId) {
         Response responseRecord = new Response();
@@ -421,13 +440,15 @@ public class ResponseController {
 
             // 获取该问题的所有文件记录
             List<Response> allFileResponses = responseService.getExistingFileResponses(questionId);
-
             System.out.println("validFileId为："+validFileIds);
             // 将不在validFileIds中的记录设置为无效
+            System.out.print("现存文件id为： ---");
             for (Response response : allFileResponses) {
+                System.out.print(" "+response.getResponseId());
                 if (!validFileIds.contains(response.getResponseId())) {
+                    System.out.println("给无效文件设置isValid为0");
                     response.setIsValid(0);
-                    responseService.updateResponse(response);
+                    responseService.updateFileValid(response);
                 }
             }
         }

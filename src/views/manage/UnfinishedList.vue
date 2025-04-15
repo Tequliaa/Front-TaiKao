@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,nextTick,computed} from 'vue'
 import { unfinishedListService, exportUnfinishedListService } from '@/api/userSurvey'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
@@ -27,17 +27,24 @@ const props = defineProps({
 
 // 数据列表
 const userSurveys = ref([])
-const totalCount = ref(0)
+const total = ref(0)
 const loading = ref(true)
-
+const pageNum = ref(1)//当前页
+const pageSize = ref(8)//每页条数
 // 获取未完成列表
 const getUnfinishedList = async () => {
     loading.value = true
     try {
-        const response = await unfinishedListService(props.surveyId,props.departmentId)
+        let params = {
+            pageNum: pageNum.value,
+            pageSize: pageSize.value,
+            surveyId: props.surveyId,
+            departmentId: props.departmentId
+        }
+        const response = await unfinishedListService(params)
         if (response.code === 0) {
             userSurveys.value = response.data.userSurveys
-            totalCount.value = response.data.totalCount
+            total.value = response.data.total
         } else {
             ElMessage.error('获取未完成列表失败')
         }
@@ -48,7 +55,31 @@ const getUnfinishedList = async () => {
         loading.value = false
     }
 }
+//当每页条数发生了变化，调用此函数
+const onSizeChange = (size) => {
+    pageSize.value = size;
+    getUnfinishedList();
+}
 
+//当前页码发生变化，调用此函数
+const onCurrentChange = (num) => {
+    pageNum.value = num;
+    getUnfinishedList()
+}
+
+// 检测是否为移动设备
+const isMobile = computed(() => {
+    return window.innerWidth <= 768;
+})
+// 在组件挂载时初始化数据
+onMounted(() => {
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
+})
 // 导出未完成列表
 const exportUnfinishedList = async () => {
     try {
@@ -87,6 +118,12 @@ const exportUnfinishedList = async () => {
 // 组件挂载时获取数据
 onMounted(() => {
     getUnfinishedList()
+    window.addEventListener('resize', () => {
+        // 强制更新组件
+        nextTick(() => {
+            // 这里不需要做任何事情，computed 属性会自动重新计算
+        });
+    });
 })
 </script>
 
@@ -100,7 +137,7 @@ onMounted(() => {
                     <div class="list-header">
                         <h2>{{ props.surveyName }}问卷</h2>
                         <div class="info-row">
-                            <div class="total-count">未完成人数：{{ totalCount }}</div>
+                            <div class="total-count">未完成人数：{{ total }}</div>
                             <el-button 
                                 type="primary" 
                                 :icon="Download" 
@@ -138,6 +175,18 @@ onMounted(() => {
                             header-align="center">
                         </el-table-column>
                     </el-table>
+                <!-- 分页条 -->
+                <el-pagination 
+                    v-model:current-page="pageNum" 
+                    v-model:page-size="pageSize" 
+                    :page-sizes="[3, 5, 10, 15]"
+                    :layout="isMobile ? 'prev, pager, next' : 'jumper, total, sizes, prev, pager, next'" 
+                    background 
+                    :pager-count="5"
+                    :total="total" 
+                    @size-change="onSizeChange"
+                    @current-change="onCurrentChange" 
+                    class="pagination-container" />
                 </template>
             </el-skeleton>
         </div>
@@ -145,6 +194,97 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.page-container {
+    min-height: 100%;
+    box-sizing: border-box;
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+        gap: 10px; /* 添加间距 */
+        
+        span {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap; /* 防止文字换行 */
+        }
+    }
+    
+    .extra {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap; /* 允许在移动端换行 */
+    }
+
+    .el-input {
+        width: 240px; /* 输入框的宽度 */
+    }
+    
+    /* 按钮组样式 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        
+        .action-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            
+            .el-icon {
+                margin-right: 5px;
+            }
+        }
+    }
+    
+    /* 移动端响应式样式 */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            
+            span {
+                margin-bottom: 10px;
+            }
+        }
+        
+        .extra {
+            width: 100%;
+            flex-direction: column;
+            
+            .el-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .button-group {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                
+                .action-button {
+                    width: 100px;
+                    margin: 0;
+                }
+            }
+        }
+    }
+}
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
 .unfinished-list {
     padding: 12px;
     background-color: #f5f7fa;

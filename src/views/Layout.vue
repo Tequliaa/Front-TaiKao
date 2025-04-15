@@ -298,7 +298,7 @@ const handleLogout = () => {
                     <div class="user-info" v-if="!isMobile">
                         <el-icon class="notification-icon"><Bell /></el-icon>
                         <div class="department-info">
-                            <span class="department-label">软件学院：</span>
+                            <span class="department-label">用户昵称：</span>
                             <span class="user-name">{{ userInfoStore.info.name }}</span>
                         </div>
                     </div>

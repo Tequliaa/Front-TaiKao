@@ -351,9 +351,8 @@ onMounted(() => {
                 </div>
             </template>
 
-            <!-- 问卷列表 -->
-            <el-table :data="surveys" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
+            <!-- 桌面端表格视图 -->
+            <el-table :data="surveys" style="width: 100%" class="desktop-table">
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
                 <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName" class-name="hide-on-mobile"> </el-table-column>
@@ -391,6 +390,22 @@ onMounted(() => {
                     <el-empty description="没有数据" />
                 </template>
             </el-table>
+
+            <!-- 移动端卡片视图 -->
+            <div class="mobile-cards">
+                <el-card v-for="(row, index) in surveys" :key="row.surveyId" class="survey-card">
+                    <div class="card-header">
+                        <span class="survey-name">{{ row.name }}</span>
+                        <el-tag size="small" :type="row.status === '草稿' ? 'info' : 'success'">{{ row.status }}</el-tag>
+                    </div>
+                    <div class="card-actions">
+                        <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
+                        <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                        <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
+                        <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                    </div>
+                </el-card>
+            </div>
 
             <!-- 分页条 -->
             <el-pagination 
@@ -527,7 +542,16 @@ onMounted(() => {
         }
     }
 }
-
+/* 分页样式 */
+:deep(.pagination-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+}
 /* 隐藏移动端元素 */
 :deep(.hide-on-mobile) {
     @media (max-width: 768px) {
@@ -569,16 +593,7 @@ onMounted(() => {
     // gap: 8px;
 }
 
-/* 分页样式 */
-:deep(.pagination-container) {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-    
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-}
+
 
 /* 抽屉样式 */
 .avatar-uploader {
@@ -653,6 +668,50 @@ onMounted(() => {
 :deep(.el-drawer) {
     @media (max-width: 768px) {
         width: 90% !important;
+    }
+}
+
+/* 移动端卡片样式 */
+.mobile-cards {
+    display: none;
+    
+    @media (max-width: 768px) {
+        display: block;
+        padding: 10px;
+        
+        .survey-card {
+            margin-bottom: 15px;
+            
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                
+                .survey-name {
+                    font-size: 16px;
+                    font-weight: 500;
+                }
+            }
+            
+            .card-actions {
+                display: flex;
+                justify-content: space-around;
+                gap: 10px;
+                
+                .el-button {
+                    flex: 1;
+                    padding: 8px;
+                }
+            }
+        }
+    }
+}
+
+/* 桌面端表格在移动端隐藏 */
+.desktop-table {
+    @media (max-width: 768px) {
+        display: none;
     }
 }
 </style>
