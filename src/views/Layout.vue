@@ -46,7 +46,7 @@ const handleCommand = (command) => {
         //退出登录
         //退出登录
         ElMessageBox.confirm(
-            '你确认退出登录码？',
+            '你确认退出登录吗？',
             '温馨提示',
             {
                 confirmButtonText: '确认',
@@ -142,7 +142,10 @@ const handleLogout = () => {
                         <el-icon><Avatar /></el-icon>
                         <span>我的问卷</span>
                     </el-menu-item>
-                    <el-sub-menu index="geren1" class="mobile-submenu">
+
+                    <!-- 管理员菜单 -->
+                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
+                        <el-sub-menu index="geren1" class="mobile-submenu">
                             <template #title>
                                 <el-icon><Menu /></el-icon>
                                 <span>问卷管理</span>
@@ -164,9 +167,6 @@ const handleLogout = () => {
                                 <span>选项管理</span>
                             </el-menu-item>
                         </el-sub-menu>
-                    <!-- 管理员菜单 -->
-                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
-
                         <el-menu-item index="/manage/department" class="mobile-menu-item">
                             <el-icon><List /></el-icon>
                             <span>部门管理</span>
@@ -186,10 +186,10 @@ const handleLogout = () => {
                             <el-icon><User /></el-icon>
                             <span>基本资料</span>
                         </el-menu-item>
-                        <el-menu-item index="/user/avatar" class="mobile-submenu-item">
+                        <!-- <el-menu-item index="/user/avatar" class="mobile-submenu-item">
                             <el-icon><Crop /></el-icon>
                             <span>更换头像</span>
-                        </el-menu-item>
+                        </el-menu-item> -->
                         <el-menu-item index="/user/password" class="mobile-submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <span>重置密码</span>
@@ -225,7 +225,10 @@ const handleLogout = () => {
                     <el-icon><Avatar /></el-icon>
                     <template #title>我的问卷</template>
                 </el-menu-item>
-                <el-sub-menu index="geren1" class="submenu">
+
+                <!-- 管理员菜单 -->
+                <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
+                    <el-sub-menu index="geren1" class="submenu">
                         <template #title>
                             <el-icon><Menu /></el-icon>
                             <span>问卷管理</span>
@@ -247,9 +250,6 @@ const handleLogout = () => {
                             <template #title>选项管理</template>
                         </el-menu-item>
                     </el-sub-menu>
-                <!-- 管理员菜单 -->
-                <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
-
                     <el-menu-item index="/manage/department" class="menu-item">
                         <el-icon><List /></el-icon>
                         <template #title>部门管理</template>
@@ -269,10 +269,10 @@ const handleLogout = () => {
                         <el-icon><User /></el-icon>
                         <template #title>基本资料</template>
                     </el-menu-item>
-                    <el-menu-item index="/user/avatar" class="submenu-item">
+                    <!-- <el-menu-item index="/user/avatar" class="submenu-item">
                         <el-icon><Crop /></el-icon>
                         <template #title>更换头像</template>
-                    </el-menu-item>
+                    </el-menu-item> -->
                     <el-menu-item index="/user/password" class="submenu-item">
                         <el-icon><EditPen /></el-icon>
                         <template #title>重置密码</template>
@@ -311,7 +311,7 @@ const handleLogout = () => {
                         <template #dropdown>
                             <el-dropdown-menu>
                                 <el-dropdown-item command="info" :icon="User">基本资料</el-dropdown-item>
-                                <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item>
+                                <!-- <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item> -->
                                 <el-dropdown-item command="password" :icon="EditPen">重置密码</el-dropdown-item>
                                 <el-dropdown-item divided command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
                             </el-dropdown-menu>

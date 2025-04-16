@@ -27,7 +27,7 @@ const router = createRouter({
       path: '/', 
       component: LayoutVue,
       //重定向  默认打开的路由
-      redirect: '/survey/survey',
+      redirect: '/manage/userSurvey',
       //子路由
       children:[
         { path: '/manage/unfinishedList/:surveyId/:departmentId?/:surveyName?/:departmentName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},

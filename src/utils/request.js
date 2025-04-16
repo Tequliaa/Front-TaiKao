@@ -66,7 +66,7 @@ instance.interceptors.response.use(
         }
         
         if(err.response?.status === 401){
-            ElMessage.error('请先登录！')
+            // 移除错误提示，直接重定向到登录页面
             router.push('/login')
         }else{
             ElMessage.error('服务异常');

@@ -33,7 +33,7 @@ const getUserInf = async () => {
         userInfoStore.info = result.data;
         return result.data;
     } catch (error) {
-        ElMessage.error('获取用户信息失败')
+        // 不再显示错误消息，直接返回null
         return null;
     }
 }
@@ -45,14 +45,17 @@ const initData = async () => {
         // 获取用户信息
         const userInfo = await getUserInf();
         if (!userInfo) {
-            throw new Error('获取用户信息失败');
+            // 如果没有获取到用户信息，直接重定向到登录页面
+            router.push('/login');
+            return;
         }
         
         // 获取问卷列表
         await getUserSurveys();
     } catch (error) {
         console.error('初始化数据失败:', error);
-        ElMessage.error('加载数据失败');
+        // 不再显示错误消息，直接重定向到登录页面
+        router.push('/login');
     } finally {
         loading.value = false;
     }
@@ -196,7 +199,7 @@ onMounted(() => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>{{ props.username || userInfoStore.info.name }}的问卷</span>
+                    <span>{{ props.username || userInfoStore.info?.name || '用户' }}的问卷</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问卷名称或描述" />
                     </div>
