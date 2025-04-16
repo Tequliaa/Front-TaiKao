@@ -218,9 +218,8 @@ const goToUnfinishedList = () => {
                 </div>
             </template>
 
-            <!-- 问卷列表 -->
-            <el-table :data="responses" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="surveyId"></el-table-column> -->
+            <!-- 桌面端表格视图 -->
+            <el-table v-if="!isMobile" :data="responses" style="width: 100%">
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="用户名称" style="text-align: center;" align="center" prop="userName"></el-table-column>
                 <el-table-column label="答题总数" style="text-align: center;" align="center" prop="totalQuestions"></el-table-column>
@@ -240,6 +239,38 @@ const goToUnfinishedList = () => {
                     <el-empty description="没有数据" />
                 </template>
             </el-table>
+
+            <!-- 移动端卡片视图 -->
+            <div v-else class="mobile-cards">
+                <el-card v-for="(row, index) in responses" :key="index" class="response-card">
+                    <div class="card-header">
+                        <span class="user-name">{{ row.userName }}</span>
+                        <el-tag :type="row.status === '已完成' ? 'success' : 'warning'" size="small">
+                            {{ row.status }}
+                        </el-tag>
+                    </div>
+                    <div class="card-info">
+                        <div class="info-item">
+                            <span class="label">答题总数：</span>
+                            <span class="value">{{ row.totalQuestions }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">最后答题：</span>
+                            <span class="value">{{ dayjs(row.createdAt).format('YYYY-MM-DD HH:mm') }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">IP地址：</span>
+                            <span class="value">{{ row.ipAddress }}</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <el-button type="primary" size="small" @click="viewResponse(row)">
+                            查看答题情况
+                        </el-button>
+                    </div>
+                </el-card>
+                <el-empty v-if="responses.length === 0" description="没有数据" />
+            </div>
 
             <!-- 分页条 -->
             <el-pagination 
@@ -407,6 +438,109 @@ const goToUnfinishedList = () => {
 :deep(.hide-on-mobile) {
     @media (max-width: 768px) {
         display: none !important;
+    }
+}
+
+/* 移动端卡片样式 */
+.mobile-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 8px 0;
+
+    .response-card {
+        margin-bottom: 0;
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ebeef5;
+
+            .user-name {
+                font-size: 16px;
+                font-weight: 500;
+                color: #303133;
+            }
+        }
+
+        .card-info {
+            margin-bottom: 12px;
+
+            .info-item {
+                display: flex;
+                margin-bottom: 8px;
+                font-size: 14px;
+                line-height: 1.4;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+
+                .label {
+                    color: #909399;
+                    width: 70px;
+                    flex-shrink: 0;
+                }
+
+                .value {
+                    color: #303133;
+                    flex: 1;
+                }
+            }
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #ebeef5;
+        }
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .page-container {
+        .header-container {
+            padding: 0 12px;
+
+            .survey-title {
+                font-size: 18px;
+                margin-bottom: 12px;
+            }
+
+            .header {
+                gap: 8px;
+                margin-bottom: 4px;
+
+                .unfinished-count {
+                    padding: 4px 8px;
+                    font-size: 13px;
+                }
+            }
+        }
+    }
+
+    :deep(.el-card__body) {
+        padding: 12px;
+    }
+
+    .mobile-cards {
+        .response-card {
+            .card-info {
+                .info-item {
+                    font-size: 13px;
+                    
+                    .label {
+                        width: 65px;
+                    }
+                }
+            }
+        }
     }
 }
 </style>

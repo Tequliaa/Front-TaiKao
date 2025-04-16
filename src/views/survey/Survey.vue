@@ -295,8 +295,11 @@ const currentSurveyId = ref(null)
 
 // 打开预览
 const openPreview = (row) => {
-    currentSurveyId.value = row.surveyId
-    previewVisible.value = true
+    currentSurveyId.value = null // 先清空当前ID
+    nextTick(() => {
+        currentSurveyId.value = row.surveyId // 在下一个tick中设置新ID
+        previewVisible.value = true
+    })
 }
 
 const openQuestions = (row) => {
@@ -398,11 +401,14 @@ onMounted(() => {
                         <span class="survey-name">{{ row.name }}</span>
                         <el-tag size="small" :type="row.status === '草稿' ? 'info' : 'success'">{{ row.status }}</el-tag>
                     </div>
+                    <div class="card-description" v-if="row.description">
+                        {{ getPlainText(row.description).slice(0, 20) }}{{ getPlainText(row.description).length > 20 ? '...' : '' }}
+                    </div>
                     <div class="card-actions">
-                        <el-button :icon="View" circle plain type="primary" @click="openPreview(row)"></el-button>
-                        <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
-                        <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
-                        <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                        <el-button type="primary" size="small" @click="openPreview(row)">预览</el-button>
+                        <el-button type="primary" size="small" @click="assignSurveyEcho(row)">发布</el-button>
+                        <el-button type="primary" size="small" @click="checkResponse(row)">查看答题</el-button>
+                        <el-button type="primary" size="small" @click="editSurveyEcho(row)">编辑</el-button>
                     </div>
                 </el-card>
             </div>
@@ -482,7 +488,8 @@ onMounted(() => {
         width="80%"
         :close-on-click-modal="false"
         :close-on-press-escape="false"
-        :show-close="true">
+        :show-close="true"
+        @closed="currentSurveyId = null">
         <SurveyPreview v-if="currentSurveyId" :surveyId="currentSurveyId" />
     </el-dialog>
 </template>
@@ -686,22 +693,37 @@ onMounted(() => {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #ebeef5;
                 
                 .survey-name {
                     font-size: 16px;
                     font-weight: 500;
+                    color: #303133;
                 }
+            }
+
+            .card-description {
+                font-size: 14px;
+                color: #606266;
+                margin-bottom: 12px;
+                line-height: 1.4;
+                padding: 0 4px;
             }
             
             .card-actions {
-                display: flex;
-                justify-content: space-around;
-                gap: 10px;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                padding-top: 8px;
+                border-top: 1px solid #ebeef5;
                 
                 .el-button {
-                    flex: 1;
-                    padding: 8px;
+                    width: 100%;
+                    margin: 0;
+                    padding: 8px 12px;
+                    font-size: 14px;
                 }
             }
         }
