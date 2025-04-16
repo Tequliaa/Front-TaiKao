@@ -161,11 +161,33 @@ const questionModel = ref({
 
 //打开添加问题窗口
 const openAddDialog = () => {
-    questionModel.value = {};
+    // 设置默认值
+    questionModel.value = {
+        type: '单选',
+        isRequired: 1,
+        isOpen: 0,
+        categoryId: '',
+        surveyId: props.surveyId || ''
+    };
+    
+    // 如果有surveyId，设置对应的surveyName
+    if (props.surveyId) {
+        // 优先使用props.surveyName
+        if (props.surveyName) {
+            questionModel.value.surveyName = props.surveyName;
+        } else {
+            // 如果没有props.surveyName，则从allSurveys中查找
+            const survey = allSurveys.value.find(s => s.surveyId === props.surveyId);
+            if (survey) {
+                questionModel.value.surveyName = survey.name;
+            }
+        }
+    }
+    
     visibleDrawer.value = true;
     addQuestionFlag.value = true;
-       // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
-       nextTick(() => {
+    // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
+    nextTick(() => {
         const editor = document.querySelector('.ql-editor');
         if (editor) editor.innerHTML = ''; // 清空编辑器内容
     });
@@ -373,6 +395,13 @@ window.addEventListener('resize', () => {
         });
     });
 })
+
+const handleSurveyChange = (value) => {
+    const survey = allSurveys.value.find(s => s.surveyId === value);
+    if (survey) {
+        questionModel.value.surveyName = survey.name;
+    }
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -391,20 +420,19 @@ window.addEventListener('resize', () => {
             <el-table :data="questions" style="width: 100%">
                 <!-- <el-table-column label="序号" prop="questionId"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description" width="150"></el-table-column>
-                <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type"> </el-table-column>
-                <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column>
-                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName" width="150"></el-table-column>
-
-                <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired" width="100">
+                <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description"></el-table-column>
+                <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type" > </el-table-column>
+                <!-- <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column> -->
+                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+                <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired">
                     <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen" width="120">
+                <el-table-column label="有无开放答案" style="text-align: center;" align="center" prop="isOpen">
                     <template #default="{ row }">{{ row.isOpen === 1 ? '有' : '无' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip" width="100">
+                <el-table-column label="有无跳转" style="text-align: center;" align="center" prop="isSkip">
                     <template #default="{ row }">{{ row.isSkip === 1 ? '有' : '无' }}
                     </template>
                 </el-table-column>
@@ -475,9 +503,12 @@ window.addEventListener('resize', () => {
             </el-form-item>
 
             <el-form-item label="所属问卷">
-                <el-select v-model="questionModel.surveyId" clearable placeholder="所属问卷">
+                <el-select v-model="questionModel.surveyId" clearable placeholder="所属问卷" @change="handleSurveyChange">
                     <el-option v-for="item in allSurveys" :key="item.surveyId" :label="item.name" :value="item.surveyId"/>
                 </el-select>
+                <div v-if="questionModel.surveyName" class="survey-name-display">
+                    当前选择: {{ questionModel.surveyName }}
+                </div>
             </el-form-item>
 
             <el-form-item label="有无跳转">
@@ -607,5 +638,12 @@ window.addEventListener('resize', () => {
     :deep(.ql-editor) {
         min-height: 200px;
     }
+}
+
+.survey-name-display {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #606266;
+    font-style: italic;
 }
 </style>

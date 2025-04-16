@@ -39,6 +39,9 @@ const props =defineProps({
     },
     questionName:{
         type:String
+    },
+    surveyId: {
+        type: Number
     }
 })
 //选项数据模型
@@ -137,15 +140,45 @@ const optionModel = ref({
     questionName: '',
     skipTo:'',
     userId: '',
+    surveyName: ''
 })
 
 //打开添加选项窗口
 const openAddDialog = () => {
-    optionModel.value = {};
+    // 设置默认值
+    optionModel.value = {
+        type: '行选项',
+        surveyId: props.surveyId || '',
+        questionId: props.questionId || ''
+    };
+    
+    // 如果有surveyId，设置对应的surveyName
+    if (props.surveyId) {
+        // 从allSurveys中查找对应的问卷名称
+        const survey = allSurveys.value.find(s => s.surveyId === props.surveyId);
+        if (survey) {
+            optionModel.value.surveyName = survey.name;
+        }
+    }
+    
+    // 如果有questionId，设置对应的questionName
+    if (props.questionId) {
+        // 优先使用props.questionName
+        if (props.questionName) {
+            optionModel.value.questionName = props.questionName;
+        } else {
+            // 如果没有props.questionName，则从allQuestions中查找
+            const question = allQuestions.value.find(q => q.questionId === props.questionId);
+            if (question) {
+                optionModel.value.questionName = question.description;
+            }
+        }
+    }
+    
     visibleDrawer.value = true;
     addOptionFlag.value = true;
-       // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
-       nextTick(() => {
+    // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
+    nextTick(() => {
         const editor = document.querySelector('.ql-editor');
         if (editor) editor.innerHTML = ''; // 清空编辑器内容
     });
@@ -357,6 +390,22 @@ window.addEventListener('resize', () => {
         });
     });
 })
+
+const handleSurveyChange = (value) => {
+    // 根据选择的问卷ID获取问卷名称
+    const survey = allSurveys.value.find(s => s.surveyId === value);
+    if (survey) {
+        optionModel.value.surveyName = survey.name;
+    }
+}
+
+const handleQuestionChange = (value) => {
+    // 根据选择的questionId获取questionName
+    const question = allQuestions.value.find(q => q.questionId === value);
+    if (question) {
+        optionModel.value.questionName = question.description;
+    }
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -434,14 +483,20 @@ window.addEventListener('resize', () => {
                 </el-select>
             </el-form-item>
             <el-form-item label="问题所属问卷">
-                <el-select v-model="activeSurveyId" clearable placeholder="问题所属问卷">
+                <el-select v-model="activeSurveyId" clearable placeholder="问题所属问卷" @change="handleSurveyChange">
                     <el-option v-for="item in allSurveys" :key="item.surveyId" :label="item.name" :value="item.surveyId"/>
                 </el-select>
+                <div v-if="optionModel.surveyName" class="survey-name-display">
+                    当前选择: {{ optionModel.surveyName }}
+                </div>
             </el-form-item>
             <el-form-item label="选项所属问题">
-                <el-select v-model="optionModel.questionId" clearable placeholder="所属问题">
+                <el-select v-model="optionModel.questionId" clearable placeholder="所属问题" @change="handleQuestionChange">
                     <el-option v-for="item in allQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
                 </el-select>
+                <div v-if="optionModel.questionName" class="question-name-display">
+                    当前选择: {{ optionModel.questionName }}
+                </div>
             </el-form-item>
             <template v-if="!addOptionFlag">
                 <el-form-item label="开放答案">
@@ -580,5 +635,19 @@ window.addEventListener('resize', () => {
     :deep(.ql-editor) {
         min-height: 200px;
     }
+}
+
+.survey-name-display {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #606266;
+    font-style: italic;
+}
+
+.question-name-display {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #606266;
+    font-style: italic;
 }
 </style>

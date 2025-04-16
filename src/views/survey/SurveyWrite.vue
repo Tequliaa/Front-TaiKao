@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { submitResponseService, getResponseDetailsService } from '@/api/response'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserInfoStore } from '@/stores/user'
 import request from '@/utils/request.js'
+import Sortable from 'sortablejs'
+import { Rank } from '@element-plus/icons-vue'
 // 问卷ID
 const props = defineProps({
     surveyId: {
@@ -92,6 +94,12 @@ const getSurveyData = async () => {
                                 question.matrixAnswers[row.optionId] = []  // 初始化为空数组
                             }
                         })
+                } else if (question.type === '排序') {
+                    question.sortedOrder = []
+                    // 初始化排序
+                    nextTick(() => {
+                        initSortable(question)
+                    })
                 }
 
                 // 设置用户之前的答案
@@ -193,8 +201,31 @@ const getSurveyData = async () => {
                             // 初始化新上传文件数组
                             question.newUploadedFiles = [];
                             break;
-
-
+                        case '排序':
+                            // 处理排序题答案
+                            question.sortedOrder = questionResponses
+                                .filter(r => r.isValid === 1)
+                                .sort((a, b) => a.sortOrder - b.sortOrder)
+                                .map(r => r.optionId);
+                            
+                            // 根据 sortedOrder 对选项进行排序
+                            if (question.sortedOrder && question.sortedOrder.length > 0) {
+                                const sortedOptions = []
+                                question.sortedOrder.forEach(optionId => {
+                                    const option = question.options.find(opt => opt.optionId === optionId)
+                                    if (option) {
+                                        sortedOptions.push(option)
+                                    }
+                                })
+                                // 将未排序的选项添加到末尾
+                                question.options.forEach(option => {
+                                    if (!sortedOptions.find(opt => opt.optionId === option.optionId)) {
+                                        sortedOptions.push(option)
+                                    }
+                                })
+                                question.options = sortedOptions
+                            }
+                            break;
                     }
                 }
 
@@ -307,6 +338,9 @@ const validateRequiredQuestions = () => {
                     console.log('文件上传题验证失败：没有文件');
                 }
                 break;
+            case '排序':
+                isValid = question.sortedOrder && question.sortedOrder.length > 0
+                break;
         }
         
         if (!isValid) {
@@ -403,7 +437,7 @@ const submitSurvey = async (isSaveAction = false) => {
                     }
 
                     // 必须传递已有文件信息
-                    const existingFiles = question.uploadedFiles.filter(f => f.isExisting);
+                    const existingFiles = (question.uploadedFiles || []).filter(f => f && f.isExisting);
                     console.log('文件上传题目部分——————已有文件信息:', existingFiles);
                     if (existingFiles.length > 0) {
                         // 将responseId转换为逗号分隔的字符串
@@ -415,6 +449,14 @@ const submitSurvey = async (isSaveAction = false) => {
                         formData.append(`existing_files_${question.questionId}`, '');
                     }
                     console.log('文件上传题目部分——————提交的表单数据:', formData);
+                    break;
+                case '排序':
+                    if (question.sortedOrder && question.sortedOrder.length > 0) {
+                        // 为每个选项创建一个记录，包含其排序位置
+                        question.sortedOrder.forEach((optionId, index) => {
+                            formData.append(`question_${question.questionId}_optionId_${optionId}`, index + 1)
+                        })
+                    }
                     break;
             }
 
@@ -599,7 +641,44 @@ const handleFileRemove = async(file, fileList, question) => {
 const handleExceed = async(files, fileList) => {
     ElMessage.warning(`最多上传3个文件，您选择了${files.length}个文件，共${files.length + fileList.length}个文件`);
 }
-// 在打开表单的方法中
+
+// 修改排序题的处理方法
+const initSortable = (question) => {
+    console.log('初始化排序题:', question.questionId)
+    nextTick(() => {
+        const el = document.querySelector(`#sortable-${question.questionId}`)
+        console.log('排序容器:', el)
+        if (el) {
+            const sortable = new Sortable(el, {
+                animation: 150,
+                handle: '.sortable-item',
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onStart: () => {
+                    console.log('开始拖动')
+                },
+                onEnd: ({ oldIndex, newIndex }) => {
+                    console.log('拖动结束:', { oldIndex, newIndex })
+                    const options = [...question.options]
+                    const movedItem = options.splice(oldIndex, 1)[0]
+                    options.splice(newIndex, 0, movedItem)
+                    question.options = options
+                    // 更新排序结果
+                    question.sortedOrder = options.map(opt => opt.optionId)
+                }
+            })
+            console.log('Sortable 实例:', sortable)
+        }
+    })
+}
+
+const getOptionIndex = (question, optionId) => {
+    if (question.sortedOrder && question.sortedOrder.length > 0) {
+        const index = question.sortedOrder.indexOf(optionId)
+        return index !== -1 ? index + 1 : question.options.length
+    }
+    return question.options.findIndex(opt => opt.optionId === optionId) + 1
+}
 
 </script>
 
@@ -809,6 +888,27 @@ const handleExceed = async(files, fileList) => {
                                             </div>
                                         </template>
                                     </el-upload>
+                                </template>
+
+                                <!-- 排序 -->
+                                <template v-if="question.type === '排序'">
+                                    <div class="sortable-container">
+                                        <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
+                                        <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                            <div v-for="option in question.options" 
+                                                :key="option.optionId" 
+                                                class="sortable-item"
+                                                :data-id="option.optionId">
+                                                <div class="sortable-handle">
+                                                    <el-icon><Rank /></el-icon>
+                                                </div>
+                                                <div class="sortable-content">
+                                                    <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                    <span class="sortable-text">{{ option.description }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </template>
 
                             </div>
@@ -1073,5 +1173,86 @@ const handleExceed = async(files, fileList) => {
             }
         }
     }
+}
+
+.sortable-container {
+    margin: 10px 0;
+    
+    .sortable-tip {
+        color: #909399;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .sortable-list {
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        background: #fff;
+        min-height: 50px;
+        
+        .sortable-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #fff;
+            border-bottom: 1px solid #dcdfe6;
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+            transition: background-color 0.3s;
+            
+            &:last-child {
+                border-bottom: none;
+            }
+            
+            &:hover {
+                background: #f5f7fa;
+            }
+            
+            .sortable-handle {
+                margin-right: 10px;
+                color: #909399;
+                display: flex;
+                align-items: center;
+                
+                .el-icon {
+                    font-size: 20px;
+                }
+            }
+            
+            .sortable-content {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                
+                .sortable-index {
+                    width: 24px;
+                    height: 24px;
+                    line-height: 24px;
+                    text-align: center;
+                    background: #409eff;
+                    color: #fff;
+                    border-radius: 50%;
+                    margin-right: 10px;
+                    font-size: 12px;
+                }
+                
+                .sortable-text {
+                    flex: 1;
+                    font-size: 14px;
+                }
+            }
+        }
+    }
+}
+
+.sortable-ghost {
+    opacity: 0.5;
+    background: #c8ebfb !important;
+}
+
+.sortable-drag {
+    background: #fff;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
 }
 </style> 
