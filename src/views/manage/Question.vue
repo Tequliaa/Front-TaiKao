@@ -156,7 +156,8 @@ const questionModel = ref({
     type: '',
     isRequired: '',
     isOpen: '',
-    options: ''
+    options: '',
+    displayType: ''
 })
 
 //打开添加问题窗口
@@ -341,6 +342,18 @@ const typeOptions = [
     },
 ]
 
+// 添加显示样式选项
+const displayTypeOptions = [
+    {
+        value: '五角星',
+        label: '五角星'
+    },
+    {
+        value: '滑动条',
+        label: '滑动条'
+    }
+]
+
 const allCategories = ref({
 })
 
@@ -481,6 +494,13 @@ const handleSurveyChange = (value) => {
             <el-form-item label="类型">
                 <el-select v-model="questionModel.type" clearable placeholder="问题类型">
                     <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value"/>
+                </el-select>
+            </el-form-item>
+
+            <!-- 添加显示样式选择框 -->
+            <el-form-item v-if="questionModel.type === '评分题'" label="显示样式">
+                <el-select v-model="questionModel.displayType" clearable placeholder="请选择显示样式">
+                    <el-option v-for="item in displayTypeOptions" :key="item.value" :label="item.label" :value="item.value"/>
                 </el-select>
             </el-form-item>
 
