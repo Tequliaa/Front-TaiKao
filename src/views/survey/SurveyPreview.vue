@@ -23,6 +23,7 @@ const surveyInfo = ref({
 const getSurveyData = async () => {
     try {
         // 获取问题列表（包含选项）
+        console.log(props.surveyId)
         const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId)
         // 处理每个问题，添加必要的响应式数据
         questions.value = questionsResult.data.map(question => {
@@ -155,7 +156,9 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 }
 
 onMounted(() => {
-    getSurveyData()
+    if(props.surveyId){
+        getSurveyData()
+    }
 })
 </script>
 

@@ -5,7 +5,8 @@ import {
     Pointer,
     View,
     Connection,
-    DataLine
+    DataLine,
+    Tools
 } from '@element-plus/icons-vue'
 import { nextTick, onMounted, computed } from 'vue';
 import { ref,reactive } from 'vue'
@@ -340,6 +341,16 @@ onMounted(() => {
         });
     });
 });
+
+// 添加构建问卷方法
+const buildSurvey = (row) => {
+    router.push({
+        name: 'SurveyBuilder',
+        params: {
+            surveyId: row.surveyId
+        }
+    })
+}
 </script>
 <template>
     <LoadingWrapper :loading="loading">
@@ -353,7 +364,6 @@ onMounted(() => {
                     </div>
                 </div>
             </template>
-
             <!-- 桌面端表格视图 -->
             <el-table :data="surveys" style="width: 100%" class="desktop-table">
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
@@ -381,6 +391,9 @@ onMounted(() => {
                             </el-tooltip>
                             <el-tooltip content="编辑" placement="top">
                                 <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                            </el-tooltip>
+                            <el-tooltip content="构建" placement="top">
+                                <el-button :icon="Tools" circle plain type="primary" @click="buildSurvey(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="删除" placement="top" class-name="hide-on-mobile">
                                 <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>

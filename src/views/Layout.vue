@@ -154,6 +154,10 @@ const handleLogout = () => {
                                 <el-icon><User /></el-icon>
                                 <span>问卷管理</span>
                             </el-menu-item>
+                            <el-menu-item index="/survey/builder" class="mobile-submenu-item">
+                                <el-icon><EditPen /></el-icon>
+                                <span>问卷构建器</span>
+                            </el-menu-item>
                             <el-menu-item index="/manage/category" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
                                 <span>分类管理</span>
@@ -225,7 +229,10 @@ const handleLogout = () => {
                     <el-icon><Avatar /></el-icon>
                     <template #title>我的问卷</template>
                 </el-menu-item>
-
+                <el-menu-item index="/survey/builder" class="submenu-item">
+                            <el-icon><EditPen /></el-icon>
+                            <template #title>问卷构建器</template>
+                        </el-menu-item>
                 <!-- 管理员菜单 -->
                 <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
                     <el-sub-menu index="geren1" class="submenu">
@@ -237,6 +244,7 @@ const handleLogout = () => {
                             <el-icon><User /></el-icon>
                             <template #title>问卷管理</template>
                         </el-menu-item>
+
                         <el-menu-item index="/manage/category" class="submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <template #title>分类管理</template>
