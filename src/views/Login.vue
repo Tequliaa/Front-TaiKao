@@ -43,13 +43,33 @@ const registerDataRules = {
         { min: 3, max: 16, message: '密码长度必须为3~16位', trigger: 'blur' }
     ],
     rePassword: [
+        { required: true, message: '请再次输入密码', trigger: 'blur' },
         { validator: rePasswordValid, trigger: 'blur' }
+    ]
+}
+
+//用于登录的表单校验模型
+const loginDataRules = {
+    username: [
+        { required: true, message: '请输入用户名', trigger: 'blur' }
+    ],
+    password: [
+        { required: true, message: '请输入密码', trigger: 'blur' }
     ]
 }
 
 //用于注册的事件函数
 const register = async () => {
-    //console.log('注册...');
+    // 先进行表单验证
+    if (!registerData.value.username || !registerData.value.password || !registerData.value.rePassword) {
+        ElMessage.warning('请填写完整的注册信息');
+        return;
+    }
+    if (registerData.value.password !== registerData.value.rePassword) {
+        ElMessage.error('两次输入的密码不一致');
+        return;
+    }
+    
     let result = await registerService(registerData.value);
     if (result.code == 0) {
         ElMessage.success(result.message ? result.message : '注册成功');
@@ -59,7 +79,6 @@ const register = async () => {
     } else {
         ElMessage.error(result.message ? result.message : '注册失败!');
     }
-
 }
 
 //定义函数，清空数据模型的数据
@@ -73,17 +92,19 @@ const clearRegisterData = () => {
 
 //用于登录的事件函数
 const login = async () => {
+    // 先进行表单验证
+    if (!registerData.value.username || !registerData.value.password) {
+        ElMessage.warning('请填写完整的登录信息');
+        return;
+    }
+    
     let result = await loginService(registerData.value)
     if (result.code == 0) {
-
         //保存token
         tokenStore.setToken(result.data)
-
-        // alert('登录成功!')
         ElMessage.success(result.message ? result.message : '登录成功!');
         router.push('/manage/userSurvey')
     } else {
-        //alert('登录失败!')
         ElMessage.error(result.message ? result.message : '登录失败!');
     }
 }
@@ -148,7 +169,7 @@ const login = async () => {
                     </el-form>
 
                     <!-- 登录表单 -->
-                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-else :rules="registerDataRules" class="login-form">
+                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-else :rules="loginDataRules" class="login-form">
                         <el-form-item prop="username">
                             <el-input :prefix-icon="User" placeholder="请输入用户名" v-model="registerData.username"></el-input>
                         </el-form-item>

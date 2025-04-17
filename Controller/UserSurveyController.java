@@ -3,8 +3,7 @@ package SurveySystem.Controller;
 import SurveySystem.Model.Result;
 import SurveySystem.Model.User;
 import SurveySystem.Model.UserSurvey;
-import SurveySystem.Service.UserService;
-import SurveySystem.Service.UserSurveyService;
+import SurveySystem.Service.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.bind.annotation.*;
@@ -26,10 +25,18 @@ public class UserSurveyController {
 
     private final UserSurveyService userSurveyService;
     private final UserService userService;
+    private final SurveyService surveyService;
+    private final DepartmentService departmentService;
+    private final DepartmentSurveyService departmentSurveyService;
 
-    public UserSurveyController(UserSurveyService userSurveyService, UserService userService) {
+    public UserSurveyController(UserSurveyService userSurveyService, UserService userService,
+                                SurveyService surveyService,DepartmentService departmentService,
+                                DepartmentSurveyService departmentSurveyService) {
         this.userSurveyService = userSurveyService;
         this.userService = userService;
+        this.surveyService = surveyService;
+        this.departmentService = departmentService;
+        this.departmentSurveyService = departmentSurveyService;
     }
 
     @GetMapping("/unfinishedUsers")
@@ -39,11 +46,11 @@ public class UserSurveyController {
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "12") int pageSize) throws SQLException {
 
-        int totalCount = userSurveyService.getUserInfoCount(surveyId, departmentId);
+        int total = userSurveyService.getUserInfoCount(surveyId, departmentId);
         List<UserSurvey> userSurveys = userSurveyService.getUserInfoBySurveyId(surveyId, departmentId, pageNum, pageSize);
 
         Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("totalCount", totalCount);
+        resultMap.put("total", total);
         resultMap.put("userSurveys", userSurveys);
 
         return Result.success(resultMap);
@@ -75,13 +82,18 @@ public class UserSurveyController {
         userSurvey.setStatus("未完成");
 
         List<User> users = userService.getUsersByDepartmentId(departmentId);
-
-        try {
-            userSurveyService.assignSurveyToDepartment(users, userSurvey);
-            return Result.success("问卷发布成功");
-        } catch (Exception e) {
-            return Result.error("不能重复向该部门发布问卷");
+        if(!departmentSurveyService.checkAssignedSurvey(surveyId,departmentId)){
+            try {
+                userSurveyService.assignSurveyToDepartment(users, userSurvey);
+                departmentSurveyService.assignToDepartment(departmentId,surveyId);
+                return Result.success("问卷发布成功");
+            } catch (Exception e) {
+                return Result.error("发布问卷出错了");
+            }
+        }else{
+            return Result.error("不能向该部门重复发布问卷");
         }
+
     }
 
     @PostMapping("/update")
@@ -117,12 +129,18 @@ public class UserSurveyController {
     @GetMapping("/exportUnfinishedList")
     public void exportUnfinishedList(
             @RequestParam int surveyId,
-            @RequestParam int departmentId,
+            @RequestParam(defaultValue = "0") int departmentId,
             HttpServletResponse response) throws IOException, SQLException {
-        
+
+        String surveyName= surveyService.getSurveyById(surveyId).getName();
+        String departmentName="总体";
+        if(departmentId!=0){
+            departmentName=departmentService.getDepartmentById(departmentId).getName();
+        }
+
         // 设置响应头
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        String fileName = URLEncoder.encode("未完成名单-" + LocalDate.now() + ".xlsx", StandardCharsets.UTF_8);
+        String fileName = URLEncoder.encode(surveyName+"_"+departmentName+"_未完成名单-" + LocalDate.now() + ".xlsx", StandardCharsets.UTF_8);
         response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
         // 创建工作簿和工作表

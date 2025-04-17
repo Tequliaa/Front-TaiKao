@@ -94,7 +94,29 @@ const handleOptionSelect = (questionId, optionId) => {
             }
             break
         case '排序':
-            // 排序需要处理拖拽排序
+            // 处理排序题答案
+            question.sortedOrder = questionResponses
+                .filter(r => r.isValid === 1)
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map(r => r.optionId);
+            
+            // 根据 sortedOrder 对选项进行排序
+            if (question.sortedOrder && question.sortedOrder.length > 0) {
+                const sortedOptions = []
+                question.sortedOrder.forEach(optionId => {
+                    const option = question.options.find(opt => opt.optionId === optionId)
+                    if (option) {
+                        sortedOptions.push(option)
+                    }
+                })
+                // 将未排序的选项添加到末尾
+                question.options.forEach(option => {
+                    if (!sortedOptions.find(opt => opt.optionId === option.optionId)) {
+                        sortedOptions.push(option)
+                    }
+                })
+                question.options = sortedOptions
+            }
             break
         case '评分题':
             // 评分题需要处理评分选择
@@ -105,6 +127,14 @@ const handleOptionSelect = (questionId, optionId) => {
 const getQuestionIndex = (questionId) => {
     const index = questions.value.findIndex(q => q.questionId === questionId)
     return index + 1
+}
+
+const getOptionIndex = (question, optionId) => {
+    if (question.sortedOrder && question.sortedOrder.length > 0) {
+        const index = question.sortedOrder.indexOf(optionId)
+        return index !== -1 ? index + 1 : question.options.length
+    }
+    return question.options.findIndex(opt => opt.optionId === optionId) + 1
 }
 
 const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
@@ -295,14 +325,56 @@ onMounted(() => {
                             <!-- 评分题 -->
                             <template v-if="question.type === '评分题'">
                                 <div class="rating-question">
+                                    <div class="rating-rule">评分规则：1-5分</div>
                                     <div v-for="option in question.options" :key="option.optionId" class="rating-item">
                                         <label class="rating-label">{{ option.description }}:</label>
-                                        <el-input-number 
-                                            v-model="option.rating" 
-                                            :min="1" 
-                                            :max="10"
-                                            :required="question.isRequired"
-                                            class="rating-input" />
+                                        <div class="rating-display">
+                                            <!-- 五角星显示 -->
+                                            <template v-if="question.displayType === '五角星'">
+                                                <div class="star-rating">
+                                                    <el-rate
+                                                        v-model="option.rating"
+                                                        :max="5"
+                                                        :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
+                                                        :texts="['1分', '2分', '3分', '4分', '5分']"
+                                                        show-text
+                                                        :required="question.isRequired"
+                                                    />
+                                                </div>
+                                            </template>
+                                            <!-- 滑动条显示 -->
+                                            <template v-else-if="question.displayType === '滑动条'">
+                                                <div class="slider-rating">
+                                                    <el-slider
+                                                        v-model="option.rating"
+                                                        :min="1"
+                                                        :max="5"
+                                                        :step="1"
+                                                        :marks="{
+                                                            1: '1分',
+                                                            2: '2分',
+                                                            3: '3分',
+                                                            4: '4分',
+                                                            5: '5分'
+                                                        }"
+                                                        :required="question.isRequired"
+                                                        show-stops
+                                                        :show-tooltip="false"
+                                                        :show-input="false"
+                                                    />
+                                                    <div class="slider-value">{{ option.rating }}分</div>
+                                                </div>
+                                            </template>
+                                            <!-- 默认显示 -->
+                                            <template v-else>
+                                                <el-input-number 
+                                                    v-model="option.rating" 
+                                                    :min="1" 
+                                                    :max="5"
+                                                    :required="question.isRequired"
+                                                    class="rating-input" />
+                                            </template>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -326,6 +398,27 @@ onMounted(() => {
                                     <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
                                 </template>
                             </el-upload>
+                            </template>
+
+                            <!-- 排序题 -->
+                            <template v-if="question.type === '排序'">
+                                <div class="sortable-container">
+                                    <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
+                                    <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                        <div v-for="option in question.options" 
+                                            :key="option.optionId" 
+                                            class="sortable-item"
+                                            :data-id="option.optionId">
+                                            <div class="sortable-handle">
+                                                <el-icon><Rank /></el-icon>
+                                            </div>
+                                            <div class="sortable-content">
+                                                <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                <span class="sortable-text">{{ option.description }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </template>
                         </div>
                     </div>
@@ -428,6 +521,13 @@ onMounted(() => {
             }
 
             .rating-question {
+                .rating-rule {
+                    color: #909399;
+                    font-size: 13px;
+                    margin-bottom: 12px;
+                    font-style: italic;
+                }
+                
                 .rating-item {
                     display: flex;
                     align-items: center;
@@ -439,8 +539,81 @@ onMounted(() => {
                         color: #606266;
                     }
 
-                    .rating-input {
-                        width: 120px;
+                    .rating-display {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+
+                        .star-rating {
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                        }
+
+                        .slider-rating {
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                            gap: 16px;
+                            padding: 0 20px;
+
+                            :deep(.el-slider) {
+                                flex: 1;
+                                max-width: 300px;
+
+                                .el-slider__runway {
+                                    background-color: #EBEEF5;
+                                    height: 6px;
+                                    border-radius: 3px;
+                                }
+
+                                .el-slider__bar {
+                                    background-color: #409EFF;
+                                    height: 6px;
+                                    border-radius: 3px;
+                                }
+
+                                .el-slider__button {
+                                    width: 20px;
+                                    height: 20px;
+                                    border: 2px solid #409EFF;
+                                    background-color: #fff;
+                                    transition: all 0.3s;
+                                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+                                    &:hover {
+                                        transform: scale(1.1);
+                                    }
+                                }
+
+                                .el-slider__stop {
+                                    width: 8px;
+                                    height: 8px;
+                                    background-color: #C0C4CC;
+                                    border-radius: 50%;
+                                    transform: translateY(-1px);
+                                }
+
+                                .el-slider__marks {
+                                    .el-slider__marks-text {
+                                        color: #909399;
+                                        font-size: 12px;
+                                        margin-top: 8px;
+                                    }
+                                }
+                            }
+
+                            .slider-value {
+                                min-width: 40px;
+                                text-align: center;
+                                color: #409EFF;
+                                font-weight: 500;
+                            }
+                        }
+
+                        .rating-input {
+                            width: 120px;
+                        }
                     }
                 }
             }
@@ -504,6 +677,88 @@ onMounted(() => {
                         }
                     }
                 }
+            }
+
+            // 排序题容器
+            .sortable-container {
+                margin: 10px 0;
+                
+                .sortable-tip {
+                    color: #909399;
+                    font-size: 14px;
+                    margin-bottom: 10px;
+                }
+                
+                .sortable-list {
+                    border: 1px solid #dcdfe6;
+                    border-radius: 4px;
+                    background: #fff;
+                    min-height: 50px;
+                    
+                    .sortable-item {
+                        display: flex;
+                        align-items: center;
+                        padding: 12px;
+                        background: #fff;
+                        border-bottom: 1px solid #dcdfe6;
+                        cursor: move;
+                        user-select: none;
+                        touch-action: none;
+                        transition: background-color 0.3s;
+                        
+                        &:last-child {
+                            border-bottom: none;
+                        }
+                        
+                        &:hover {
+                            background: #f5f7fa;
+                        }
+                        
+                        .sortable-handle {
+                            margin-right: 10px;
+                            color: #909399;
+                            display: flex;
+                            align-items: center;
+                            
+                            .el-icon {
+                                font-size: 20px;
+                            }
+                        }
+                        
+                        .sortable-content {
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                            
+                            .sortable-index {
+                                width: 24px;
+                                height: 24px;
+                                line-height: 24px;
+                                text-align: center;
+                                background: #409eff;
+                                color: #fff;
+                                border-radius: 50%;
+                                margin-right: 10px;
+                                font-size: 12px;
+                            }
+                            
+                            .sortable-text {
+                                flex: 1;
+                                font-size: 14px;
+                            }
+                        }
+                    }
+                }
+            }
+
+            .sortable-ghost {
+                opacity: 0.5;
+                background: #c8ebfb !important;
+            }
+
+            .sortable-drag {
+                background: #fff;
+                box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
             }
         }
     }

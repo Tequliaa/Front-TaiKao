@@ -1,10 +1,10 @@
 package SurveySystem.Controller;
 
-import SurveySystem.Model.Department;
-import SurveySystem.Model.Result;
-import SurveySystem.Model.User;
+import SurveySystem.Model.*;
 import SurveySystem.Service.DepartmentService;
+import SurveySystem.Service.DepartmentSurveyService;
 import SurveySystem.Service.UserService;
+import SurveySystem.Service.UserSurveyService;
 import lombok.Data;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -33,11 +33,18 @@ public class UserController {
     private final UserService userService;
     public final DepartmentService departmentService;
     private final StringRedisTemplate redisTemplate;
+    private final DepartmentSurveyService departmentSurveyService;
+    private final UserSurveyService userSurveyService;
 
     // 依赖注入（替代手动 new 和 init()）
-    public UserController(UserService userService,DepartmentService departmentService, StringRedisTemplate redisTemplate) {
+    public UserController(UserService userService,DepartmentService departmentService,
+                          DepartmentSurveyService departmentSurveyService,
+                          UserSurveyService userSurveyService,
+                          StringRedisTemplate redisTemplate) {
         this.userService = userService;
         this.departmentService = departmentService;
+        this.departmentSurveyService = departmentSurveyService;
+        this.userSurveyService = userSurveyService;
         this.redisTemplate = redisTemplate;
     }
 
@@ -76,7 +83,8 @@ public class UserController {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", loginUser.getId());
         claims.put("username", loginUser.getUsername());
-        claims.put("userRole",loginUser.getRole());
+        System.out.println("userRole: "+loginUser.getRole());
+        claims.put("role",loginUser.getRole());
         String token = JwtUtil.genToken(claims);
 
         // 存储到 Redis（替代 Jedis）
@@ -99,8 +107,13 @@ public class UserController {
         String hashedPassword = HashUtils.hashPassword(user.getPassword(), salt);
         user.setPassword(hashedPassword);
         user.setSalt(salt);
-
+        //新注册用户聚集地
+        user.setDepartmentId(1);
+        //user.setName("用户");
         userService.registerUser(user);
+        int userId=user.getId();
+        List<DepartmentSurvey> departmentSurveys=departmentSurveyService.getDepartmentSurveys(user.getDepartmentId());
+        userSurveyService.assignSurveysToUser(userId,departmentSurveys);
         return Result.success();
     }
 
@@ -242,10 +255,11 @@ public class UserController {
                 }
 
                 User user = new User();
-                user.setUsername(getCellValueAsString(row.getCell(0))); // 用户名
-                user.setName(getCellValueAsString(row.getCell(1))); // 用户昵称
-                String departmentName = getCellValueAsString(row.getCell(2)); // 部门名称
-                user.setRole(getCellValueAsString(row.getCell(3))); // 角色
+                user.setUsername(getCellValueAsString(row.getCell(0)).trim()); // 用户名
+                user.setName(getCellValueAsString(row.getCell(1)).trim()); // 用户昵称
+                String departmentName = getCellValueAsString(row.getCell(2)).trim(); // 部门名称
+                //存在问题，有可能被添加超级管理员，需要增加验证
+                user.setRole(getCellValueAsString(row.getCell(3)).trim()); // 角色
 
                 // 检查用户名是否为空
                 if (user.getUsername() == null || user.getUsername().isEmpty()) {
@@ -292,7 +306,20 @@ public class UserController {
             result.setSuccess(successCount);
             result.setSkip(skipCount);
             result.setSkipReasons(skipReasons);
+            System.out.println("totalRows:"+totalRows+"successCount:"+successCount+"skipCount:"+skipCount+"skipReasons:"+skipReasons);
 
+            int departmentId=0;
+            //开始对导入的用户分配问卷
+            for(User user:userList){
+                departmentId=user.getDepartmentId();
+                break;
+            }
+            //获取部门所分发过的问卷
+            List<DepartmentSurvey> departmentSurveys=departmentSurveyService.getDepartmentSurveys(departmentId);
+            //当用户列表跟部门问卷列表都不为空时再执行批量补发
+            if(!userList.isEmpty()&&!departmentSurveys.isEmpty()){
+                userSurveyService.assignSurveysToUsers(userList,departmentSurveys);
+            }
             return Result.success(result);
         } catch (Exception e) {
             return Result.error("导入失败：" + e.getMessage());

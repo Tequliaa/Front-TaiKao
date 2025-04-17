@@ -28,20 +28,34 @@ const userInfoStore = useUserInfoStore()
 
 const loading = ref(true)
 
-// 添加问题显示状态控制
-const visibleQuestions = ref(new Set())
-
+// 修改为每个问题维护自己的隐藏状态
+const questionVisibility = ref({})
 
 // 处理选项选择变化
 const handleOptionChange = (question, optionId, checked) => {
-    // 先显示所有问题
-    questions.value.forEach(q => {
-        visibleQuestions.value.add(q.questionId)
-    })
+    // 检查当前问题是否有跳转逻辑
+    const hasSkip = question.isSkip;
+    
+    if (!hasSkip) {
+        return;
+    }
 
     if (checked) {
         // 找到选中的选项
         const selectedOption = question.options.find(opt => opt.optionId === optionId)
+        
+        // 初始化当前问题的隐藏状态
+        if (!questionVisibility.value[question.questionId]) {
+            questionVisibility.value[question.questionId] = {
+                hiddenQuestions: new Set(),
+                isActive: false
+            }
+        }
+
+        // 先清除当前问题的隐藏状态
+        questionVisibility.value[question.questionId].hiddenQuestions.clear()
+        questionVisibility.value[question.questionId].isActive = false
+
         if (selectedOption?.isSkip) {
             // 获取当前问题索引
             const currentIndex = questions.value.findIndex(q => q.questionId === question.questionId)
@@ -49,11 +63,64 @@ const handleOptionChange = (question, optionId, checked) => {
             const targetIndex = questions.value.findIndex(q => q.questionId === selectedOption.skipTo)
             
             if (currentIndex !== -1 && targetIndex !== -1) {
-                // 隐藏中间的问题
+                // 设置当前问题的隐藏状态
+                questionVisibility.value[question.questionId].isActive = true
+                // 记录需要隐藏的问题
                 for (let i = currentIndex + 1; i < targetIndex; i++) {
-                    visibleQuestions.value.delete(questions.value[i].questionId)
+                    questionVisibility.value[question.questionId].hiddenQuestions.add(questions.value[i].questionId)
                 }
             }
+        }
+    } else {
+        // 取消选择时，检查当前问题的其他选项是否有跳转
+        const otherSelectedSkipOption = question.options.find(opt => 
+            opt.isSkip && 
+            opt.optionId !== optionId && 
+            question.selectedOption === opt.optionId
+        )
+        
+        if (!otherSelectedSkipOption) {
+            // 如果没有其他跳转选项被选中，清除当前问题的隐藏状态
+            if (questionVisibility.value[question.questionId]) {
+                questionVisibility.value[question.questionId].hiddenQuestions.clear()
+                questionVisibility.value[question.questionId].isActive = false
+            }
+        }
+    }
+}
+
+// 判断问题是否应该显示
+const shouldShowQuestion = (questionId) => {
+    // 检查所有有跳转逻辑的问题的隐藏状态
+    for (const [qId, visibility] of Object.entries(questionVisibility.value)) {
+        if (visibility.isActive && visibility.hiddenQuestions.has(questionId)) {
+            return false
+        }
+    }
+    return true
+}
+
+// 添加一个新的函数来处理其他问题的选项变化
+const handleOtherQuestionChange = (question, optionId, checked) => {
+    // 如果当前问题没有跳转逻辑，直接返回
+    if (!question.isSkip) {
+        return;
+    }
+    
+    // 如果当前问题有跳转逻辑，但选项变化不是来自当前问题，则保持当前的显示状态
+    const currentQuestionId = question.questionId;
+    const currentQuestion = questions.value.find(q => q.questionId === currentQuestionId);
+    
+    if (currentQuestion) {
+        // 检查当前问题是否有选中的跳转选项
+        const hasSelectedSkipOption = currentQuestion.options.some(opt => 
+            opt.isSkip && 
+            currentQuestion.selectedOption === opt.optionId
+        );
+        
+        if (hasSelectedSkipOption) {
+            // 如果当前问题有选中的跳转选项，保持当前的显示状态
+            return;
         }
     }
 }
@@ -69,14 +136,17 @@ const getSurveyData = async () => {
         if (responseResult.code === 0) {
             const { userResponses, questions: questionsData } = responseResult.data
             
-            // 先初始化所有问题为显示状态
-            visibleQuestions.value.clear()
-            questionsData.forEach(question => {
-                visibleQuestions.value.add(question.questionId)
-            })
+            // 初始化 questionVisibility
+            questionVisibility.value = {}
             
             // 处理每个问题，添加必要的响应式数据
             questions.value = questionsData.map(question => {
+                // 初始化当前问题的隐藏状态
+                questionVisibility.value[question.questionId] = {
+                    hiddenQuestions: new Set(),
+                    isActive: false
+                }
+                
                 // 根据问题类型初始化不同的数据
                 if (question.type === '多选') {
                     question.selectedOptions = []
@@ -121,9 +191,11 @@ const getSurveyData = async () => {
                                     const targetIndex = questionsData.findIndex(q => q.questionId === selectedOption.skipTo)
                                     
                                     if (currentIndex !== -1 && targetIndex !== -1) {
-                                        // 隐藏中间的问题
+                                        // 设置当前问题的隐藏状态
+                                        questionVisibility.value[question.questionId].isActive = true
+                                        // 记录需要隐藏的问题
                                         for (let i = currentIndex + 1; i < targetIndex; i++) {
-                                            visibleQuestions.value.delete(questionsData[i].questionId)
+                                            questionVisibility.value[question.questionId].hiddenQuestions.add(questionsData[i].questionId)
                                         }
                                     }
                                 }
@@ -278,7 +350,7 @@ const validateRequiredQuestions = () => {
     
     questions.value.forEach(question => {
         // 跳过被隐藏的问题
-        if (!visibleQuestions.value.has(question.questionId)) return
+        if (!shouldShowQuestion(question.questionId)) return
         if (!question.isRequired) return
         
         let isValid = true
@@ -377,7 +449,7 @@ const submitSurvey = async (isSaveAction = false) => {
         // 处理每个问题的答案
         questions.value.forEach(question => {
             // 跳过被隐藏的问题
-            if (!visibleQuestions.value.has(question.questionId)) return
+            if (!shouldShowQuestion(question.questionId)) return
             
             console.log('处理问题:', question.questionId, question.type)
             
@@ -702,7 +774,7 @@ const getOptionIndex = (question, optionId) => {
                             class="question-item"
                             :data-index="index + 1"
                             :data-has-skip="question.isSkip"
-                            v-show="visibleQuestions.has(question.questionId)">
+                            v-show="shouldShowQuestion(question.questionId)">
                             <!-- 问题标题 -->
                             <div class="question-title">
                                 <span class="question-number">{{ index + 1 }}.</span>
@@ -723,7 +795,15 @@ const getOptionIndex = (question, optionId) => {
                                                 v-model="question.selectedOption" 
                                                 :label="option.optionId"
                                                 :required="question.isRequired"
-                                                @change="(val) => handleOptionChange(question, option.optionId, val === option.optionId)">
+                                                @change="(val) => {
+                                                    handleOptionChange(question, option.optionId, val === option.optionId);
+                                                    // 处理其他问题的选项变化
+                                                    questions.forEach(q => {
+                                                        if (q.questionId !== question.questionId) {
+                                                            handleOtherQuestionChange(q, option.optionId, val === option.optionId);
+                                                        }
+                                                    });
+                                                }">
                                                 <span class="option-label">
                                                     {{ String.fromCharCode(65 + optIndex) }}.
                                                     <template v-if="option.isOpenOption">
@@ -854,14 +934,56 @@ const getOptionIndex = (question, optionId) => {
                                 <!-- 评分题 -->
                                 <template v-if="question.type === '评分题'">
                                     <div class="rating-question">
+                                        <div class="rating-rule">评分规则：1-5分</div>
                                         <div v-for="option in question.options" :key="option.optionId" class="rating-item">
                                             <label class="rating-label">{{ option.description }}:</label>
-                                            <el-input-number 
-                                                v-model="option.rating" 
-                                                :min="1" 
-                                                :max="10"
-                                                :required="question.isRequired"
-                                                class="rating-input" />
+                                            <div class="rating-display">
+                                                <!-- 五角星显示 -->
+                                                <template v-if="question.displayType === '五角星'">
+                                                    <div class="star-rating">
+                                                        <el-rate
+                                                            v-model="option.rating"
+                                                            :max="5"
+                                                            :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
+                                                            :texts="['1分', '2分', '3分', '4分', '5分']"
+                                                            show-text
+                                                            :required="question.isRequired"
+                                                        />
+                                                    </div>
+                                                </template>
+                                                <!-- 滑动条显示 -->
+                                                <template v-else-if="question.displayType === '滑动条'">
+                                                    <div class="slider-rating">
+                                                        <el-slider
+                                                            v-model="option.rating"
+                                                            :min="1"
+                                                            :max="5"
+                                                            :step="1"
+                                                            :marks="{
+                                                                1: '1分',
+                                                                2: '2分',
+                                                                3: '3分',
+                                                                4: '4分',
+                                                                5: '5分'
+                                                            }"
+                                                            :required="question.isRequired"
+                                                            show-stops
+                                                            :show-tooltip="false"
+                                                            :show-input="false"
+                                                        />
+                                                        <div class="slider-value">{{ option.rating }}分</div>
+                                                    </div>
+                                                </template>
+                                                <!-- 默认显示 -->
+                                                <template v-else>
+                                                    <el-input-number 
+                                                        v-model="option.rating" 
+                                                        :min="1" 
+                                                        :max="5"
+                                                        :required="question.isRequired"
+                                                        class="rating-input" />
+                                                </template>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -1036,6 +1158,13 @@ const getOptionIndex = (question, optionId) => {
             }
 
             .rating-question {
+                .rating-rule {
+                    color: #909399;
+                    font-size: 13px;
+                    margin-bottom: 12px;
+                    font-style: italic;
+                }
+                
                 .rating-item {
                     display: flex;
                     align-items: center;
@@ -1047,8 +1176,103 @@ const getOptionIndex = (question, optionId) => {
                         color: #606266;
                     }
 
-                    .rating-input {
-                        width: 120px;
+                    .rating-display {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+
+                        .star-rating {
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                        }
+
+                        .slider-rating {
+                            flex: 1;
+                            display: flex;
+                            align-items: center;
+                            gap: 16px;
+                            padding: 0 20px;
+
+                            :deep(.el-slider) {
+                                flex: 1;
+                                max-width: 300px;
+
+                                .el-slider__runway {
+                                    background-color: #EBEEF5;
+                                    height: 6px;
+                                    border-radius: 3px;
+                                }
+
+                                .el-slider__bar {
+                                    background-color: #409EFF;
+                                    height: 6px;
+                                    border-radius: 3px;
+                                }
+
+                                .el-slider__button {
+                                    width: 20px;
+                                    height: 20px;
+                                    border: 2px solid #409EFF;
+                                    background-color: #fff;
+                                    transition: all 0.3s;
+                                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+                                    &:hover {
+                                        transform: scale(1.1);
+                                    }
+                                }
+
+                                .el-slider__stop {
+                                    width: 8px;
+                                    height: 8px;
+                                    background-color: #C0C4CC;
+                                    border-radius: 50%;
+                                    transform: translateY(-1px);
+                                }
+
+                                .el-slider__marks {
+                                    .el-slider__marks-text {
+                                        color: #909399;
+                                        font-size: 12px;
+                                        margin-top: 8px;
+                                    }
+                                }
+                            }
+
+                            .slider-value {
+                                min-width: 40px;
+                                text-align: center;
+                                color: #409EFF;
+                                font-weight: 500;
+                            }
+                        }
+
+                        @media (max-width: 768px) {
+                            .slider-rating {
+                                padding: 0 10px;
+                                gap: 8px;
+
+                                :deep(.el-slider) {
+                                    max-width: 200px;
+
+                                    .el-slider__button {
+                                        width: 16px;
+                                        height: 16px;
+                                    }
+
+                                    .el-slider__stop {
+                                        width: 6px;
+                                        height: 6px;
+                                    }
+                                }
+
+                                .slider-value {
+                                    min-width: 32px;
+                                    font-size: 14px;
+                                }
+                            }
+                        }
                     }
                 }
             }

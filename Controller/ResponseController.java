@@ -108,7 +108,11 @@ public class ResponseController {
             for (Question question : questions) {
                 List<Option> options = optionService.getOptionsWithCheckCountByQuestionId(question.getQuestionId(), departmentId);
                 question.setOptions(options);
-
+                //if(question.getType().equals("排序")){
+                //    for(Option option:question.getOptions()){
+                //        System.out.println("平均排序顺序"+option.getCheckCount());
+                //    }
+                //}
                 // 如果是矩阵题，获取单元格选择情况
                 if (question.getType().equals("矩阵单选") || question.getType().equals("矩阵多选")) {
                     List<Map<String, Object>> cellData = optionService.getMatrixCellCheckCount(question.getQuestionId(), departmentId);
@@ -116,13 +120,13 @@ public class ResponseController {
                 }
             }
             // 在填充 matrixCellData 后添加日志输出
-            System.out.println("===== 矩阵题单元格数据 =====");
-            matrixCellData.forEach((questionId, cellDataList) -> {
-                System.out.println("问题ID: " + questionId);
-                cellDataList.forEach(cell -> {
-                    System.out.println("单元格数据: " + cell);
-                });
-            });
+            //System.out.println("===== 矩阵题单元格数据 =====");
+            //matrixCellData.forEach((questionId, cellDataList) -> {
+            //    System.out.println("问题ID: " + questionId);
+            //    cellDataList.forEach(cell -> {
+            //        System.out.println("单元格数据: " + cell);
+            //    });
+            //});
             List<UserSurvey> userSurveys=userSurveyService.getUserDepartmentInfoBySurveyId(surveyId);
 
             int unfinishedTotalRecords = userSurveyService.getUserInfoCount(surveyId, departmentId);
@@ -258,7 +262,7 @@ public class ResponseController {
 
 
     private void processFormData(Map<String, String> formData, int surveyId, int userId, String ipAddress, boolean isSaveAction) throws Exception {
-        // 调试输出开始
+        // //调试输出开始
         //System.out.println("=== 完整的formData内容 ===");
         //for (Map.Entry<String, String> entry : formData.entrySet()) {
         //    System.out.println(entry.getKey() + " = " + entry.getValue());
@@ -270,7 +274,14 @@ public class ResponseController {
             String paramValue = entry.getValue();
             if (paramName.startsWith("question_")) {
                 int questionId = Integer.parseInt(paramName.split("_")[1]);
-                processQuestionAnswer(paramName,paramValue, surveyId, questionId, ipAddress, userId, isSaveAction);
+                Question question=questionService.getQuestionById(questionId);
+                if ("排序".equals(question.getType())) {
+                    //System.out.println("处理排序题");
+                    processSortAnswer(paramName, paramValue, surveyId, questionId, ipAddress, userId);
+                }
+                else{
+                    processQuestionAnswer(paramName,paramValue, surveyId, questionId, ipAddress, userId, isSaveAction);
+                }
             } else if (paramName.startsWith("rating_")) {
                 processRatingAnswer(paramName, paramValue, surveyId, ipAddress, userId);
             } else if (paramName.startsWith("open_answer_")) {
@@ -283,6 +294,31 @@ public class ResponseController {
                 processExistingFiles(questionId, paramValue);
             }
         }
+    }
+
+    //处理排序题
+    private void processSortAnswer(String paramName, String paramValue, int surveyId, int questionId,
+                                   String ipAddress, int userId) throws Exception {
+        // 从参数名中提取选项ID
+        int optionId = Integer.parseInt(paramName.split("_")[3]);
+        //System.out.println("optionId: "+optionId);
+        // 从参数值中获取排序位置
+        int sortOrder = Integer.parseInt(paramValue);
+        //System.out.println("sortOrder: "+sortOrder);
+        Response response = new Response();
+        response.setSurveyId(surveyId);
+        response.setQuestionId(questionId);
+        response.setOptionId(optionId);
+        response.setSortOrder(sortOrder);  // 设置排序位置
+        response.setResponseData("");
+        response.setIsValid(1);
+        response.setRowId(0);
+        response.setColumnId(0);
+        response.setUserId(userId);
+        response.setIpAddress(ipAddress);
+        response.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        responseService.updateResponse(response);
     }
 
     private void processQuestionAnswer(String paramName,String paramValue, int surveyId, int questionId,
