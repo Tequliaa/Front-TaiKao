@@ -108,6 +108,17 @@ const login = async () => {
         ElMessage.error(result.message ? result.message : '登录失败!');
     }
 }
+
+// 处理键盘事件
+const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+        if (isRegister.value) {
+            register();
+        } else {
+            login();
+        }
+    }
+}
 </script>
 
 <template>
@@ -142,7 +153,7 @@ const login = async () => {
                     
                     <!-- 注册表单 -->
                     <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-if="isRegister"
-                        :rules="registerDataRules" class="login-form">
+                        :rules="registerDataRules" class="login-form" @keyup.enter="handleKeyPress">
                         <el-form-item prop="username">
                             <el-input :prefix-icon="User" placeholder="请输入用户名" v-model="registerData.username"></el-input>
                         </el-form-item>
@@ -169,7 +180,7 @@ const login = async () => {
                     </el-form>
 
                     <!-- 登录表单 -->
-                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-else :rules="loginDataRules" class="login-form">
+                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-else :rules="loginDataRules" class="login-form" @keyup.enter="handleKeyPress">
                         <el-form-item prop="username">
                             <el-input :prefix-icon="User" placeholder="请输入用户名" v-model="registerData.username"></el-input>
                         </el-form-item>

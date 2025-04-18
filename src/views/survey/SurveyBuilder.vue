@@ -19,6 +19,7 @@ import {
   updateBuildSurvey
 } from '@/api/survey'
 import { useRoute } from 'vue-router'
+import { getAllQuestionsBySurveyIdService, questionDelService } from '@/api/question'
 
 const props = defineProps({
     surveyId: {
@@ -32,6 +33,10 @@ import { getSurveyAndQuestionsById } from '@/api/survey'
 import QuestionBase from '@/components/questions/QuestionBase.vue'
 import SingleChoiceQuestion from '@/components/questions/SingleChoiceQuestion.vue'
 import MultipleChoiceQuestion from '@/components/questions/MultipleChoiceQuestion.vue'
+import TextQuestion from '@/components/questions/TextQuestion.vue'
+import RatingQuestion from '@/components/questions/RatingQuestion.vue'
+import SortQuestion from '@/components/questions/SortQuestion.vue'
+import MatrixQuestion from '@/components/questions/MatrixQuestion.vue'
 
 // 获取路由参数
 const route = useRoute()
@@ -42,7 +47,10 @@ const survey = ref({
     name: '',
     description: '',
     status: '',
-    allowView: ''
+    allowView: '',
+    isRequired: 1,
+    minSelections: 0,
+    maxSelections: 1
 })
 const questions = ref([])
 const activeQuestionIndex = ref(-1)
@@ -50,10 +58,20 @@ const previewVisible = ref(false)
 const validationErrors = ref({})
 const isPreviewMode = ref(false)
 
+// 选项编辑相关
+const isEditingOption = ref(false)
+const editingOption = ref(null)
+const editingOptionIndex = ref(-1)
+const skipQuestions = ref([])
+
 // 问题模板
 const questionTemplates = [
   { type: '单选', name: '单选题', icon: 'Edit' },
-  { type: '多选', name: '多选题', icon: 'Edit' }
+  { type: '多选', name: '多选题', icon: 'Edit' },
+  { type: '填空', name: '填空题', icon: 'Edit' },
+  { type: '评分题', name: '评分题', icon: 'Star' },
+  { type: '排序', name: '排序题', icon: 'Sort' },
+  { type: '矩阵', name: '矩阵题', icon: 'Grid' }
 ]
 
 // 当前选中的问题
@@ -75,10 +93,10 @@ const onDrop = (event) => {
 const addQuestion = (template) => {
   const getInitialData = (type) => {
     const initialData = {
-      questionId:0,
+      questionId: 0,
       type,
       description: '',
-      required: 0,
+      isRequired: 0,
       isOpen: 0,
       isSkip: 0
     }
@@ -94,9 +112,32 @@ const addQuestion = (template) => {
         return {
           ...initialData,
           layout: 'vertical',
-          minSelect: 0,
-          maxSelect: 1,
+          minSelections: 0,
+          maxSelections: 1,
           options: [{ description: '', type: '行选项' }]
+        }
+      case '填空':
+        return initialData
+      case '评分题':
+        return {
+          ...initialData,
+          displayType: '五角星',
+          scoreDescription: '',
+          options: [{ description: '', type: '行选项' }]
+        }
+      case '排序':
+        return {
+          ...initialData,
+          sortType: 'drag',
+          sortDescription: '',
+          options: [{ description: '', type: '行选项' }]
+        }
+      case '矩阵':
+        return {
+          ...initialData,
+          matrixType: 'single',
+          rowOptions: [{ description: '', type: '行选项' }],
+          columnOptions: [{ description: '', type: '列选项' }]
         }
       default:
         return initialData
@@ -108,12 +149,35 @@ const addQuestion = (template) => {
   activeQuestionIndex.value = questions.value.length - 1
 }
 
-const deleteQuestion = (index) => {
-  questions.value.splice(index, 1)
-  if (activeQuestionIndex.value === index) {
-    activeQuestionIndex.value = -1
-  } else if (activeQuestionIndex.value > index) {
-    activeQuestionIndex.value--
+const deleteQuestion = async (index) => {
+  const question = questions.value[index]
+  
+  // 如果问题有ID，调用后端删除服务
+  if (question.questionId) {
+    try {
+      const result = await questionDelService(question.questionId)
+      if (result.code === 0) {
+        ElMessage.success('问题删除成功')
+        questions.value.splice(index, 1)
+        if (activeQuestionIndex.value === index) {
+          activeQuestionIndex.value = -1
+        } else if (activeQuestionIndex.value > index) {
+          activeQuestionIndex.value--
+        }
+      } else {
+        ElMessage.error(result.message || '问题删除失败')
+      }
+    } catch (error) {
+      ElMessage.error('问题删除失败：' + error.message)
+    }
+  } else {
+    // 如果问题没有ID，直接从前端删除
+    questions.value.splice(index, 1)
+    if (activeQuestionIndex.value === index) {
+      activeQuestionIndex.value = -1
+    } else if (activeQuestionIndex.value > index) {
+      activeQuestionIndex.value--
+    }
   }
 }
 
@@ -126,11 +190,84 @@ const moveQuestion = (index, direction) => {
 }
 
 const selectQuestion = (index) => {
-  activeQuestionIndex.value = index
+  if (!isEditingOption.value) {
+    activeQuestionIndex.value = index
+  }
 }
 
 const updateQuestion = (index, updatedQuestion) => {
   questions.value[index] = { ...questions.value[index], ...updatedQuestion }
+}
+
+// 处理编辑选项
+const handleEditOption = (data) => {
+  console.log('SurveyBuilder - 处理编辑选项:', data)
+  console.log('SurveyBuilder - 当前activeQuestion:', activeQuestion.value)
+  
+  const questionIndex = questions.value.findIndex(q => q.questionId === data.questionId)
+  if (questionIndex !== -1) {
+    activeQuestionIndex.value = questionIndex
+  }
+  
+  // 确保选项有type属性，默认为行选项
+  editingOption.value = { 
+    ...data.option,
+    type: data.option.type || '行选项'
+  }
+  editingOptionIndex.value = data.index
+  isEditingOption.value = true
+  console.log('SurveyBuilder - 设置后的状态:', {
+    editingOption: editingOption.value,
+    editingOptionIndex: editingOptionIndex.value,
+    isEditingOption: isEditingOption.value,
+    activeQuestionIndex: activeQuestionIndex.value
+  })
+  
+  // 获取可跳转的问题列表
+  fetchSkipQuestions()
+}
+
+// 获取可跳转的问题列表
+const fetchSkipQuestions = async () => {
+  if (!props.surveyId) {
+    console.log('SurveyBuilder - 没有surveyId，跳过获取问题列表')
+    return
+  }
+  
+  try {
+    console.log('SurveyBuilder - 开始获取问题列表')
+    const result = await getAllQuestionsBySurveyIdService(props.surveyId)
+    console.log('SurveyBuilder - 获取问题列表结果:', result)
+    if (result.code === 0) {
+      const currentQuestionId = questions.value[activeQuestionIndex.value]?.questionId
+      skipQuestions.value = result.data.filter(q => q.questionId !== currentQuestionId)
+      console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
+    }
+  } catch (error) {
+    console.error('SurveyBuilder - 获取问题列表失败:', error)
+    ElMessage.error('获取问题列表失败')
+  }
+}
+
+// 保存选项编辑
+const saveOptionEdit = () => {
+  if (editingOptionIndex.value !== -1 && activeQuestionIndex.value !== -1) {
+    const question = questions.value[activeQuestionIndex.value]
+    const options = [...question.options]
+    options[editingOptionIndex.value] = { ...editingOption.value }
+    
+    updateQuestion(activeQuestionIndex.value, { ...question, options })
+    isEditingOption.value = false
+    editingOption.value = null
+    editingOptionIndex.value = -1
+  }
+}
+
+// 取消选项编辑
+const cancelOptionEdit = () => {
+  isEditingOption.value = false
+  editingOption.value = null
+  editingOptionIndex.value = -1
 }
 
 // 获取问题组件
@@ -138,6 +275,10 @@ const getQuestionComponent = (type) => {
   const componentMap = {
     '单选': SingleChoiceQuestion,
     '多选': MultipleChoiceQuestion,
+    '填空': TextQuestion,
+    '评分题': RatingQuestion,
+    '排序': SortQuestion,
+    '矩阵': MatrixQuestion
   }
   return componentMap[type] || null
 }
@@ -207,7 +348,9 @@ const saveSurvey = async () => {
         if (res.code === 0) {
             ElMessage.success('问卷保存成功')
             if (!survey.value.surveyId) {
-                survey.value.surveyId = res.data.id
+                survey.value.surveyId = res.data
+                console.log('survey.value.surveyId'+survey.value.surveyId)
+                console.log('res.data.surveyId'+res.data)
             }
         } else {
             ElMessage.error(res.message || '问卷保存失败')
@@ -344,6 +487,7 @@ const getPlainText = (htmlContent)=> {
                 :is="getQuestionComponent(question.type)"
                 :model-value="question"
                 @update:model-value="updateQuestion(index, $event)"
+                @edit-option="handleEditOption"
               />
             </div>
             <div v-if="getQuestionErrors(index).length > 0" class="question-errors">
@@ -369,24 +513,45 @@ const getPlainText = (htmlContent)=> {
            :class="{ 'preview-mode': isPreviewMode }"
            :style="{ width: isPreviewMode ? '60%' : '300px' }">
         <div class="panel-header">
-          <h3>{{ isPreviewMode ? '问卷预览' : '属性设置' }}</h3>
+          <h3>{{ isPreviewMode ? '问卷预览' : (isEditingOption ? '编辑选项' : '属性设置') }}</h3>
           <el-button v-if="isPreviewMode" type="text" @click="togglePreview">
             <el-icon><Close /></el-icon>
           </el-button>
         </div>
         
-        <div v-if="!isPreviewMode && activeQuestionIndex !== -1" class="panel-content">
+        <!-- 选项编辑面板 -->
+        <div v-if="!isPreviewMode && isEditingOption && editingOption" class="panel-content">
+          <el-form :model="editingOption" label-width="100px">
+            <el-form-item label="选项描述">
+              <el-input v-model="editingOption.description" placeholder="请输入选项描述"></el-input>
+            </el-form-item>
+            <el-form-item label="选项类型">
+              <el-radio-group v-model="editingOption.type">
+                <el-radio label="行选项">行选项</el-radio>
+                <el-radio label="列选项">列选项</el-radio>
+                <el-radio label="填空">填空</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="开放答案">
+              <el-switch v-model="editingOption.isOpenOption" :active-value="1" :inactive-value="0"></el-switch>
+            </el-form-item>
+            <el-form-item label="跳转选项">
+              <el-switch v-model="editingOption.isSkip" :active-value="1" :inactive-value="0"></el-switch>
+            </el-form-item>
+            <el-form-item label="跳转至" v-if="editingOption.isSkip === 1">
+              <el-select v-model="editingOption.skipTo" clearable placeholder="跳转至">
+                <el-option v-for="item in skipQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveOptionEdit">保存</el-button>
+              <el-button @click="cancelOptionEdit">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <div v-else-if="!isPreviewMode && activeQuestionIndex !== -1" class="panel-content">
           <el-form :model="activeQuestion" label-width="100px">
-            <el-form-item label="是否必答">
-              <el-switch v-model="activeQuestion.required" :active-value="1" :inactive-value="0" />
-            </el-form-item>
-            <el-form-item label="是否开放">
-              <el-switch v-model="activeQuestion.isOpen" :active-value="1" :inactive-value="0" />
-            </el-form-item>
-            <el-form-item label="是否跳转">
-              <el-switch v-model="activeQuestion.isSkip" :active-value="1" :inactive-value="0" />
-            </el-form-item>
-
             <!-- 单选题设置 -->
             <template v-if="activeQuestion.type === '单选'">
             </template>
@@ -401,15 +566,15 @@ const getPlainText = (htmlContent)=> {
               </el-form-item>
               <el-form-item label="最少选择">
                 <el-input-number 
-                  v-model="activeQuestion.minSelect" 
+                  v-model="activeQuestion.minSelections" 
                   :min="0" 
                   :max="activeQuestion.options.length"
-                  :disabled="!activeQuestion.required"
+                  :disabled="!activeQuestion.isRequired"
                 />
               </el-form-item>
               <el-form-item label="最多选择">
                 <el-input-number 
-                  v-model="activeQuestion.maxSelect" 
+                  v-model="activeQuestion.maxSelections" 
                   :min="1" 
                   :max="activeQuestion.options.length"
                 />
@@ -594,7 +759,7 @@ const getPlainText = (htmlContent)=> {
   }
 
   .action-bar {
-    padding: 20px;
+    padding: 18px;
     border-top: 1px solid #dcdfe6;
     display: flex;
     justify-content: flex-end;

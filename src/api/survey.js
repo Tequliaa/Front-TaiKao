@@ -51,9 +51,11 @@ export function saveBuildSurvey(survey, questions) {
         surveyId: q.surveyId,
         description: q.description,
         type: q.type,
-        isRequired: q.required,
+        isRequired: q.isRequired,
         isOpen: q.isOpen,
         displayType: q.displayType,
+        maxSelections: q.maxSelections,
+        minSelections: q.minSelections,
         isSkip: q.isSkip,
         options: q.options
       }))
@@ -79,12 +81,12 @@ export function updateBuildSurvey(survey, questions) {
         surveyId: q.surveyId,
         description: q.description,
         type: q.type,
-        isRequired: q.required,
+        isRequired: q.isRequired,
         isOpen: q.isOpen,
         displayType: q.displayType,
         isSkip: q.isSkip,
-        minSelect: q.minSelect,
-        maxSelect: q.maxSelect,
+        minSelections: q.minSelections,
+        maxSelections: q.maxSelections,
         options: q.options
       }))
     }

@@ -617,7 +617,7 @@ const handleLogout = () => {
 
 .main-content {
     flex: 1;
-    padding: 24px;
+    padding: 20px;
     overflow-y: auto;
     transition: padding 0.3s;
     

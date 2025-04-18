@@ -1,98 +1,36 @@
 <template>
   <div class="text-question">
-    <el-form-item label="问题描述">
-      <el-input
-        v-model="questionData.description"
-        type="textarea"
-        :rows="3"
-        placeholder="请输入问题描述"
-      />
-    </el-form-item>
+    <div class="question-header" @click="isCollapsed = !isCollapsed">
+      <div class="header-content">
+        <span class="question-type">填空题</span>
+        <span class="question-desc" v-if="questionData.description">{{ questionData.description }}</span>
+      </div>
+      <el-button type="primary" link class="collapse-btn">
+        <el-icon><component :is="isCollapsed ? 'ArrowDown' : 'ArrowUp'" /></el-icon>
+        {{ isCollapsed ? '展开' : '收起' }}
+      </el-button>
+    </div>
 
-    <el-form-item label="是否必填">
-      <el-switch v-model="questionData.required" />
-    </el-form-item>
-
-    <el-form-item label="输入类型">
-      <el-radio-group v-model="questionData.inputType">
-        <el-radio label="text">单行文本</el-radio>
-        <el-radio label="textarea">多行文本</el-radio>
-        <el-radio label="number">数字</el-radio>
-        <el-radio label="email">邮箱</el-radio>
-        <el-radio label="phone">手机号</el-radio>
-      </el-radio-group>
-    </el-form-item>
-
-    <template v-if="questionData.inputType === 'number'">
-      <el-form-item label="数字范围">
-        <el-input-number 
-          v-model="questionData.minValue" 
-          :min="Number.MIN_SAFE_INTEGER"
-          :max="questionData.maxValue - 1"
-        />
-        <span class="range-separator">至</span>
-        <el-input-number 
-          v-model="questionData.maxValue" 
-          :min="questionData.minValue + 1"
-          :max="Number.MAX_SAFE_INTEGER"
-        />
-      </el-form-item>
-    </template>
-
-    <template v-if="questionData.inputType === 'textarea'">
-      <el-form-item label="最大字数">
-        <el-input-number 
-          v-model="questionData.maxLength" 
-          :min="1"
-          :max="10000"
-        />
-      </el-form-item>
-    </template>
-
-    <el-form-item label="输入提示">
-      <el-input
-        v-model="questionData.placeholder"
-        :placeholder="getPlaceholderHint"
-      />
-    </el-form-item>
-
-    <el-form-item label="输入预览">
-      <div class="input-preview">
+    <div v-show="!isCollapsed" class="question-content">
+      <el-form-item label="问题描述">
         <el-input
-          v-if="questionData.inputType === 'text'"
-          :placeholder="questionData.placeholder"
-          :maxlength="questionData.maxLength"
-        />
-        <el-input
-          v-else-if="questionData.inputType === 'textarea'"
+          v-model="questionData.description"
           type="textarea"
           :rows="3"
-          :placeholder="questionData.placeholder"
-          :maxlength="questionData.maxLength"
+          placeholder="请输入问题描述"
         />
-        <el-input-number
-          v-else-if="questionData.inputType === 'number'"
-          :min="questionData.minValue"
-          :max="questionData.maxValue"
-          :placeholder="questionData.placeholder"
-        />
-        <el-input
-          v-else-if="questionData.inputType === 'email'"
-          type="email"
-          :placeholder="questionData.placeholder"
-        />
-        <el-input
-          v-else-if="questionData.inputType === 'phone'"
-          type="tel"
-          :placeholder="questionData.placeholder"
-        />
-      </div>
-    </el-form-item>
+      </el-form-item>
+
+      <el-form-item label="是否必填">
+        <el-switch v-model="questionData.isRequired" :active-value="1" :inactive-value="0" />
+      </el-form-item>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 
 const props = defineProps({
   modelValue: {
@@ -102,32 +40,30 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+const isCollapsed = ref(false)
 
 const questionData = ref({
   ...props.modelValue,
-  type: 'text',
-  required: false,
-  inputType: 'text',
-  minValue: 0,
-  maxValue: 100,
-  maxLength: 200,
-  placeholder: '',
+  type: '填空',
   description: props.modelValue.description || ''
 })
 
-const getPlaceholderHint = computed(() => {
-  const hints = {
-    text: '请输入文本',
-    textarea: '请输入多行文本',
-    number: '请输入数字',
-    email: '请输入邮箱地址',
-    phone: '请输入手机号码'
+// 监听props变化，同步数据
+watch(() => props.modelValue, (newVal) => {
+  if (newVal && JSON.stringify(newVal) !== JSON.stringify(questionData.value)) {
+    questionData.value = {
+      ...newVal,
+      type: '填空',
+      description: newVal.description || ''
+    }
   }
-  return hints[questionData.value.inputType]
-})
+}, { deep: true })
 
+// 监听内部数据变化，同步到父组件
 watch(questionData, (newVal) => {
-  emit('update:modelValue', newVal)
+  if (JSON.stringify(newVal) !== JSON.stringify(props.modelValue)) {
+    emit('update:modelValue', { ...newVal })
+  }
 }, { deep: true })
 </script>
 
@@ -138,14 +74,51 @@ watch(questionData, (newVal) => {
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 
-  .range-separator {
-    margin: 0 10px;
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ebeef5;
+
+    &:hover {
+      background-color: #f5f7fa;
+      border-radius: 4px;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .question-type {
+        font-weight: bold;
+        color: #409eff;
+      }
+
+      .question-desc {
+        color: #606266;
+        font-size: 14px;
+      }
+    }
+
+    .collapse-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+
+      &:hover {
+        background-color: #ecf5ff;
+      }
+    }
   }
 
-  .input-preview {
-    padding: 10px;
-    background: #f5f7fa;
-    border-radius: 4px;
+  .question-content {
+    transition: all 0.3s ease;
   }
 }
 </style> 
