@@ -27,17 +27,17 @@
 
       <el-form-item label="排序方式">
         <el-radio-group v-model="questionData.sortType">
-          <el-radio label="drag">拖拽排序</el-radio>
-          <el-radio label="select">选择排序</el-radio>
+          <el-radio label="拖拽排序">拖拽排序</el-radio>
+          <el-radio label="选择排序">选择排序</el-radio>
         </el-radio-group>
       </el-form-item>
 
       <el-form-item label="排序说明">
         <el-input
-          v-model="questionData.sortDescription"
+          v-model="questionData.instructions"
           type="textarea"
           :rows="2"
-          placeholder="请输入排序说明（如：请将选项按重要性从高到低排序）"
+          placeholder="请输入排序说明（如：请将以下选项按照重要程度排序）"
         />
       </el-form-item>
 
@@ -93,8 +93,8 @@ const isDragging = ref(-1)
 const questionData = ref({
   ...props.modelValue,
   type: '排序',
-  sortType: props.modelValue.sortType || 'drag',
-  sortDescription: props.modelValue.sortDescription || '',
+  sortType: props.modelValue.sortType || '拖拽排序',
+  instructions: props.modelValue.instructions || '',
   description: props.modelValue.description || '',
   options: props.modelValue.options || [{ description: '', type: '行选项' }]
 })
@@ -162,8 +162,8 @@ watch(() => props.modelValue, (newVal) => {
     questionData.value = {
       ...newVal,
       type: '排序',
-      sortType: newVal.sortType || 'drag',
-      sortDescription: newVal.sortDescription || '',
+      sortType: newVal.sortType || '拖拽排序',
+      instructions: newVal.instructions || '',
       description: newVal.description || '',
       options: newVal.options || [{ description: '', type: '行选项' }]
     }

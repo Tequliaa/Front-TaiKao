@@ -18,13 +18,13 @@ import {
   submitBuildSurvey,
   updateBuildSurvey
 } from '@/api/survey'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getAllQuestionsBySurveyIdService, questionDelService } from '@/api/question'
 
 const props = defineProps({
     surveyId: {
         type: [String, Number],
-        required: true
+        required: false
     }
 })
 import { getSurveyAndQuestionsById } from '@/api/survey'
@@ -37,9 +37,14 @@ import TextQuestion from '@/components/questions/TextQuestion.vue'
 import RatingQuestion from '@/components/questions/RatingQuestion.vue'
 import SortQuestion from '@/components/questions/SortQuestion.vue'
 import MatrixQuestion from '@/components/questions/MatrixQuestion.vue'
+import FileUploadQuestion from '@/components/questions/FileUploadQuestion.vue'
 
-// 获取路由参数
+// 获取路由和路由实例
 const route = useRoute()
+const router = useRouter()
+
+// 标记是否是刷新页面
+const isPageRefresh = ref(false)
 
 // 问卷数据
 const survey = ref({
@@ -71,7 +76,8 @@ const questionTemplates = [
   { type: '填空', name: '填空题', icon: 'Edit' },
   { type: '评分题', name: '评分题', icon: 'Star' },
   { type: '排序', name: '排序题', icon: 'Sort' },
-  { type: '矩阵', name: '矩阵题', icon: 'Grid' }
+  { type: '矩阵', name: '矩阵题', icon: 'Grid' },
+  { type: '文件上传题', name: '文件上传题', icon: 'Upload' }
 ]
 
 // 当前选中的问题
@@ -122,14 +128,14 @@ const addQuestion = (template) => {
         return {
           ...initialData,
           displayType: '五角星',
-          scoreDescription: '',
+          instructions: '',
           options: [{ description: '', type: '行选项' }]
         }
       case '排序':
         return {
           ...initialData,
-          sortType: 'drag',
-          sortDescription: '',
+          sortType: '拖拽排序',
+          instructions: '',
           options: [{ description: '', type: '行选项' }]
         }
       case '矩阵':
@@ -138,6 +144,13 @@ const addQuestion = (template) => {
           matrixType: 'single',
           rowOptions: [{ description: '', type: '行选项' }],
           columnOptions: [{ description: '', type: '列选项' }]
+        }
+      case '文件上传题':
+        return {
+          ...initialData,
+          fileTypes: ['image', 'document'],
+          maxSize: 10,
+          maxFiles: 1
         }
       default:
         return initialData
@@ -280,7 +293,8 @@ const getQuestionComponent = (type) => {
     '排序': SortQuestion,
     '矩阵': MatrixQuestion,
     '矩阵单选': MatrixQuestion,
-    '矩阵多选': MatrixQuestion
+    '矩阵多选': MatrixQuestion,
+    '文件上传题': FileUploadQuestion
   }
   return componentMap[type] || null
 }
@@ -300,10 +314,27 @@ const validateQuestions = () => {
 
   return !hasError
 }
+
 // 获取问卷详情
 const fetchSurveyDetail = async () => {
+    // 确定要使用的surveyId
+    let currentSurveyId = null
+    
+    if (isPageRefresh.value) {
+        // 如果是刷新页面，优先使用会话存储中的surveyId
+        currentSurveyId = sessionStorage.getItem('currentSurveyId')
+    } else {
+        // 如果是新进入页面，优先使用props或路由参数中的surveyId
+        currentSurveyId = props.surveyId || route.query.surveyId
+    }
+    
+    if (!currentSurveyId) {
+        console.log('没有surveyId，无法获取问卷详情')
+        return
+    }
+    
     try {
-        const result = await getSurveyAndQuestionsById(props.surveyId)
+        const result = await getSurveyAndQuestionsById(currentSurveyId)
         if (result.code === 0) {
             const data = result.data
             survey.value = {
@@ -311,17 +342,36 @@ const fetchSurveyDetail = async () => {
                 description: getPlainText(data.survey.description)
             }
             questions.value = data.questions || []
+            
+            // 保存surveyId到会话存储
+            sessionStorage.setItem('currentSurveyId', currentSurveyId)
         }
     } catch (error) {
-        ElMessage.error('获取问卷详情失败')
+        // ElMessage.error('获取问卷详情失败')
     }
 }
 
 // 组件挂载时获取数据
 onMounted(() => {
-    if (props.surveyId) {
-        fetchSurveyDetail()
+    // 检查是否是刷新页面
+    const pageLoadTime = sessionStorage.getItem('pageLoadTime')
+    const currentTime = new Date().getTime()
+    
+    if (pageLoadTime && currentTime - parseInt(pageLoadTime) < 1000) {
+        // 如果页面加载时间间隔小于1秒，认为是刷新
+        isPageRefresh.value = true
+    } else {
+        // 否则认为是新进入页面
+        isPageRefresh.value = false
+        // 清除之前的surveyId
+        sessionStorage.removeItem('currentSurveyId')
     }
+    
+    // 更新页面加载时间
+    sessionStorage.setItem('pageLoadTime', currentTime.toString())
+    
+    // 获取问卷详情
+    fetchSurveyDetail()
 })
 
 // 保存问卷
@@ -351,6 +401,8 @@ const saveSurvey = async () => {
             ElMessage.success('问卷保存成功')
             if (!survey.value.surveyId) {
                 survey.value.surveyId = res.data
+                // 更新会话存储
+                sessionStorage.setItem('currentSurveyId', res.data)
                 console.log('survey.value.surveyId'+survey.value.surveyId)
                 console.log('res.data.surveyId'+res.data)
             }
@@ -386,14 +438,12 @@ const submitSurvey = async () => {
       }
     )
 
-    const surveyData = {
-      id: survey.value.surveyId,
-      name: survey.value.name,
-      description: survey.value.description,
-      questions: questions.value
-    }
-
-    const res = await submitBuildSurvey(surveyData)
+    survey.value.status = '已发布'
+    const res = await updateBuildSurvey(survey.value, questions.value)
+    survey.value.surveyId = res.data
+    // 更新会话存储
+    sessionStorage.setItem('currentSurveyId', res.data)
+    
     if (res.code === 0) {
       ElMessage.success('问卷提交成功')
       // 可以跳转到问卷列表页面

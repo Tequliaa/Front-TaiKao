@@ -32,6 +32,15 @@
         </el-radio-group>
       </el-form-item>
 
+      <el-form-item label="评分说明">
+        <el-input
+          v-model="questionData.instructions"
+          type="textarea"
+          :rows="2"
+          placeholder="请输入评分说明（如：1分表示非常不满意，5分表示非常满意）"
+        />
+      </el-form-item>
+
       <el-form-item label="选项">
         <div class="options-container">
           <div v-for="(option, index) in questionData.options" 
@@ -55,14 +64,7 @@
         </div>
       </el-form-item>
 
-      <el-form-item label="评分说明">
-        <el-input
-          v-model="questionData.scoreDescription"
-          type="textarea"
-          :rows="2"
-          placeholder="请输入评分说明（如：1分表示非常不满意，5分表示非常满意）"
-        />
-      </el-form-item>
+
     </div>
   </div>
 </template>
@@ -86,8 +88,8 @@ const isCollapsed = ref(false)
 const questionData = ref({
   ...props.modelValue,
   type: '评分题',
-  displayType: '五角星',
-  scoreDescription: '',
+  displayType: props.modelValue.displayType || '五角星',
+  instructions: props.modelValue.instructions || '',
   description: props.modelValue.description || '',
   options: props.modelValue.options || [{ description: '', type: '行选项' }]
 })
@@ -138,7 +140,7 @@ watch(() => props.modelValue, (newVal) => {
       ...newVal,
       type: '评分题',
       displayType: newVal.displayType || '五角星',
-      scoreDescription: newVal.scoreDescription || '',
+      instructions: newVal.instructions || '',
       description: newVal.description || '',
       options: newVal.options || [{ description: '', type: '行选项' }]
     }

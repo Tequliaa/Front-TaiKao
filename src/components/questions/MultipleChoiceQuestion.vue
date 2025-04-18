@@ -30,12 +30,12 @@
         <el-switch v-model="questionData.isSkip" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="选项布局">
+      <!-- <el-form-item label="选项布局">
         <el-radio-group v-model="questionData.layout">
           <el-radio label="vertical">垂直排列</el-radio>
           <el-radio label="horizontal">水平排列</el-radio>
         </el-radio-group>
-      </el-form-item>
+      </el-form-item> -->
 
       <el-form-item label="最少选择">
         <el-input-number 

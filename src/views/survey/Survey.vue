@@ -374,7 +374,7 @@ const buildSurvey = (row) => {
                     <template #default="{ row }">{{ row.allowView === 1 ? '是' : '否' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" style="text-align: center;" align="center" width="300">
+                <el-table-column label="操作" style="text-align: center;" align="center" width="350">
                     <template #default="{ row }">
                         <div class="action-buttons">
                             <el-tooltip content="预览" placement="top">

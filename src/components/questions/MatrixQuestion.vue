@@ -134,8 +134,8 @@ const questionData = ref({
   type: props.modelValue.matrixType === 'single' ? '矩阵单选' : '矩阵多选',
   matrixType: props.modelValue.matrixType || 'single',
   description: props.modelValue.description || '',
-  rowOptions: props.modelValue.rowOptions || [{ description: '', type: '行选项' }],
-  columnOptions: props.modelValue.columnOptions || [{ description: '', type: '列选项' }]
+  rowOptions: props.modelValue.options?.filter(opt => opt.type === '行选项') || [{ description: '', type: '行选项' }],
+  columnOptions: props.modelValue.options?.filter(opt => opt.type === '列选项') || [{ description: '', type: '列选项' }]
 })
 
 // 添加行选项
@@ -236,8 +236,8 @@ watch(() => props.modelValue, (newVal) => {
       type: newVal.matrixType === 'single' ? '矩阵单选' : '矩阵多选',
       matrixType: newVal.matrixType || 'single',
       description: newVal.description || '',
-      rowOptions: newVal.rowOptions || [{ description: '', type: '行选项' }],
-      columnOptions: newVal.columnOptions || [{ description: '', type: '列选项' }]
+      rowOptions: newVal.options?.filter(opt => opt.type === '行选项') || [{ description: '', type: '行选项' }],
+      columnOptions: newVal.options?.filter(opt => opt.type === '列选项') || [{ description: '', type: '列选项' }]
     }
   }
 }, { deep: true })
