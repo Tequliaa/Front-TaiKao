@@ -364,14 +364,32 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
 
                                 <!-- 多选题 -->
                                 <template v-if="question.type === '多选'">
-                                    <div class="form-check more-choice">
+                                    <div class="form-check more-choice" :data-required="question.isRequired">
+                                        <!-- 修改选择数量提示的显示逻辑 -->
+                                        <div class="selection-limit-tip" v-if="(question.maxSelections && question.maxSelections < question.options.length) || 
+                                                                            (question.isRequired && question.minSelections && question.minSelections > 1)">
+                                            <span v-if="question.isRequired && question.minSelections && question.minSelections > 1">
+                                                至少选择 {{ question.minSelections }} 项
+                                            </span>
+                                            <span v-if="question.maxSelections && question.maxSelections < question.options.length">
+                                                {{ question.isRequired && question.minSelections && question.minSelections > 1 ? '，' : '' }}
+                                                最多选择 {{ question.maxSelections }} 项
+                                            </span>
+                                            <span class="current-selection">
+                                                （已选择 {{ question.selectedOptions.length }} 项）
+                                            </span>
+                                        </div>
                                         <div v-for="(option, optIndex) in question.options" 
                                             :key="option.optionId" 
                                             class="form-check-option more-option">
                                             <el-checkbox 
                                                 v-model="question.selectedOptions" 
                                                 :label="option.optionId"
-                                                disabled>
+                                                :disabled="!question.selectedOptions.includes(option.optionId) && 
+                                                          question.maxSelections && 
+                                                          question.maxSelections < question.options.length &&
+                                                          question.selectedOptions.length >= question.maxSelections"
+                                                :required="question.isRequired">
                                                 <span class="option-label">
                                                     {{ String.fromCharCode(65 + optIndex) }}.
                                                     <template v-if="option.isOpenOption">
@@ -379,7 +397,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                                             v-if="question.selectedOptions.includes(option.optionId)"
                                                             v-model="option.openAnswer" 
                                                             :placeholder="option.description"
-                                                            disabled />
+                                                            class="open-answer-input" />
                                                         <span v-else>{{ option.description }}</span>
                                                     </template>
                                                     <template v-else>
@@ -470,6 +488,10 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                 <!-- 评分题 -->
                                 <template v-if="question.type === '评分题'">
                                     <div class="rating-question">
+                                        <!-- 添加评分说明 -->
+                                        <div v-if="question.instructions" class="rating-instructions">
+                                            {{ question.instructions }}
+                                        </div>
                                         <div class="rating-rule">评分规则：1-5分</div>
                                         <div v-for="option in question.options" :key="option.optionId" class="rating-item">
                                             <label class="rating-label">{{ option.description }}:</label>
@@ -547,21 +569,62 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                 <!-- 排序题 -->
                                 <template v-if="question.type === '排序'">
                                     <div class="sortable-container">
-                                        <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                        <div :id="'sortable-' + question.questionId" class="sortable-list">
-                                            <div v-for="option in question.options" 
-                                                :key="option.optionId" 
-                                                class="sortable-item"
-                                                :data-id="option.optionId">
-                                                <div class="sortable-handle">
-                                                    <el-icon><Rank /></el-icon>
-                                                </div>
-                                                <div class="sortable-content">
-                                                    <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
-                                                    <span class="sortable-text">{{ option.description }}</span>
+                                        <!-- 添加排序说明 -->
+                                        <div v-if="question.instructions" class="sort-instructions">
+                                            {{ question.instructions }}
+                                        </div>
+                                        
+                                        <!-- 拖拽排序 -->
+                                        <template v-if="question.sortType === '拖拽排序'">
+                                            <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
+                                            <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div v-for="option in question.options" 
+                                                    :key="option.optionId" 
+                                                    class="sortable-item"
+                                                    :data-id="option.optionId">
+                                                    <div class="sortable-handle">
+                                                        <el-icon><Rank /></el-icon>
+                                                    </div>
+                                                    <div class="sortable-content">
+                                                        <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                        <span class="sortable-text">{{ option.description }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </template>
+                                        
+                                        <!-- 选择排序 -->
+                                        <template v-else-if="question.sortType === '选择排序'">
+                                            <div class="sortable-tip">请点击选项进行排序（从上到下）</div>
+                                            <div class="select-sort-container">
+                                                <!-- 已排序的选项列表 -->
+                                                <div class="select-sort-list">
+                                                    <template v-if="question.sortedOrder && question.sortedOrder.length > 0">
+                                                        <div v-for="(optionId, index) in question.sortedOrder" 
+                                                            :key="optionId" 
+                                                            class="select-sort-item">
+                                                            <span class="select-sort-index">{{ index + 1 }}</span>
+                                                            <span class="select-sort-text">
+                                                                {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+                                                    <div v-else class="select-sort-empty">
+                                                        请点击下方选项进行排序
+                                                    </div>
+                                                </div>
+                                                <!-- 待选择的选项列表 -->
+                                                <div class="select-sort-options">
+                                                    <div v-for="option in question.options" 
+                                                        :key="option.optionId" 
+                                                        class="select-sort-option"
+                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
+                                                        @click="selectSortOption(question, option.optionId)">
+                                                        {{ option.description }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                             </div>
@@ -873,6 +936,16 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
             .sortable-container {
                 margin: 10px 0;
                 
+                .sort-instructions {
+                    color: #606266;
+                    font-size: 14px;
+                    margin-bottom: 10px;
+                    padding: 8px 12px;
+                    background-color: #f5f7fa;
+                    border-radius: 4px;
+                    border-left: 3px solid #409EFF;
+                }
+                
                 .sortable-tip {
                     color: #909399;
                     font-size: 14px;
@@ -941,6 +1014,82 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                 }
             }
 
+            .select-sort-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                
+                .select-sort-list {
+                    border: 1px solid #dcdfe6;
+                    border-radius: 4px;
+                    background: #fff;
+                    min-height: 50px;
+                    
+                    .select-sort-item {
+                        display: flex;
+                        align-items: center;
+                        padding: 12px;
+                        background: #fff;
+                        border-bottom: 1px solid #dcdfe6;
+                        
+                        &:last-child {
+                            border-bottom: none;
+                        }
+                        
+                        .select-sort-index {
+                            width: 24px;
+                            height: 24px;
+                            line-height: 24px;
+                            text-align: center;
+                            background: #409eff;
+                            color: #fff;
+                            border-radius: 50%;
+                            margin-right: 10px;
+                            font-size: 12px;
+                        }
+                        
+                        .select-sort-text {
+                            flex: 1;
+                            font-size: 14px;
+                        }
+                    }
+
+                    .select-sort-empty {
+                        padding: 20px;
+                        text-align: center;
+                        color: #909399;
+                        font-size: 14px;
+                        background: #f5f7fa;
+                    }
+                }
+                
+                .select-sort-options {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    
+                    .select-sort-option {
+                        padding: 8px 12px;
+                        background: #f5f7fa;
+                        border: 1px solid #dcdfe6;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                        
+                        &:hover {
+                            background: #ecf5ff;
+                            border-color: #409eff;
+                        }
+                        
+                        &.selected {
+                            background: #ecf5ff;
+                            border-color: #409eff;
+                            color: #409eff;
+                        }
+                    }
+                }
+            }
+
             .sortable-ghost {
                 opacity: 0.5;
                 background: #c8ebfb !important;
@@ -992,5 +1141,36 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
             }
         }
     }
+}
+
+.selection-limit-tip {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #606266;
+    
+    .current-selection {
+        color: #409EFF;
+        margin-left: 8px;
+    }
+}
+
+.form-check-option {
+    .el-checkbox.is-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.rating-instructions {
+    color: #606266;
+    font-size: 14px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    border-left: 3px solid #409EFF;
 }
 </style> 
