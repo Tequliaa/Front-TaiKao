@@ -278,7 +278,9 @@ const getQuestionComponent = (type) => {
     '填空': TextQuestion,
     '评分题': RatingQuestion,
     '排序': SortQuestion,
-    '矩阵': MatrixQuestion
+    '矩阵': MatrixQuestion,
+    '矩阵单选': MatrixQuestion,
+    '矩阵多选': MatrixQuestion
   }
   return componentMap[type] || null
 }

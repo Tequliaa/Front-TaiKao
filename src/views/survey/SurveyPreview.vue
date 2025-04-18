@@ -280,7 +280,7 @@ onMounted(() => {
                                         <tbody>
                                             <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
                                                 :key="row.optionId">
-                                                <td>{{ row.description }}</td>
+                                                <td class="text-center">{{ row.description }}</td>
                                                 <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
                                                     :key="col.optionId" 
                                                     class="text-center">
@@ -311,7 +311,7 @@ onMounted(() => {
                                         <tbody>
                                             <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
                                                 :key="row.optionId">
-                                                <td>{{ row.description }}</td>
+                                                <td class="text-center">{{ row.description }}</td>
                                                 <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
                                                     :key="col.optionId" 
                                                     class="text-center">

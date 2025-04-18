@@ -27,8 +27,8 @@
 
       <el-form-item label="矩阵类型">
         <el-radio-group v-model="questionData.matrixType">
-          <el-radio label="single">单选矩阵</el-radio>
-          <el-radio label="multiple">多选矩阵</el-radio>
+          <el-radio label="single">矩阵单选</el-radio>
+          <el-radio label="multiple">矩阵多选</el-radio>
         </el-radio-group>
       </el-form-item>
 
@@ -131,7 +131,7 @@ const isCollapsed = ref(false)
 
 const questionData = ref({
   ...props.modelValue,
-  type: '矩阵',
+  type: props.modelValue.matrixType === 'single' ? '矩阵单选' : '矩阵多选',
   matrixType: props.modelValue.matrixType || 'single',
   description: props.modelValue.description || '',
   rowOptions: props.modelValue.rowOptions || [{ description: '', type: '行选项' }],
@@ -142,6 +142,7 @@ const questionData = ref({
 const addRowOption = () => {
   const newOptions = [...questionData.value.rowOptions, { description: '', type: '行选项' }]
   questionData.value = { ...questionData.value, rowOptions: newOptions }
+  emit('update:modelValue', { ...questionData.value })
 }
 
 // 编辑行选项
@@ -163,6 +164,7 @@ const deleteRowOption = async (index) => {
         const newOptions = [...questionData.value.rowOptions]
         newOptions.splice(index, 1)
         questionData.value = { ...questionData.value, rowOptions: newOptions }
+        emit('update:modelValue', { ...questionData.value })
       } else {
         ElMessage.error(result.message || '选项删除失败')
       }
@@ -174,6 +176,7 @@ const deleteRowOption = async (index) => {
     const newOptions = [...questionData.value.rowOptions]
     newOptions.splice(index, 1)
     questionData.value = { ...questionData.value, rowOptions: newOptions }
+    emit('update:modelValue', { ...questionData.value })
   }
 }
 
@@ -181,6 +184,7 @@ const deleteRowOption = async (index) => {
 const addColumnOption = () => {
   const newOptions = [...questionData.value.columnOptions, { description: '', type: '列选项' }]
   questionData.value = { ...questionData.value, columnOptions: newOptions }
+  emit('update:modelValue', { ...questionData.value })
 }
 
 // 编辑列选项
@@ -202,6 +206,7 @@ const deleteColumnOption = async (index) => {
         const newOptions = [...questionData.value.columnOptions]
         newOptions.splice(index, 1)
         questionData.value = { ...questionData.value, columnOptions: newOptions }
+        emit('update:modelValue', { ...questionData.value })
       } else {
         ElMessage.error(result.message || '选项删除失败')
       }
@@ -213,15 +218,22 @@ const deleteColumnOption = async (index) => {
     const newOptions = [...questionData.value.columnOptions]
     newOptions.splice(index, 1)
     questionData.value = { ...questionData.value, columnOptions: newOptions }
+    emit('update:modelValue', { ...questionData.value })
   }
 }
+
+// 监听矩阵类型变化
+watch(() => questionData.value.matrixType, (newVal) => {
+  questionData.value.type = newVal === 'single' ? '矩阵单选' : '矩阵多选'
+  emit('update:modelValue', { ...questionData.value })
+})
 
 // 监听props变化，同步数据
 watch(() => props.modelValue, (newVal) => {
   if (newVal && JSON.stringify(newVal) !== JSON.stringify(questionData.value)) {
     questionData.value = {
       ...newVal,
-      type: '矩阵',
+      type: newVal.matrixType === 'single' ? '矩阵单选' : '矩阵多选',
       matrixType: newVal.matrixType || 'single',
       description: newVal.description || '',
       rowOptions: newVal.rowOptions || [{ description: '', type: '行选项' }],
@@ -233,7 +245,15 @@ watch(() => props.modelValue, (newVal) => {
 // 监听内部数据变化，同步到父组件
 watch(questionData, (newVal) => {
   if (JSON.stringify(newVal) !== JSON.stringify(props.modelValue)) {
-    emit('update:modelValue', { ...newVal })
+    // 合并行选项和列选项到 options 数组
+    const mergedOptions = [
+      ...(newVal.rowOptions || []),
+      ...(newVal.columnOptions || [])
+    ]
+    emit('update:modelValue', { 
+      ...newVal,
+      options: mergedOptions
+    })
   }
 }, { deep: true })
 </script>
