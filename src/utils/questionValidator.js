@@ -28,109 +28,90 @@ const validatePhone = (value) => {
 
 // 问题类型验证函数
 export const validateQuestion = (question) => {
-  const errors = []
+    const errors = {}
 
-  // 验证问题描述
-  if (!validateRequired(question.description)) {
-    errors.push('问题描述不能为空')
-  }
+    // 验证问题描述
+    if (!validateRequired(question.description)) {
+        errors.description = '问题描述不能为空'
+    }
 
-  // 根据问题类型进行验证
-  switch (question.type) {
-    case 'single_choice':
-    case 'multiple_choice':
-      if (!question.options || question.options.length === 0) {
-        errors.push('至少需要一个选项')
-      } else {
-        question.options.forEach((option, index) => {
-          if (!validateRequired(option.description)) {
-            errors.push(`选项 ${index + 1} 不能为空`)
-          }
-        })
-      }
-      if (question.type === 'multiple_choice') {
-        if (question.minSelect > question.maxSelect) {
-          errors.push('最少选择数不能大于最多选择数')
-        }
-        if (question.maxSelect > question.options.length) {
-          errors.push('最多选择数不能大于选项总数')
-        }
-        if (question.required && question.minSelect < 1) {
-          errors.push('必填题的最少选择数必须大于0')
-        }
-      }
-      break
+    // 根据问题类型进行验证
+    switch (question.type) {
+        case '单选':
+        case '多选':
+            if (!question.options || question.options.length === 0) {
+                errors.options = '至少需要添加一个选项'
+            } else {
+                const emptyOptions = question.options.filter(option => !validateRequired(option.description))
+                if (emptyOptions.length > 0) {
+                    errors.options = '选项描述不能为空'
+                }
+            }
+            if (question.type === '多选') {
+                if (question.minSelections > question.maxSelections) {
+                    errors.selections = '最少选择数不能大于最多选择数'
+                }
+                if (question.maxSelections > question.options?.length) {
+                    errors.selections = '最多选择数不能大于选项总数'
+                }
+            }
+            break
 
-    case 'text':
-      if (question.inputType === 'textarea' && question.maxLength < 1) {
-        errors.push('最大字数必须大于0')
-      }
-      if (question.inputType === 'number') {
-        if (question.minValue >= question.maxValue) {
-          errors.push('最小值必须小于最大值')
-        }
-      }
-      break
+        case '填空':
+            // 填空题不需要特殊验证
+            break
 
-    case 'matrix':
-      if (!question.rows || question.rows.length === 0) {
-        errors.push('至少需要一行')
-      } else {
-        question.rows.forEach((row, index) => {
-          if (!validateRequired(row.title)) {
-            errors.push(`行标题 ${index + 1} 不能为空`)
-          }
-        })
-      }
-      if (!question.columns || question.columns.length === 0) {
-        errors.push('至少需要一列')
-      } else {
-        question.columns.forEach((column, index) => {
-          if (!validateRequired(column.title)) {
-            errors.push(`列标题 ${index + 1} 不能为空`)
-          }
-        })
-      }
-      break
+        case '矩阵单选':
+        case '矩阵多选':
+            const rowOptions = question.options?.filter(opt => opt.type === '行选项') || []
+            const colOptions = question.options?.filter(opt => opt.type === '列选项') || []
+            
+            if (rowOptions.length === 0) {
+                errors.rows = '至少需要添加一个行选项'
+            }
+            if (colOptions.length === 0) {
+                errors.columns = '至少需要添加一个列选项'
+            }
+            
+            const emptyRows = rowOptions.filter(row => !validateRequired(row.description))
+            const emptyCols = colOptions.filter(col => !validateRequired(col.description))
+            
+            if (emptyRows.length > 0) {
+                errors.rows = '行选项描述不能为空'
+            }
+            if (emptyCols.length > 0) {
+                errors.columns = '列选项描述不能为空'
+            }
+            break
 
-    case 'sort':
-      if (!question.options || question.options.length === 0) {
-        errors.push('至少需要一个选项')
-      } else {
-        question.options.forEach((option, index) => {
-          if (!validateRequired(option.description)) {
-            errors.push(`选项 ${index + 1} 不能为空`)
-          }
-        })
-      }
-      break
+        case '评分题':
+            if (!question.options || question.options.length === 0) {
+                errors.options = '至少需要添加一个评分项'
+            } else {
+                const emptyOptions = question.options.filter(option => !validateRequired(option.description))
+                if (emptyOptions.length > 0) {
+                    errors.options = '评分项描述不能为空'
+                }
+            }
+            break
 
-    case 'rating':
-      if (question.minScore >= question.maxScore) {
-        errors.push('最小分数必须小于最大分数')
-      }
-      if (question.maxScore - question.minScore < 1) {
-        errors.push('评分范围至少为1分')
-      }
-      break
+        case '排序':
+            if (!question.options || question.options.length === 0) {
+                errors.options = '至少需要添加一个选项'
+            } else {
+                const emptyOptions = question.options.filter(option => !validateRequired(option.description))
+                if (emptyOptions.length > 0) {
+                    errors.options = '选项描述不能为空'
+                }
+            }
+            break
 
-    case 'file_upload':
-      if (!question.fileTypes || question.fileTypes.length === 0) {
-        errors.push('至少需要选择一种文件类型')
-      }
-      if (question.maxSize < 1) {
-        errors.push('文件大小限制必须大于0')
-      }
-      if (question.maxFiles < 1) {
-        errors.push('最大文件数必须大于0')
-      }
-      break
-  }
+        case '文件上传题':
+            // 文件上传题不需要特殊验证
+            break
+    }
 
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
+    return errors
 }
 
 // 验证答案函数

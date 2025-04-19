@@ -21,7 +21,7 @@
         />
       </el-form-item>
 
-      <el-form-item label="是否必填">
+      <el-form-item label="必填">
         <el-switch v-model="questionData.isRequired" :active-value="1" :inactive-value="0" />
       </el-form-item>
 

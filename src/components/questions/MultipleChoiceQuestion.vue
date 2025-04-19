@@ -18,15 +18,15 @@
         @edit-option="handleEditOption"
       />
       
-      <el-form-item label="是否必填">
+      <el-form-item label="必填">
         <el-switch v-model="questionData.isRequired" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="是否开放">
+      <el-form-item label="有开放选项">
         <el-switch v-model="questionData.isOpen" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="是否跳转">
+      <el-form-item label="有跳转选项">
         <el-switch v-model="questionData.isSkip" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
@@ -78,6 +78,48 @@ const questionData = ref({
   options: props.modelValue.options || [{ description: '', type: '行选项' }]
 })
 
+// 监听isOpen变化
+watch(() => questionData.value.isOpen, (newVal) => {
+  if (newVal === 1) {
+    // 检查是否已经存在开放选项
+    const hasOpenOption = questionData.value.options.some(option => option.isOpen === 1)
+    if (!hasOpenOption) {
+      questionData.value.options.push({
+        description: '其他，请输入',
+        type: '行选项',
+        isOpen: 1,
+        isOpenOption: 1,
+        openAnswer: ''
+      })
+      emit('update:modelValue', { ...questionData.value })
+    }
+  } else {
+    // 移除开放选项
+    questionData.value.options = questionData.value.options.filter(option => option.isOpen !== 1)
+    emit('update:modelValue', { ...questionData.value })
+  }
+})
+
+// 监听isSkip变化
+watch(() => questionData.value.isSkip, (newVal) => {
+  if (newVal === 1) {
+    // 检查是否已经存在跳转选项
+    const hasSkipOption = questionData.value.options.some(option => option.isSkip === 1)
+    if (!hasSkipOption) {
+      questionData.value.options.push({
+        description: '这个是跳转选项，请设置',
+        type: '行选项',
+        isSkip: 1
+      })
+      emit('update:modelValue', { ...questionData.value })
+    }
+  } else {
+    // 移除跳转选项
+    questionData.value.options = questionData.value.options.filter(option => option.isSkip !== 1)
+    emit('update:modelValue', { ...questionData.value })
+  }
+})
+
 // 监听props变化，同步数据
 watch(() => props.modelValue, (newVal) => {
   if (newVal && JSON.stringify(newVal) !== JSON.stringify(questionData.value)) {
@@ -91,6 +133,16 @@ watch(() => props.modelValue, (newVal) => {
 
 // 处理编辑选项
 const handleEditOption = (data) => {
+  // 如果是开放选项，确保保留isOpen和isOpenOption属性
+  if (data.option.isOpen === 1) {
+    data.option = {
+      ...data.option,
+      isOpen: 1,
+      isOpenOption: 1,
+      openAnswer: data.option.openAnswer || ''
+    }
+  }
+  
   emit('edit-option', {
     ...data,
     questionId: questionData.value.questionId

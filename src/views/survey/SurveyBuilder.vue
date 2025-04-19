@@ -12,6 +12,7 @@ import {
   Close
 } from '@element-plus/icons-vue'
 import SurveyPreview from './SurveyPreview.vue'
+import SurveyBuildPreview from './SurveyBuildPreview.vue'
 import { validateQuestion } from '@/utils/questionValidator'
 import { 
   saveBuildSurvey,
@@ -414,18 +415,24 @@ const getQuestionComponent = (type) => {
 
 // 验证问题
 const validateQuestions = () => {
-  validationErrors.value = {}
-  let hasError = false
+    validationErrors.value = {}
+    let hasError = false
 
-  questions.value.forEach((question, index) => {
-    const { isValid, errors } = validateQuestion(question)
-    if (!isValid) {
-      validationErrors.value[index] = errors
-      hasError = true
-    }
-  })
+    questions.value.forEach((question, index) => {
+        const errors = validateQuestion(question)
+        if (errors && Object.keys(errors).length > 0) {
+            validationErrors.value[index] = errors
+            hasError = true
+        }
+    })
 
-  return !hasError
+    return !hasError
+}
+
+// 获取问题错误信息
+const getQuestionErrors = (index) => {
+    const errors = validationErrors.value[index] || {}
+    return Object.values(errors)
 }
 
 // 获取问卷详情
@@ -601,18 +608,65 @@ const submitSurvey = async () => {
   }
 }
 
-// 获取问题错误信息
-const getQuestionErrors = (index) => {
-  return validationErrors.value[index] || []
-}
-
 // 切换预览状态
 const togglePreview = () => {
-  isPreviewMode.value = !isPreviewMode.value
-  if (!isPreviewMode.value) {
-    activeQuestionIndex.value = -1
-  }
+    // 验证问卷基本信息
+    if (!survey.value.name) {
+        ElMessage.warning('请填写问卷标题')
+        return
+    }
+
+    // 验证是否有问题
+    if (questions.value.length === 0) {
+        ElMessage.warning('请至少添加一个问题')
+        return
+    }
+
+    // 清空之前的验证错误
+    validationErrors.value = {}
+
+    // 验证所有问题
+    let hasError = false
+    questions.value.forEach((question, index) => {
+        const errors = validateQuestion(question)
+        if (errors && Object.keys(errors).length > 0) {
+            hasError = true
+            validationErrors.value[index] = errors
+        }
+    })
+
+    if (hasError) {
+        // 只显示一个总的错误提示，而不是每个问题都提示
+        ElMessage.error('问卷中存在未完善的问题，请检查')
+        return
+    }
+
+    // 切换预览状态
+    isPreviewMode.value = !isPreviewMode.value
+    if (!isPreviewMode.value) {
+        activeQuestionIndex.value = -1
+    }
 }
+
+// 监听预览模式变化
+watch(isPreviewMode, (newValue) => {
+    if (newValue) {
+        // 进入预览模式时，确保所有问题都有正确的初始状态
+        questions.value.forEach(question => {
+            if (!question.selectedOption) question.selectedOption = null
+            if (!question.selectedOptions) question.selectedOptions = []
+            if (!question.matrixAnswers) question.matrixAnswers = {}
+            if (!question.openAnswer) question.openAnswer = ''
+            if (question.options) {
+                question.options.forEach(option => {
+                    if (option.isOpenOption && !option.openAnswer) {
+                        option.openAnswer = ''
+                    }
+                })
+            }
+        })
+    }
+})
 
 const getPlainText = (htmlContent)=> {
     // 使用正则去掉 HTML 标签，获取纯文本
@@ -798,76 +852,80 @@ const getPlainText = (htmlContent)=> {
           </el-button>
         </div>
         
-        <!-- 选项编辑面板 -->
-        <div v-if="!isPreviewMode && isEditingOption && editingOption" class="panel-content">
-          <el-form :model="editingOption" label-width="100px">
-            <el-form-item label="选项描述">
-              <el-input v-model="editingOption.description" placeholder="请输入选项描述"></el-input>
-            </el-form-item>
-            <el-form-item label="选项类型">
-              <el-radio-group v-model="editingOption.type">
-                <el-radio label="行选项">行选项</el-radio>
-                <el-radio label="列选项">列选项</el-radio>
-                <el-radio label="填空">填空</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="开放答案">
-              <el-switch v-model="editingOption.isOpenOption" :active-value="1" :inactive-value="0"></el-switch>
-            </el-form-item>
-            <el-form-item label="跳转选项">
-              <el-switch v-model="editingOption.isSkip" :active-value="1" :inactive-value="0"></el-switch>
-            </el-form-item>
-            <el-form-item label="跳转至" v-if="editingOption.isSkip === 1">
-              <el-select v-model="editingOption.skipTo" clearable placeholder="跳转至">
-                <el-option v-for="item in skipQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="saveOptionEdit">保存</el-button>
-              <el-button @click="cancelOptionEdit">取消</el-button>
-            </el-form-item>
-          </el-form>
-        </div>
-        
-        <div v-else-if="!isPreviewMode && activeQuestionIndex !== -1" class="panel-content">
-          <el-form :model="activeQuestion" label-width="100px">
-            <!-- 单选题设置 -->
-            <template v-if="activeQuestion.type === '单选'">
-            </template>
+        <div class="panel-content">
+          <template v-if="!isPreviewMode">
+            <!-- 选项编辑面板 -->
+            <div v-if="isEditingOption && editingOption">
+              <el-form :model="editingOption" label-width="100px">
+                <el-form-item label="选项描述">
+                  <el-input v-model="editingOption.description" placeholder="请输入选项描述"></el-input>
+                </el-form-item>
+                <el-form-item label="选项类型">
+                  <el-radio-group v-model="editingOption.type">
+                    <el-radio label="行选项">行选项</el-radio>
+                    <el-radio label="列选项">列选项</el-radio>
+                    <el-radio label="填空">填空</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item label="开放答案">
+                  <el-switch v-model="editingOption.isOpenOption" :active-value="1" :inactive-value="0"></el-switch>
+                </el-form-item>
+                <el-form-item label="跳转选项">
+                  <el-switch v-model="editingOption.isSkip" :active-value="1" :inactive-value="0"></el-switch>
+                </el-form-item>
+                <el-form-item label="跳转至" v-if="editingOption.isSkip === 1">
+                  <el-select v-model="editingOption.skipTo" clearable placeholder="跳转至">
+                    <el-option v-for="item in skipQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
+                  </el-select>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="saveOptionEdit">保存</el-button>
+                  <el-button @click="cancelOptionEdit">取消</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+            <!-- 问题属性面板 -->
+            <div v-else-if="activeQuestionIndex !== -1">
+              <el-form :model="activeQuestion" label-width="100px">
+                <!-- 单选题设置 -->
+                <template v-if="activeQuestion.type === '单选'">
+                </template>
 
-            <!-- 多选题设置 -->
-            <template v-if="activeQuestion.type === '多选'">
-              <el-form-item label="选项布局">
-                <el-radio-group v-model="activeQuestion.layout">
-                  <el-radio label="vertical">垂直排列</el-radio>
-                  <el-radio label="horizontal">水平排列</el-radio>
-                </el-radio-group>
-              </el-form-item>
-              <el-form-item label="最少选择">
-                <el-input-number 
-                  v-model="activeQuestion.minSelections" 
-                  :min="0" 
-                  :max="activeQuestion.options.length"
-                  :disabled="!activeQuestion.isRequired"
-                />
-              </el-form-item>
-              <el-form-item label="最多选择">
-                <el-input-number 
-                  v-model="activeQuestion.maxSelections" 
-                  :min="1" 
-                  :max="activeQuestion.options.length"
-                />
-              </el-form-item>
-            </template>
-          </el-form>
-        </div>
-
-        <div v-else-if="isPreviewMode" class="panel-content">
-          <SurveyPreview :surveyId="survey.surveyId" />
-        </div>
-
-        <div v-else class="panel-content">
-          <el-empty description="请选择问题或点击预览按钮" />
+                <!-- 多选题设置 -->
+                <template v-if="activeQuestion.type === '多选'">
+                  <el-form-item label="选项布局">
+                    <el-radio-group v-model="activeQuestion.layout">
+                      <el-radio label="vertical">垂直排列</el-radio>
+                      <el-radio label="horizontal">水平排列</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                  <el-form-item label="最少选择">
+                    <el-input-number 
+                      v-model="activeQuestion.minSelections" 
+                      :min="0" 
+                      :max="activeQuestion.options.length"
+                      :disabled="!activeQuestion.isRequired"
+                    />
+                  </el-form-item>
+                  <el-form-item label="最多选择">
+                    <el-input-number 
+                      v-model="activeQuestion.maxSelections" 
+                      :min="1" 
+                      :max="activeQuestion.options.length"
+                    />
+                  </el-form-item>
+                </template>
+              </el-form>
+            </div>
+            <el-empty v-else description="请选择问题或点击预览按钮" />
+          </template>
+          <template v-else>
+            <SurveyBuildPreview 
+              :survey="survey"
+              :questions="questions"
+              :categories="categories"
+            />
+          </template>
         </div>
       </div>
     </div>
@@ -885,7 +943,9 @@ const getPlainText = (htmlContent)=> {
 
 <style lang="scss" scoped>
 .survey-builder {
+  width: 100%;
   height: 100%;
+  position: relative;
   display: flex;
   flex-direction: column;
 
@@ -910,6 +970,12 @@ const getPlainText = (htmlContent)=> {
     padding-right: 20px;
     transition: all 0.3s ease;
 
+    h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      color: #303133;
+    }
+
     .template-list {
       display: flex;
       flex-direction: column;
@@ -924,9 +990,22 @@ const getPlainText = (htmlContent)=> {
       display: flex;
       align-items: center;
       gap: 8px;
+      background-color: #fff;
+      transition: all 0.3s ease;
 
       &:hover {
         background-color: #f5f7fa;
+        border-color: #409EFF;
+      }
+
+      .el-icon {
+        font-size: 16px;
+        color: #409EFF;
+      }
+
+      span {
+        font-size: 14px;
+        color: #606266;
       }
     }
   }
@@ -953,9 +1032,10 @@ const getPlainText = (htmlContent)=> {
       gap: 20px;
 
       .question-group {
-        background-color: #f5f7fa;
+        background-color: #fff;
         border-radius: 4px;
         padding: 15px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
         .group-header {
           margin-bottom: 15px;
