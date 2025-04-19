@@ -43,6 +43,7 @@ export function saveBuildSurvey(survey, questions) {
         surveyId: survey.surveyId,
         name: survey.name,
         description: survey.description,
+        isCategory: survey.isCategory,
         // status: survey.status,
         allowView: survey.allowView
       },
@@ -53,6 +54,7 @@ export function saveBuildSurvey(survey, questions) {
         type: q.type,
         isRequired: q.isRequired,
         isOpen: q.isOpen,
+        categoryId: q.categoryId,
         displayType: q.displayType,
         maxSelections: q.maxSelections,
         minSelections: q.minSelections,
@@ -75,6 +77,7 @@ export function updateBuildSurvey(survey, questions) {
         surveyId: survey.surveyId,
         name: survey.name,
         description: survey.description,
+        isCategory: survey.isCategory,
         status: survey.status,
         allowView: survey.allowView
       },
@@ -85,6 +88,7 @@ export function updateBuildSurvey(survey, questions) {
         type: q.type,
         isRequired: q.isRequired,
         isOpen: q.isOpen,
+        categoryId: q.categoryId,
         displayType: q.displayType,
         isSkip: q.isSkip,
         sortType: q.sortType,

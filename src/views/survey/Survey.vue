@@ -172,7 +172,10 @@ onMounted(() => {
 
 //打开添加问卷窗口
 const openAddDialog = () => {
-    surveyModel.value = {};
+    surveyModel.value = {
+        isCategory:0,
+        allowView:1
+    };
     visibleDrawer.value = true;
     addSurveyFlag.value = true;
        // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
@@ -268,13 +271,13 @@ const editSurvey = async () => {
 
 const options = [
   {
+    value: 0,
+    label: '否',
+  },
+  {
     value: 1,
     label: '是',
   },
-  {
-    value: 0,
-    label: '否',
-  }
 ]
 import { debounce } from 'lodash';
 
@@ -484,6 +487,11 @@ const buildSurvey = (row) => {
                 </el-select>
             </el-form-item>
 
+            <el-form-item label="按分类展示">
+                <el-select v-model="surveyModel.isCategory" clearable placeholder="问卷内问题是否按分类展示">
+                    <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value"/>
+                </el-select>
+            </el-form-item>
             
             <el-form-item>
                 <el-button type="primary" @click="addSurveyFlag ? addSurvey() : editSurvey()">{{ addSurveyFlag ?

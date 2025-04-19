@@ -167,6 +167,9 @@ const openAddDialog = () => {
         type: '单选',
         isRequired: 1,
         isOpen: 0,
+        isSkip: 0,
+        displayType: '五角星',
+        sortType: '拖拽排序',
         categoryId: '',
         surveyId: props.surveyId || ''
     };
@@ -263,16 +266,6 @@ const editQuestion = async () => {
     questionModel.value = {};
 }
 
-const options = [
-  {
-    value: 1,
-    label: '是',
-  },
-  {
-    value: 0,
-    label: '否',
-  }
-]
 const isOpenOptions = [
     {
         value: 0,
@@ -351,6 +344,17 @@ const displayTypeOptions = [
     {
         value: '滑动条',
         label: '滑动条'
+    }
+]
+
+const sortTypeOptions = [
+    {
+        value: '拖拽排序',
+        label: '拖拽排序'
+    },
+    {
+        value: '选择排序',
+        label: '选择排序'
     }
 ]
 
@@ -504,6 +508,12 @@ const handleSurveyChange = (value) => {
                 </el-select>
             </el-form-item>
 
+            <!-- 添加排序类型选择框 -->
+            <el-form-item v-if="questionModel.type === '排序'" label="排序类型">
+                <el-select v-model="questionModel.sortType" clearable placeholder="请选择排序类型">
+                    <el-option v-for="item in sortTypeOptions" :key="item.value" :label="item.label" :value="item.value"/>
+                </el-select>
+            </el-form-item>
             <el-form-item label="是否必答">
                 <el-select v-model="questionModel.isRequired" clearable placeholder="是否必答">
                     <el-option v-for="item in isRequiredOptions" :key="item.value" :label="item.label" :value="item.value"/>

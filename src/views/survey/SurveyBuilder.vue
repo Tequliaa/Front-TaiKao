@@ -20,6 +20,7 @@ import {
 } from '@/api/survey'
 import { useRoute, useRouter } from 'vue-router'
 import { getAllQuestionsBySurveyIdService, questionDelService } from '@/api/question'
+import { getAllCategoriesService } from '@/api/category'
 
 const props = defineProps({
     surveyId: {
@@ -55,9 +56,11 @@ const survey = ref({
     allowView: '',
     isRequired: 1,
     minSelections: 0,
-    maxSelections: 1
+    maxSelections: 1,
+    isCategory: 0
 })
 const questions = ref([])
+const categories = ref([])
 const activeQuestionIndex = ref(-1)
 const previewVisible = ref(false)
 const validationErrors = ref({})
@@ -85,6 +88,97 @@ const activeQuestion = computed(() => {
   return activeQuestionIndex.value !== -1 ? questions.value[activeQuestionIndex.value] : null
 })
 
+// 按分类分组的问题
+const groupedQuestions = computed(() => {
+  console.log('groupedQuestions - 开始计算分组')
+  console.log('当前分类状态:', survey.value.isCategory)
+  console.log('所有问题:', questions.value)
+  console.log('所有分类:', categories.value)
+  
+  if (survey.value.isCategory !== 1) {
+    console.log('未启用分类，返回所有问题')
+    return [{ categoryId: null, categoryName: '所有问题', questions: questions.value }]
+  }
+  
+  const groups = {}
+  
+  // 初始化所有分类
+  categories.value.forEach(category => {
+    groups[`cat_${category.categoryId}`] = {
+      categoryId: category.categoryId,
+      categoryName: category.categoryName,
+      questions: []
+    }
+  })
+  
+  // 将问题分配到对应分类
+  questions.value.forEach(question => {
+    const categoryId = question.categoryId
+    console.log(`处理问题 ${question.questionId} 的分类 ${categoryId}`)
+    
+    if (categoryId && groups[`cat_${categoryId}`]) {
+      groups[`cat_${categoryId}`].questions.push(question)
+    } else {
+      // 如果问题没有分类或分类不存在，放入"未分类"组
+      if (!groups['uncategorized']) {
+        groups['uncategorized'] = {
+          categoryId: 'uncategorized',
+          categoryName: '未分类',
+          questions: []
+        }
+      }
+      groups['uncategorized'].questions.push(question)
+    }
+  })
+  
+  // 过滤掉没有问题的分类
+  const result = Object.values(groups).filter(group => group.questions.length > 0)
+  console.log('最终分组结果:', result)
+  return result
+})
+
+// 分类展开状态
+const expandedCategories = ref(new Set())
+
+// 切换分类展开状态
+const toggleCategory = (categoryId) => {
+  if (expandedCategories.value.has(categoryId)) {
+    expandedCategories.value.delete(categoryId)
+  } else {
+    expandedCategories.value.add(categoryId)
+  }
+}
+
+// 检查分类是否展开
+const isCategoryExpanded = (categoryId) => {
+  return expandedCategories.value.has(categoryId)
+}
+
+// 处理分类变化
+const handleCategoryChange = (question, newCategoryId) => {
+  console.log('handleCategoryChange - 开始处理分类变化')
+  console.log('当前问题:', question)
+  console.log('新分类ID:', newCategoryId)
+  
+  // 找到问题在数组中的索引
+  const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId)
+  console.log('问题索引:', questionIndex)
+  
+  if (questionIndex !== -1) {
+    console.log('原始问题对象:', questions.value[questionIndex])
+    // 创建新的问题对象，只更新 categoryId
+    const updatedQuestion = JSON.parse(JSON.stringify(questions.value[questionIndex]))
+    updatedQuestion.categoryId = newCategoryId
+    console.log('更新后的问题对象:', updatedQuestion)
+    
+    // 更新问题数组
+    questions.value[questionIndex] = updatedQuestion
+    // 强制更新视图
+    questions.value = [...questions.value]
+    console.log('更新后的问题数组:', questions.value)
+  }
+}
+
 // 拖拽相关方法
 const onDragStart = (event, template) => {
   event.dataTransfer.setData('template', JSON.stringify(template))
@@ -104,7 +198,8 @@ const addQuestion = (template) => {
       description: '',
       isRequired: 0,
       isOpen: 0,
-      isSkip: 0
+      isSkip: 0,
+      categoryId: categories.value.length > 0 ? categories.value[0].categoryId : null
     }
 
     switch (type) {
@@ -209,7 +304,25 @@ const selectQuestion = (index) => {
 }
 
 const updateQuestion = (index, updatedQuestion) => {
-  questions.value[index] = { ...questions.value[index], ...updatedQuestion }
+  console.log('updateQuestion - 开始更新问题')
+  console.log('问题索引:', index)
+  console.log('更新前的问题:', questions.value[index])
+  console.log('新的问题数据:', updatedQuestion)
+  
+  if (index >= 0 && index < questions.value.length) {
+    // 保持原有的 categoryId
+    const currentCategoryId = questions.value[index].categoryId
+    const finalQuestion = {
+      ...updatedQuestion,
+      categoryId: currentCategoryId
+    }
+    console.log('最终的问题对象:', finalQuestion)
+    
+    questions.value[index] = finalQuestion
+    // 强制更新视图
+    questions.value = [...questions.value]
+    console.log('更新后的问题数组:', questions.value)
+  }
 }
 
 // 处理编辑选项
@@ -350,6 +463,32 @@ const fetchSurveyDetail = async () => {
         // ElMessage.error('获取问卷详情失败')
     }
 }
+// 获取所有分类
+const fetchCategories = async () => {
+  try {
+    const result = await getAllCategoriesService()
+    if (result.code === 0) {
+      categories.value = result.data
+      // 如果问题没有分类，则默认选择第一个分类
+      if (questions.value.length > 0) {
+        questions.value.forEach(question => {
+          if (!question.categoryId && categories.value.length > 0) {
+            question.categoryId = categories.value[0].categoryId
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+}
+
+// 监听 isCategory 变化
+watch(() => survey.value.isCategory, (newValue) => {
+  if (newValue === 1) {
+    fetchCategories()
+  }
+})
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -372,6 +511,11 @@ onMounted(() => {
     
     // 获取问卷详情
     fetchSurveyDetail()
+    
+    // 如果 isCategory 为 1，获取分类数据
+    if (survey.value.isCategory === 1) {
+        fetchCategories()
+    }
 })
 
 // 保存问卷
@@ -503,6 +647,15 @@ const getPlainText = (htmlContent)=> {
            @drop="onDrop">
         <div class="survey-header">
           <el-input v-model="survey.name" placeholder="请输入问卷标题" />
+          <div class="survey-category-switch">
+            <el-switch
+              v-model="survey.isCategory"
+              :active-value="1"
+              :inactive-value="0"
+              active-text="按分类排序"
+              inactive-text="不按分类排序"
+            />
+          </div>
           <el-input
             v-model="survey.description"
             type="textarea"
@@ -512,47 +665,121 @@ const getPlainText = (htmlContent)=> {
         </div>
 
         <div class="questions-container">
-          <div v-for="(question, index) in questions" 
-               :key="index"
-               class="question-item"
-               :class="{ 
-                 'active': activeQuestionIndex === index,
-                 'has-error': getQuestionErrors(index).length > 0
-               }"
-               @click="selectQuestion(index)">
-            <div class="question-header">
-              <span class="question-type">{{ question.type }}</span>
-              <div class="question-actions">
-                <el-button type="text" @click="moveQuestion(index, 'up')" :disabled="index === 0">
-                  <el-icon><ArrowUp /></el-icon>
-                </el-button>
-                <el-button type="text" @click="moveQuestion(index, 'down')" :disabled="index === questions.length - 1">
-                  <el-icon><ArrowDown /></el-icon>
-                </el-button>
-                <el-button type="text" @click="deleteQuestion(index)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
+          <template v-if="survey.isCategory === 1">
+            <div v-for="group in groupedQuestions" :key="group.categoryId" class="question-group">
+              <div class="group-header" @click="toggleCategory(group.categoryId)">
+                <h4>{{ group.categoryName }}</h4>
+                <el-icon :class="{ 'expanded': isCategoryExpanded(group.categoryId) }">
+                  <ArrowDown />
+                </el-icon>
+              </div>
+              <div class="group-questions" v-show="isCategoryExpanded(group.categoryId)">
+                <transition-group name="question-fade" tag="div">
+                  <div v-for="(question, index) in group.questions" 
+                       :key="question.questionId || index"
+                       class="question-item"
+                       :class="{ 
+                         'active': activeQuestionIndex === questions.findIndex(q => q.questionId === question.questionId),
+                         'has-error': getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0
+                       }"
+                       @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId))">
+                    <div class="question-header">
+                      <span class="question-type">{{ question.type }}</span>
+                      <div class="question-actions">
+                        <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'up')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === 0">
+                          <el-icon><ArrowUp /></el-icon>
+                        </el-button>
+                        <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'down')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === questions.length - 1">
+                          <el-icon><ArrowDown /></el-icon>
+                        </el-button>
+                        <el-button type="text" @click.stop="deleteQuestion(questions.findIndex(q => q.questionId === question.questionId))">
+                          <el-icon><Delete /></el-icon>
+                        </el-button>
+                      </div>
+                    </div>
+                    <div class="question-content">
+                      <!-- 分类选择 -->
+                      <div v-if="survey.isCategory === 1" class="question-category">
+                        <el-select
+                          :value="question.categoryId"
+                          placeholder="请选择分类"
+                          clearable
+                          size="small"
+                          @change="(value) => handleCategoryChange(question, value)"
+                        >
+                          <el-option
+                            v-for="category in categories"
+                            :key="category.categoryId"
+                            :label="category.categoryName"
+                            :value="category.categoryId"
+                          />
+                        </el-select>
+                      </div>
+                      <component 
+                        :is="getQuestionComponent(question.type)"
+                        :model-value="question"
+                        @update:model-value="updateQuestion(questions.findIndex(q => q.questionId === question.questionId), $event)"
+                        @edit-option="handleEditOption"
+                      />
+                    </div>
+                    <div v-if="getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0" class="question-errors">
+                      <el-alert
+                        v-for="(error, errorIndex) in getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId))"
+                        :key="errorIndex"
+                        :title="error"
+                        type="error"
+                        :closable="false"
+                        show-icon
+                      />
+                    </div>
+                  </div>
+                </transition-group>
               </div>
             </div>
-            <div class="question-content">
-              <component 
-                :is="getQuestionComponent(question.type)"
-                :model-value="question"
-                @update:model-value="updateQuestion(index, $event)"
-                @edit-option="handleEditOption"
-              />
+          </template>
+          <template v-else>
+            <div v-for="(question, index) in questions" 
+                 :key="index"
+                 class="question-item"
+                 :class="{ 
+                   'active': activeQuestionIndex === index,
+                   'has-error': getQuestionErrors(index).length > 0
+                 }"
+                 @click="selectQuestion(index)">
+              <div class="question-header">
+                <span class="question-type">{{ question.type }}</span>
+                <div class="question-actions">
+                  <el-button type="text" @click="moveQuestion(index, 'up')" :disabled="index === 0">
+                    <el-icon><ArrowUp /></el-icon>
+                  </el-button>
+                  <el-button type="text" @click="moveQuestion(index, 'down')" :disabled="index === questions.length - 1">
+                    <el-icon><ArrowDown /></el-icon>
+                  </el-button>
+                  <el-button type="text" @click="deleteQuestion(index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+              <div class="question-content">
+                <component 
+                  :is="getQuestionComponent(question.type)"
+                  :model-value="question"
+                  @update:model-value="updateQuestion(index, $event)"
+                  @edit-option="handleEditOption"
+                />
+              </div>
+              <div v-if="getQuestionErrors(index).length > 0" class="question-errors">
+                <el-alert
+                  v-for="(error, errorIndex) in getQuestionErrors(index)"
+                  :key="errorIndex"
+                  :title="error"
+                  type="error"
+                  :closable="false"
+                  show-icon
+                />
+              </div>
             </div>
-            <div v-if="getQuestionErrors(index).length > 0" class="question-errors">
-              <el-alert
-                v-for="(error, errorIndex) in getQuestionErrors(index)"
-                :key="errorIndex"
-                :title="error"
-                type="error"
-                :closable="false"
-                show-icon
-              />
-            </div>
-          </div>
+          </template>
         </div>
 
         <div class="empty-placeholder" v-if="questions.length === 0">
@@ -724,50 +951,39 @@ const getPlainText = (htmlContent)=> {
       display: flex;
       flex-direction: column;
       gap: 20px;
-    }
 
-    .question-item {
-      background-color: white;
-      border-radius: 4px;
-      padding: 20px;
-      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-
-      &.active {
-        border: 2px solid #409eff;
-      }
-
-      &.has-error {
-        border: 1px solid #f56c6c;
-      }
-
-      .question-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-
-        .question-type {
-          font-weight: bold;
-        }
-
-        .question-actions {
-          display: flex;
-          gap: 8px;
-        }
-      }
-
-      .question-errors {
-        margin-top: 10px;
-        padding: 10px;
-        background-color: #fef0f0;
+      .question-group {
+        background-color: #f5f7fa;
         border-radius: 4px;
+        padding: 15px;
 
-        .el-alert {
-          margin-bottom: 5px;
-
-          &:last-child {
-            margin-bottom: 0;
+        .group-header {
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #dcdfe6;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          
+          h4 {
+            margin: 0;
+            color: #606266;
           }
+          
+          .el-icon {
+            transition: transform 0.3s;
+            
+            &.expanded {
+              transform: rotate(180deg);
+            }
+          }
+        }
+
+        .group-questions {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
         }
       }
     }
@@ -817,5 +1033,20 @@ const getPlainText = (htmlContent)=> {
     justify-content: flex-end;
     gap: 10px;
   }
+}
+
+.question-fade-enter-active,
+.question-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.question-fade-enter-from,
+.question-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.question-fade-move {
+  transition: transform 0.3s ease;
 }
 </style> 
