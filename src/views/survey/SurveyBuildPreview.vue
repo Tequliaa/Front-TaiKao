@@ -122,8 +122,44 @@ const handleOptionSelect = (question, optionId) => {
 }
 
 const getQuestionIndex = (questionId) => {
-    const index = props.questions.findIndex(q => q.questionId === questionId)
-    return index + 1
+    // 如果是分类模式，需要按照分类内顺序重新编号
+    if (props.survey.isCategory === 1) {
+        // 找到问题所属的分类
+        let categoryId = null;
+        let questionInCategory = null;
+        
+        // 查找问题所属的分类
+        for (const group of groupedQuestions.value) {
+            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            if (foundQuestion) {
+                categoryId = group.categoryId;
+                questionInCategory = foundQuestion;
+                break;
+            }
+        }
+        
+        if (categoryId && questionInCategory) {
+            // 计算该分类之前的所有问题数量
+            let previousQuestionsCount = 0;
+            for (const group of groupedQuestions.value) {
+                if (group.categoryId === categoryId) {
+                    break;
+                }
+                previousQuestionsCount += group.questions.length;
+            }
+            
+            // 找到问题在当前分类中的索引
+            const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            
+            // 返回分类内编号 + 之前分类的问题数量
+            return previousQuestionsCount + questionIndex + 1;
+        }
+    }
+    
+    // 非分类模式，使用原来的逻辑
+    const index = props.questions.findIndex(q => q.questionId === questionId);
+    return index + 1;
 }
 
 const getOptionIndex = (question, optionId) => {

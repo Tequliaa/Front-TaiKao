@@ -60,6 +60,7 @@ export function saveBuildSurvey(survey, questions) {
         minSelections: q.minSelections,
         isSkip: q.isSkip,
         sortType: q.sortType,
+        sortKey:q.sortKey,
         instructions: q.instructions,
         options: q.options
       }))
@@ -92,6 +93,7 @@ export function updateBuildSurvey(survey, questions) {
         displayType: q.displayType,
         isSkip: q.isSkip,
         sortType: q.sortType,
+        sortKey:q.sortKey,
         instructions: q.instructions,
         minSelections: q.minSelections,
         maxSelections: q.maxSelections,

@@ -378,6 +378,7 @@ const getStatistics = async () => {
             // 直接使用返回的 questions 数组
             questions.value = response.data.questions
             unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
+            surveyInfo.value = response.data.survey
             // 设置矩阵单元格数据
             matrixCellData.value = response.data.matrixCellData || {}
             console.log('获取到的矩阵单元格数据:', matrixCellData.value)
@@ -401,10 +402,6 @@ const getStatistics = async () => {
                 return question
             })
             if (questions.value && questions.value.length > 0) {
-                surveyInfo.value = {
-                    name: questions.value[0].surveyName,
-                    description: questions.value[0].surveyDescription
-                }
                 // 初始化所有问题的显示状态
                 questions.value.forEach(question => {
                     visibleQuestions.value.add(question.questionId)
@@ -467,6 +464,40 @@ const initCharts = () => {
     })
 }
 
+// 添加 groupedQuestions 计算属性
+const groupedQuestions = computed(() => {
+    if (!questions.value || questions.value.length === 0) {
+        return []
+    }
+
+    // 按分类ID分组问题
+    const groups = {}
+    questions.value.forEach(question => {
+        if (question.categoryId) {
+            if (!groups[question.categoryId]) {
+                groups[question.categoryId] = {
+                    categoryId: question.categoryId,
+                    categoryName: question.categoryName || '未命名分类',
+                    questions: []
+                }
+            }
+            groups[question.categoryId].questions.push(question)
+        }
+    })
+
+    // 转换为数组并排序
+    return Object.values(groups).sort((a, b) => {
+        // 首先按分类ID排序
+        const idCompare = a.categoryId - b.categoryId
+        if (idCompare !== 0) return idCompare
+        
+        // 如果分类ID相同，按问题顺序排序
+        return a.questions[0].order - b.questions[0].order
+    })
+})
+
+
+
 // 添加调试函数
 // const debugMatrixData = () => {
 //     console.log('矩阵单元格数据:', matrixCellData.value)
@@ -513,6 +544,16 @@ const getOptionIndex = (question, optionId) => {
     }
     return question.options.findIndex(opt => opt.optionId === optionId) + 1
 }
+
+const getGroupQuestionIndex = (groupIndex, questionIndex) => {
+    // 计算当前分组之前的所有问题数量
+    let previousQuestionsCount = 0;
+    for (let i = 0; i < groupIndex; i++) {
+        previousQuestionsCount += groupedQuestions.value[i].questions.length;
+    }
+    // 返回当前问题的序号（之前的问题数量 + 当前问题在分组中的索引 + 1）
+    return previousQuestionsCount + questionIndex + 1;
+}
 </script>
 
 <template>
@@ -535,7 +576,321 @@ const getOptionIndex = (question, optionId) => {
 
                     <!-- 问题列表 -->
                     <div class="questions-list">
-                        <div v-for="(question, index) in questions" 
+                        <template v-if="surveyInfo.isCategory === 1">
+                            <div v-for="(group, groupIndex) in groupedQuestions" :key="group.categoryId" class="category-group">
+                                <div class="category-header">
+                                    <div class="category-title">{{ group.categoryName }}</div>
+                                </div>
+                                <div class="questions-container">
+                                    <div v-for="(question, index) in group.questions" 
+                                        :key="question.questionId" 
+                                        :id="'question_' + question.questionId"
+                                        class="question-item"
+                                        :data-index="getGroupQuestionIndex(groupIndex, index)"
+                                        :data-has-skip="question.isSkip"
+                                        v-show="visibleQuestions.has(question.questionId)">
+                                        <!-- 问题标题 -->
+                                        <div class="question-title">
+                                            <span class="question-number">{{ getGroupQuestionIndex(groupIndex, index) }}.</span>
+                                            <span class="question-text">{{ question.description }}</span>
+                                            <span class="question-type">({{ question.type }}, {{ question.isRequired ? '必答' : '选填' }})</span>
+                                            <span v-if="question.isRequired" class="required">*</span>
+                                        </div>
+
+                                        <!-- 问题内容和图表容器 -->
+                                        <div class="question-content">
+                                            <!-- 根据问题类型显示不同的选项 -->
+                                            <div class="question-options">
+                                                <!-- 单选题 -->
+                                                <template v-if="question.type === '单选'">
+                                                    <div class="form-check">
+                                                        <div v-for="(option, optIndex) in question.options" 
+                                                            :key="option.optionId" 
+                                                            class="form-check-option">
+                                                            <span class="option-label">
+                                                                {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
+                                                                <span class="check-count">(选择人数: {{ option.checkCount }})</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 多选题 -->
+                                                <template v-if="question.type === '多选'">
+                                                    <div class="form-check more-choice" :data-required="question.isRequired">
+                                                        <!-- 修改选择数量提示的显示逻辑 -->
+                                                        <div class="selection-limit-tip" v-if="(question.maxSelections && question.maxSelections < question.options.length) || 
+                                                                                            (question.isRequired && question.minSelections && question.minSelections > 1)">
+                                                            <span v-if="question.isRequired && question.minSelections && question.minSelections > 1">
+                                                                至少选择 {{ question.minSelections }} 项
+                                                            </span>
+                                                            <span v-if="question.maxSelections && question.maxSelections < question.options.length">
+                                                                {{ question.isRequired && question.minSelections && question.minSelections > 1 ? '，' : '' }}
+                                                                最多选择 {{ question.maxSelections }} 项
+                                                            </span>
+                                                            <span class="current-selection">
+                                                                <!-- （已选择 {{ question.selectedOptions ? question.selectedOptions.length : 0 }} 项） -->
+                                                            </span>
+                                                        </div>
+                                                        <div v-for="(option, optIndex) in question.options" 
+                                                            :key="option.optionId" 
+                                                            class="form-check-option more-option">
+                                                            <el-checkbox 
+                                                                v-model="question.selectedOptions" 
+                                                                :label="option.optionId"
+                                                                :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.optionId)) && 
+                                                                          question.maxSelections && 
+                                                                          question.maxSelections < question.options.length &&
+                                                                          question.selectedOptions && question.selectedOptions.length >= question.maxSelections"
+                                                                :required="question.isRequired">
+                                                                <span class="option-label">
+                                                                    {{ String.fromCharCode(65 + optIndex) }}.
+                                                                    <template v-if="option.isOpenOption">
+                                                                        <el-input 
+                                                                            v-if="question.selectedOptions && question.selectedOptions.includes(option.optionId)"
+                                                                            v-model="option.openAnswer" 
+                                                                            :placeholder="option.description"
+                                                                            class="open-answer-input" />
+                                                                        <span v-else>{{ option.description }}</span>
+                                                                    </template>
+                                                                    <template v-else>
+                                                                        {{ option.description }}
+                                                                        <span v-if="option.isSkip" class="skip-info">
+                                                                            (跳转至第{{ getQuestionIndex(option.skipTo) }}题)
+                                                                        </span>
+                                                                    </template>
+                                                                </span>
+                                                            </el-checkbox>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 填空题 -->
+                                                <template v-if="question.type === '填空'">
+                                                    <div class="text-answer">
+                                                        <span class="check-count">(回答人数: {{ question.options[0]?.checkCount || 0 }})</span>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 矩阵单选题 -->
+                                                <template v-if="question.type === '矩阵单选'">
+                                                    <div class="matrix-container">
+                                                        <table class="matrix-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th class="text-center">行/列</th>
+                                                                    <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                                        :key="col.optionId" 
+                                                                        class="text-center">
+                                                                        {{ col.description }}
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                                    :key="row.optionId">
+                                                                    <td>{{ row.description }}</td>
+                                                                    <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                                        :key="col.optionId" 
+                                                                        class="text-center">
+                                                                        <el-radio 
+                                                                            v-model="question.matrixAnswers[row.optionId]" 
+                                                                            :label="col.optionId"
+                                                                            disabled />
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </template>
+                                                <!-- 矩阵多选题 -->
+                                                <template v-if="question.type === '矩阵多选'">
+                                                    <div class="matrix-container">
+                                                        <table class="matrix-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th class="text-center">行/列</th>
+                                                                    <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                                        :key="col.optionId" 
+                                                                        class="text-center">
+                                                                        {{ col.description }}
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
+                                                                    :key="row.optionId">
+                                                                    <td>{{ row.description }}</td>
+                                                                    <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
+                                                                        :key="col.optionId" 
+                                                                        class="text-center">
+                                                                        <el-checkbox 
+                                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
+                                                                            disabled />
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 评分题 -->
+                                                <template v-if="question.type === '评分题'">
+                                                    <div class="rating-question">
+                                                        <!-- 添加评分说明 -->
+                                                        <div v-if="question.instructions" class="rating-instructions">
+                                                            {{ question.instructions }}
+                                                        </div>
+                                                        <div class="rating-rule">评分规则：1-5分</div>
+                                                        <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                                            <label class="rating-label">{{ option.description }}:</label>
+                                                            <div class="rating-display">
+                                                                <!-- 五角星显示 -->
+                                                                <template v-if="question.displayType === '五角星'">
+                                                                    <div class="star-rating">
+                                                                        <el-rate
+                                                                            v-model="option.rating"
+                                                                            :max="5"
+                                                                            :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
+                                                                            :texts="['1分', '2分', '3分', '4分', '5分']"
+                                                                            show-text
+                                                                            :required="question.isRequired"
+                                                                        />
+                                                                    </div>
+                                                                </template>
+                                                                <!-- 滑动条显示 -->
+                                                                <template v-else-if="question.displayType === '滑动条'">
+                                                                    <div class="slider-rating">
+                                                                        <el-slider
+                                                                            v-model="option.rating"
+                                                                            :min="1"
+                                                                            :max="5"
+                                                                            :step="1"
+                                                                            :marks="{
+                                                                                1: '1分',
+                                                                                2: '2分',
+                                                                                3: '3分',
+                                                                                4: '4分',
+                                                                                5: '5分'
+                                                                            }"
+                                                                            :required="question.isRequired"
+                                                                            show-stops
+                                                                            :show-tooltip="false"
+                                                                            :show-input="false"
+                                                                        />
+                                                                        <div class="slider-value">{{ option.rating }}分</div>
+                                                                    </div>
+                                                                </template>
+                                                                <!-- 默认显示 -->
+                                                                <template v-else>
+                                                                    <el-input-number 
+                                                                        v-model="option.rating" 
+                                                                        :min="1" 
+                                                                        :max="5"
+                                                                        :required="question.isRequired"
+                                                                        class="rating-input" />
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <!-- 文件上传题 -->
+                                                <template v-if="question.type === '文件上传题'">
+                                                    <el-upload
+                                                    class="upload-demo"
+                                                    action="" 
+                                                    :auto-upload="false"
+                                                    :file-list="question.uploadedFiles"
+                                                    :on-change="(file, fileList) => question.uploadedFiles = fileList"
+                                                    :on-remove="(file, fileList) => question.uploadedFiles = fileList"
+                                                    :on-preview="handlePreview"
+                                                    multiple
+                                                    :limit="3"
+                                                    :on-exceed="handleExceed"
+                                                    :required="question.isRequired">
+                                                    <el-button type="primary">点击上传</el-button>
+                                                    <template #tip>
+                                                        <div class="el-upload__tip">支持 jpg/png/pdf/docx 文件</div>
+                                                    </template>
+                                                </el-upload>
+                                                </template>
+                                                <!-- 排序题 -->
+                                                <template v-if="question.type === '排序'">
+                                                    <div class="sortable-container">
+                                                        <!-- 添加排序说明 -->
+                                                        <div v-if="question.instructions" class="sort-instructions">
+                                                            {{ question.instructions }}
+                                                        </div>
+                                                        
+                                                        <!-- 拖拽排序 -->
+                                                        <template v-if="question.sortType === '拖拽排序'">
+                                                            <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
+                                                            <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                                <div v-for="option in question.options" 
+                                                                    :key="option.optionId" 
+                                                                    class="sortable-item"
+                                                                    :data-id="option.optionId">
+                                                                    <div class="sortable-handle">
+                                                                        <el-icon><Rank /></el-icon>
+                                                                    </div>
+                                                                    <div class="sortable-content">
+                                                                        <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                                        <span class="sortable-text">{{ option.description }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        
+                                                        <!-- 选择排序 -->
+                                                        <template v-else-if="question.sortType === '选择排序'">
+                                                            <div class="sortable-tip">请点击选项进行排序（从上到下）</div>
+                                                            <div class="select-sort-container">
+                                                                <!-- 已排序的选项列表 -->
+                                                                <div class="select-sort-list">
+                                                                    <template v-if="question.sortedOrder && question.sortedOrder.length > 0">
+                                                                        <div v-for="(optionId, index) in question.sortedOrder" 
+                                                                            :key="optionId" 
+                                                                            class="select-sort-item">
+                                                                            <span class="select-sort-index">{{ index + 1 }}</span>
+                                                                            <span class="select-sort-text">
+                                                                                {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                            </span>
+                                                                        </div>
+                                                                    </template>
+                                                                    <div v-else class="select-sort-empty">
+                                                                        请点击下方选项进行排序
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 待选择的选项列表 -->
+                                                                <div class="select-sort-options">
+                                                                    <div v-for="option in question.options" 
+                                                                        :key="option.optionId" 
+                                                                        class="select-sort-option"
+                                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
+                                                                        @click="selectSortOption(question, option.optionId)">
+                                                                        {{ option.description }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            
+                                            <!-- 图表容器 -->
+                                            <div v-if="question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
+                                                question.type === '矩阵单选' || question.type === '矩阵多选' || question.type === '排序'" 
+                                                class="chart-container" 
+                                                :id="'chart_' + question.questionId">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template v-else>
+                            <div v-for="(question, index) in questions" 
                             :key="question.questionId" 
                             :id="'question_' + question.questionId"
                             class="question-item"
@@ -592,9 +947,9 @@ const getOptionIndex = (question, optionId) => {
                                                     v-model="question.selectedOptions" 
                                                     :label="option.optionId"
                                                     :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.optionId)) && 
-                                                              question.maxSelections && 
-                                                              question.maxSelections < question.options.length &&
-                                                              question.selectedOptions && question.selectedOptions.length >= question.maxSelections"
+                                                                question.maxSelections && 
+                                                                question.maxSelections < question.options.length &&
+                                                                question.selectedOptions && question.selectedOptions.length >= question.maxSelections"
                                                     :required="question.isRequired">
                                                     <span class="option-label">
                                                         {{ String.fromCharCode(65 + optIndex) }}.
@@ -838,6 +1193,7 @@ const getOptionIndex = (question, optionId) => {
                                 </div>
                             </div>
                         </div>
+                        </template>
                     </div>
                 </template>
             </el-skeleton>
@@ -1541,5 +1897,43 @@ const getOptionIndex = (question, optionId) => {
 .sortable-drag {
     background: #fff;
     box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+}
+
+.category-group {
+    margin-bottom: 30px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+
+    .category-header {
+        padding: 16px 20px;
+        background: #f5f7fa;
+        border-bottom: 1px solid #e4e7ed;
+
+        .category-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+            position: relative;
+            padding-left: 12px;
+
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 16px;
+                background: #409EFF;
+                border-radius: 2px;
+            }
+        }
+    }
+
+    .questions-container {
+        padding: 0 20px;
+    }
 }
 </style> 

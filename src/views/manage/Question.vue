@@ -157,7 +157,9 @@ const questionModel = ref({
     isRequired: '',
     isOpen: '',
     options: '',
-    displayType: ''
+    displayType: '',
+    sortType: '',
+    isSkip: ''
 })
 
 //打开添加问题窗口
@@ -170,6 +172,7 @@ const openAddDialog = () => {
         isSkip: 0,
         displayType: '五角星',
         sortType: '拖拽排序',
+        sortKey:'1',
         categoryId: '',
         surveyId: props.surveyId || ''
     };

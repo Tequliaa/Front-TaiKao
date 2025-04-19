@@ -107,17 +107,38 @@ watch(() => questionData.value.isSkip, (newVal) => {
   }
 })
 
-// 添加选项
-const addOption = () => {
-  const newOption = { description: '', type: '行选项' }
-  questionData.value.options.push(newOption)
-  emit('update:modelValue', { ...questionData.value })
+// 修改选项更新逻辑
+const updateOption = (index, value) => {
+  console.log('更新选项:', index, value)
+  const newOptions = [...props.modelValue.options]
+  newOptions[index] = { ...newOptions[index], ...value }
+  emit('update:modelValue', { ...props.modelValue, options: newOptions })
 }
 
-// 删除选项
-const removeOption = (index) => {
-  questionData.value.options.splice(index, 1)
-  emit('update:modelValue', { ...questionData.value })
+// 修改添加选项方法
+const addOption = () => {
+  console.log('添加选项')
+  const newOptions = [...props.modelValue.options, { description: '', type: '行选项' }]
+  emit('update:modelValue', { ...props.modelValue, options: newOptions })
+}
+
+// 修改删除选项方法
+const deleteOption = (index) => {
+  console.log('删除选项:', index)
+  const newOptions = props.modelValue.options.filter((_, i) => i !== index)
+  emit('update:modelValue', { ...props.modelValue, options: newOptions })
+}
+
+// 修改选项拖拽方法
+const onDragEnd = (evt) => {
+  console.log('拖拽结束:', evt)
+  const { oldIndex, newIndex } = evt
+  if (oldIndex !== newIndex) {
+    const newOptions = [...props.modelValue.options]
+    const [movedOption] = newOptions.splice(oldIndex, 1)
+    newOptions.splice(newIndex, 0, movedOption)
+    emit('update:modelValue', { ...props.modelValue, options: newOptions })
+  }
 }
 
 // 处理编辑选项

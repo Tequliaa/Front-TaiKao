@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ArrowUp, 
@@ -55,7 +55,6 @@ const survey = ref({
     description: '',
     status: '',
     allowView: '',
-    isRequired: 1,
     minSelections: 0,
     maxSelections: 1,
     isCategory: 0
@@ -177,6 +176,21 @@ const handleCategoryChange = (question, newCategoryId) => {
     // 强制更新视图
     questions.value = [...questions.value]
     console.log('更新后的问题数组:', questions.value)
+    
+    // 分类变化后更新sortKey
+    updateSortKeys()
+    
+    // 如果当前选中的问题就是被修改的问题，保持选中状态
+    if (activeQuestionIndex.value === questionIndex) {
+      // 使用nextTick确保DOM更新后再设置选中状态
+      nextTick(() => {
+        // 找到更新后问题在数组中的新索引
+        const newIndex = questions.value.findIndex(q => q.questionId === question.questionId)
+        if (newIndex !== -1) {
+          activeQuestionIndex.value = newIndex
+        }
+      })
+    }
   }
 }
 
@@ -200,6 +214,7 @@ const addQuestion = (template) => {
       isRequired: 0,
       isOpen: 0,
       isSkip: 0,
+      sortKey:'1',
       categoryId: categories.value.length > 0 ? categories.value[0].categoryId : null
     }
 
@@ -256,6 +271,8 @@ const addQuestion = (template) => {
   const newQuestion = getInitialData(template.type)
   questions.value.push(newQuestion)
   activeQuestionIndex.value = questions.value.length - 1
+  // 添加问题后更新sortKey
+  updateSortKeys()
 }
 
 const deleteQuestion = async (index) => {
@@ -273,6 +290,8 @@ const deleteQuestion = async (index) => {
         } else if (activeQuestionIndex.value > index) {
           activeQuestionIndex.value--
         }
+        // 删除问题后更新sortKey
+        updateSortKeys()
       } else {
         ElMessage.error(result.message || '问题删除失败')
       }
@@ -287,6 +306,8 @@ const deleteQuestion = async (index) => {
     } else if (activeQuestionIndex.value > index) {
       activeQuestionIndex.value--
     }
+    // 删除问题后更新sortKey
+    updateSortKeys()
   }
 }
 
@@ -296,11 +317,16 @@ const moveQuestion = (index, direction) => {
   questions.value.splice(index, 1)
   questions.value.splice(newIndex, 0, question)
   activeQuestionIndex.value = newIndex
+  // 移动问题后更新sortKey
+  updateSortKeys()
 }
 
 const selectQuestion = (index) => {
   if (!isEditingOption.value) {
-    activeQuestionIndex.value = index
+    // 确保索引有效
+    if (index >= 0 && index < questions.value.length) {
+      activeQuestionIndex.value = index
+    }
   }
 }
 
@@ -364,9 +390,10 @@ const fetchSkipQuestions = async () => {
   try {
     console.log('SurveyBuilder - 开始获取问题列表')
     const result = await getAllQuestionsBySurveyIdService(props.surveyId)
+    const {survey,questions:questionsData} = result.data
     console.log('SurveyBuilder - 获取问题列表结果:', result)
     if (result.code === 0) {
-      const currentQuestionId = questions.value[activeQuestionIndex.value]?.questionId
+      const currentQuestionId = questionsData.value[activeQuestionIndex.value]?.questionId
       skipQuestions.value = result.data.filter(q => q.questionId !== currentQuestionId)
       console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
     }
@@ -490,10 +517,54 @@ const fetchCategories = async () => {
   }
 }
 
-// 监听 isCategory 变化
-watch(() => survey.value.isCategory, (newValue) => {
+// 更新问题的sortKey
+const updateSortKeys = () => {
+  console.log('updateSortKeys - 开始更新排序键')
+  
+  // 创建一个新的问题数组，而不是直接修改原数组
+  const updatedQuestions = [...questions.value]
+  
+  if (survey.value.isCategory === 0) {
+    // 不按分类排序，所有问题按页面顺序从1开始编号
+    updatedQuestions.forEach((question, index) => {
+      question.sortKey = (index + 1).toString()
+    })
+    console.log('不按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, sortKey: q.sortKey })))
+  } else {
+    // 按分类排序，每个分类内的问题从1开始编号
+    const categoryGroups = {}
+    
+    // 按分类ID分组问题
+    updatedQuestions.forEach(question => {
+      const categoryId = question.categoryId || 'uncategorized'
+      if (!categoryGroups[categoryId]) {
+        categoryGroups[categoryId] = []
+      }
+      categoryGroups[categoryId].push(question)
+    })
+    
+    // 为每个分类内的问题分配sortKey
+    Object.keys(categoryGroups).forEach(categoryId => {
+      categoryGroups[categoryId].forEach((question, index) => {
+        question.sortKey = (index + 1).toString()
+      })
+    })
+    
+    console.log('按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, categoryId: q.categoryId, sortKey: q.sortKey })))
+  }
+  
+  // 一次性更新整个数组，避免多次触发响应式更新
+  questions.value = updatedQuestions
+}
+
+// 监听isCategory变化
+watch(() => survey.value.isCategory, (newValue, oldValue) => {
   if (newValue === 1) {
     fetchCategories()
+  }
+  // 当分类状态变化时，更新sortKey
+  if (newValue !== oldValue) {
+    updateSortKeys()
   }
 })
 
@@ -523,6 +594,9 @@ onMounted(() => {
     if (survey.value.isCategory === 1) {
         fetchCategories()
     }
+    
+    // 初始化sortKey
+    updateSortKeys()
 })
 
 // 保存问卷
@@ -557,6 +631,9 @@ const saveSurvey = async () => {
                 console.log('survey.value.surveyId'+survey.value.surveyId)
                 console.log('res.data.surveyId'+res.data)
             }
+            
+            // 保存成功后重新获取问卷详情，确保数据同步
+            await fetchSurveyDetail()
         } else {
             ElMessage.error(res.message || '问卷保存失败')
         }
@@ -591,12 +668,11 @@ const submitSurvey = async () => {
 
     survey.value.status = '已发布'
     const res = await updateBuildSurvey(survey.value, questions.value)
-    survey.value.surveyId = res.data
-    // 更新会话存储
-    sessionStorage.setItem('currentSurveyId', res.data)
     
     if (res.code === 0) {
       ElMessage.success('问卷提交成功')
+      // 提交成功后重新获取问卷详情，确保数据同步
+      await fetchSurveyDetail()
       // 可以跳转到问卷列表页面
     } else {
       ElMessage.error(res.message || '问卷提交失败')
@@ -736,7 +812,7 @@ const getPlainText = (htmlContent)=> {
                          'active': activeQuestionIndex === questions.findIndex(q => q.questionId === question.questionId),
                          'has-error': getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0
                        }"
-                       @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId))">
+                       @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId || q === question))">
                     <div class="question-header">
                       <span class="question-type">{{ question.type }}</span>
                       <div class="question-actions">
@@ -759,7 +835,7 @@ const getPlainText = (htmlContent)=> {
                           placeholder="请选择分类"
                           clearable
                           size="small"
-                          @change="(value) => handleCategoryChange(question, value)"
+                          @change="(value) => { handleCategoryChange(question, value); $event.stopPropagation() }"
                         >
                           <el-option
                             v-for="category in categories"
