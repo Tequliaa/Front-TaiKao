@@ -12,6 +12,11 @@ export const getAllCategoriesService = () => {
   return request.get('/category/getAll')
 }
 
+//根据用户获取近8条分类
+export const getAllCategoriesByIdService = (userId) => {
+  return request.get('/category/getAllById?userId='+userId)
+}
+
 //分类查询
 export const categoryListService = (params) => {
   return request.get('/category/list',{params})

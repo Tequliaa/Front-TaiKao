@@ -128,10 +128,10 @@ const visibleDrawer = ref(false)
 const categoryModel = ref({
     categoryId: '',
     categoryName: '',
-    parentCategoryId:'',
-    parentCategoryName:'',
+    categoryLevel: 1, // 设置默认层级为1
+    parentCategoryId: '',
+    parentCategoryName: '',
     description: '',
-    categoryLevel: '',
     userId: '',
 })
 
@@ -141,7 +141,9 @@ const categoryModel = ref({
 //打开添加分类窗口
 const openAddDialog = () => {
     getparentCategories();
-    categoryModel.value = {};
+    categoryModel.value = {
+        categoryLevel: 1, // 设置默认层级为1
+    };
     visibleDrawer.value = true;
     addCategoryFlag.value = true;
        // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
@@ -329,11 +331,7 @@ window.addEventListener('resize', () => {
             <el-form-item label="分类名称">
                 <el-input v-model="categoryModel.categoryName" placeholder="请输入分类名称"></el-input>
             </el-form-item>
-            <el-form-item label="上级分类">
-                <el-select v-model="categoryModel.parentCategoryId" clearable placeholder="请选择上级分类">
-                    <el-option v-for="item in parentCategories" :key="item.categoryId" :label="item.categoryName" :value="item.categoryId"/>
-                </el-select>
-            </el-form-item>
+
             <el-form-item label="分类描述">
                 <div class="editor">
                     <quill-editor theme="snow" v-model:content="categoryModel.description" content-type="html">
@@ -345,6 +343,12 @@ window.addEventListener('resize', () => {
                     <el-option v-for="item in levelOptions" :key="item.value" :label="item.label" :value="item.value"/>
                 </el-select>
             </el-form-item>
+            <el-form-item label="上级分类" v-if="categoryModel.categoryLevel === 2">
+                <el-select v-model="categoryModel.parentCategoryId" clearable placeholder="请选择上级分类">
+                    <el-option v-for="item in parentCategories" :key="item.categoryId" :label="item.categoryName" :value="item.categoryId"/>
+                </el-select>
+            </el-form-item>
+
 
             
             <el-form-item>

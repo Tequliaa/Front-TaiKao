@@ -21,7 +21,8 @@ import {
 } from '@/api/survey'
 import { useRoute, useRouter } from 'vue-router'
 import { getAllQuestionsBySurveyIdService, questionDelService } from '@/api/question'
-import { getAllCategoriesService } from '@/api/category'
+import { getAllCategoriesService, getAllCategoriesByIdService, categoryAddService } from '@/api/category'
+import { useUserInfoStore } from '@/stores/user'
 
 const props = defineProps({
     surveyId: {
@@ -66,6 +67,18 @@ const previewVisible = ref(false)
 const validationErrors = ref({})
 const isPreviewMode = ref(false)
 
+// 添加选中的分类
+const selectedCategories = ref(new Set())
+
+// 添加分类相关
+const showAddCategoryDialog = ref(false)
+const newCategory = ref({
+    categoryName: '',
+    description: '',
+    categoryLevel: 1, // 默认层级为1
+    userId: ''
+})
+
 // 选项编辑相关
 const isEditingOption = ref(false)
 const editingOption = ref(null)
@@ -90,13 +103,7 @@ const activeQuestion = computed(() => {
 
 // 按分类分组的问题
 const groupedQuestions = computed(() => {
-  console.log('groupedQuestions - 开始计算分组')
-  console.log('当前分类状态:', survey.value.isCategory)
-  console.log('所有问题:', questions.value)
-  console.log('所有分类:', categories.value)
-  
   if (survey.value.isCategory !== 1) {
-    console.log('未启用分类，返回所有问题')
     return [{ categoryId: null, categoryName: '所有问题', questions: questions.value }]
   }
   
@@ -114,8 +121,6 @@ const groupedQuestions = computed(() => {
   // 将问题分配到对应分类
   questions.value.forEach(question => {
     const categoryId = question.categoryId
-    console.log(`处理问题 ${question.questionId} 的分类 ${categoryId}`)
-    
     if (categoryId && groups[`cat_${categoryId}`]) {
       groups[`cat_${categoryId}`].questions.push(question)
     } else {
@@ -131,10 +136,8 @@ const groupedQuestions = computed(() => {
     }
   })
   
-  // 过滤掉没有问题的分类
-  const result = Object.values(groups).filter(group => group.questions.length > 0)
-  console.log('最终分组结果:', result)
-  return result
+  // 返回所有分类，包括没有问题的分类
+  return Object.values(groups)
 })
 
 // 分类展开状态
@@ -194,28 +197,50 @@ const handleCategoryChange = (question, newCategoryId) => {
   }
 }
 
-// 拖拽相关方法
+// 处理分类选择
+const handleCategorySelect = (categoryId) => {
+  if (selectedCategories.value.has(categoryId)) {
+    selectedCategories.value.delete(categoryId)
+  } else {
+    selectedCategories.value.add(categoryId)
+  }
+}
+
+// 检查分类是否被选中
+const isCategorySelected = (categoryId) => {
+  return selectedCategories.value.has(categoryId)
+}
+
+// 修改拖拽相关方法
 const onDragStart = (event, template) => {
   event.dataTransfer.setData('template', JSON.stringify(template))
 }
 
-const onDrop = (event) => {
+const onDrop = (event, categoryId) => {
   const template = JSON.parse(event.dataTransfer.getData('template'))
-  addQuestion(template)
+  addQuestion(template, categoryId)
 }
 
-// 问题操作相关方法
-const addQuestion = (template) => {
+// 修改添加问题方法
+const addQuestion = (template, categoryId) => {
+  // 生成临时唯一ID
+  const generateTempId = () => {
+    // 使用当前时间戳的后6位加上随机数，确保在int范围内
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000);
+    return -(parseInt(timestamp) + random);
+  }
+
   const getInitialData = (type) => {
     const initialData = {
-      questionId: 0,
+      questionId: generateTempId(),
       type,
       description: '',
-      isRequired: 0,
+      isRequired: 1,
       isOpen: 0,
       isSkip: 0,
       sortKey:'1',
-      categoryId: categories.value.length > 0 ? categories.value[0].categoryId : null
+      categoryId: categoryId || null // 使用传入的分类ID
     }
 
     switch (type) {
@@ -369,12 +394,12 @@ const handleEditOption = (data) => {
   }
   editingOptionIndex.value = data.index
   isEditingOption.value = true
-  console.log('SurveyBuilder - 设置后的状态:', {
-    editingOption: editingOption.value,
-    editingOptionIndex: editingOptionIndex.value,
-    isEditingOption: isEditingOption.value,
-    activeQuestionIndex: activeQuestionIndex.value
-  })
+  // console.log('SurveyBuilder - 设置后的状态:', {
+  //   editingOption: editingOption.value,
+  //   editingOptionIndex: editingOptionIndex.value,
+  //   isEditingOption: isEditingOption.value,
+  //   activeQuestionIndex: activeQuestionIndex.value
+  // })
   
   // 获取可跳转的问题列表
   fetchSkipQuestions()
@@ -383,22 +408,22 @@ const handleEditOption = (data) => {
 // 获取可跳转的问题列表
 const fetchSkipQuestions = async () => {
   if (!props.surveyId) {
-    console.log('SurveyBuilder - 没有surveyId，跳过获取问题列表')
+    // console.log('SurveyBuilder - 没有surveyId，跳过获取问题列表')
     return
   }
   
   try {
-    console.log('SurveyBuilder - 开始获取问题列表')
+    // console.log('SurveyBuilder - 开始获取问题列表')
     const result = await getAllQuestionsBySurveyIdService(props.surveyId)
     const {survey,questions:questionsData} = result.data
-    console.log('SurveyBuilder - 获取问题列表结果:', result)
+    // console.log('SurveyBuilder - 获取问题列表结果:', result)
     if (result.code === 0) {
       const currentQuestionId = questionsData.value[activeQuestionIndex.value]?.questionId
       skipQuestions.value = result.data.filter(q => q.questionId !== currentQuestionId)
-      console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
+      // console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
     }
   } catch (error) {
-    console.error('SurveyBuilder - 获取问题列表失败:', error)
+    // console.error('SurveyBuilder - 获取问题列表失败:', error)
     ElMessage.error('获取问题列表失败')
   }
 }
@@ -492,15 +517,26 @@ const fetchSurveyDetail = async () => {
             
             // 保存surveyId到会话存储
             sessionStorage.setItem('currentSurveyId', currentSurveyId)
+
+            // 如果是分类模式，自动选中有问题的分类
+            if (survey.value.isCategory === 1) {
+                // 清空已选分类
+                selectedCategories.value.clear()
+                // 获取所有有问题的分类ID
+                const categoriesWithQuestions = new Set(questions.value.map(q => q.categoryId).filter(id => id))
+                // 将分类ID添加到选中集合中
+                categoriesWithQuestions.forEach(id => selectedCategories.value.add(id))
+            }
         }
     } catch (error) {
         // ElMessage.error('获取问卷详情失败')
     }
 }
+
 // 获取所有分类
 const fetchCategories = async () => {
   try {
-    const result = await getAllCategoriesService()
+    const result = await getAllCategoriesByIdService(userInfoStore.info.id)
     if (result.code === 0) {
       categories.value = result.data
       // 如果问题没有分类，则默认选择第一个分类
@@ -508,6 +544,8 @@ const fetchCategories = async () => {
         questions.value.forEach(question => {
           if (!question.categoryId && categories.value.length > 0) {
             question.categoryId = categories.value[0].categoryId
+            // 将默认分类添加到选中集合中
+            selectedCategories.value.add(categories.value[0].categoryId)
           }
         })
       }
@@ -519,40 +557,17 @@ const fetchCategories = async () => {
 
 // 更新问题的sortKey
 const updateSortKeys = () => {
-  console.log('updateSortKeys - 开始更新排序键')
+  // console.log('updateSortKeys - 开始更新排序键')
   
   // 创建一个新的问题数组，而不是直接修改原数组
   const updatedQuestions = [...questions.value]
   
-  if (survey.value.isCategory === 0) {
     // 不按分类排序，所有问题按页面顺序从1开始编号
-    updatedQuestions.forEach((question, index) => {
-      question.sortKey = (index + 1).toString()
-    })
-    console.log('不按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, sortKey: q.sortKey })))
-  } else {
-    // 按分类排序，每个分类内的问题从1开始编号
-    const categoryGroups = {}
-    
-    // 按分类ID分组问题
-    updatedQuestions.forEach(question => {
-      const categoryId = question.categoryId || 'uncategorized'
-      if (!categoryGroups[categoryId]) {
-        categoryGroups[categoryId] = []
-      }
-      categoryGroups[categoryId].push(question)
-    })
-    
-    // 为每个分类内的问题分配sortKey
-    Object.keys(categoryGroups).forEach(categoryId => {
-      categoryGroups[categoryId].forEach((question, index) => {
-        question.sortKey = (index + 1).toString()
-      })
-    })
-    
-    console.log('按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, categoryId: q.categoryId, sortKey: q.sortKey })))
-  }
-  
+  updatedQuestions.forEach((question, index) => {
+    question.sortKey = (index + 1).toString()
+  })
+  // console.log('不按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, sortKey: q.sortKey })))
+
   // 一次性更新整个数组，避免多次触发响应式更新
   questions.value = updatedQuestions
 }
@@ -561,6 +576,12 @@ const updateSortKeys = () => {
 watch(() => survey.value.isCategory, (newValue, oldValue) => {
   if (newValue === 1) {
     fetchCategories()
+    // 当切换到分类模式时，自动选中有问题的分类
+    const categoriesWithQuestions = new Set(questions.value.map(q => q.categoryId).filter(id => id))
+    categoriesWithQuestions.forEach(id => selectedCategories.value.add(id))
+  } else {
+    // 当关闭分类模式时，清空选中的分类
+    selectedCategories.value.clear()
   }
   // 当分类状态变化时，更新sortKey
   if (newValue !== oldValue) {
@@ -612,15 +633,15 @@ const saveSurvey = async () => {
     }
 
     try {
-        console.log('准备发送请求，surveyId:', survey.value.surveyId)
-        console.log('问卷数据:', survey.value)
-        console.log('问题数据:', questions.value)
+        // console.log('准备发送请求，surveyId:', survey.value.surveyId)
+        // console.log('问卷数据:', survey.value)
+        // console.log('问题数据:', questions.value)
 
         const res = survey.value.surveyId 
             ? await updateBuildSurvey(survey.value, questions.value)
             : await saveBuildSurvey(survey.value, questions.value)
             
-        console.log('请求响应:', res)
+        // console.log('请求响应:', res)
         
         if (res.code === 0) {
             ElMessage.success('问卷保存成功')
@@ -628,8 +649,8 @@ const saveSurvey = async () => {
                 survey.value.surveyId = res.data
                 // 更新会话存储
                 sessionStorage.setItem('currentSurveyId', res.data)
-                console.log('survey.value.surveyId'+survey.value.surveyId)
-                console.log('res.data.surveyId'+res.data)
+                // console.log('survey.value.surveyId'+survey.value.surveyId)
+                // console.log('res.data.surveyId'+res.data)
             }
             
             // 保存成功后重新获取问卷详情，确保数据同步
@@ -750,6 +771,63 @@ const getPlainText = (htmlContent)=> {
     div.innerHTML = htmlContent;
     return div.textContent || div.innerText || '';
 }
+
+// 添加用户信息存储
+const userInfoStore = useUserInfoStore()
+
+// 关闭添加分类对话框
+const closeAddCategoryDialog = () => {
+  showAddCategoryDialog.value = false
+  // 重置表单
+  newCategory.value = {
+    categoryName: '',
+    description: '',
+    categoryLevel: 1,
+    userId: ''
+  }
+}
+
+// 添加分类方法
+const addCategory = async () => {
+    if (!newCategory.value.categoryName) {
+        ElMessage.warning('请输入分类名称')
+        return
+    }
+    
+    try {
+        // 设置用户ID
+        newCategory.value.createdBy = userInfoStore.info.id
+        
+        // 调用添加分类API
+        const result = await categoryAddService(newCategory.value)
+        
+        if (result.code === 0) {
+            ElMessage.success('分类添加成功')
+            // 重新获取分类列表
+            await fetchCategories()
+            // 关闭对话框
+            showAddCategoryDialog.value = false
+            // 重置表单
+            newCategory.value = {
+                categoryName: '',
+                description: '',
+                categoryLevel: 1,
+                userId: ''
+            }
+        } else {
+            ElMessage.error(result.message || '分类添加失败')
+        }
+    } catch (error) {
+        console.error('添加分类失败:', error)
+        ElMessage.error('添加分类失败: ' + error.message)
+    }
+}
+
+
+// 打开添加分类对话框
+const openAddCategoryDialog = () => {
+    showAddCategoryDialog.value = true
+}
 </script>
 
 <template>
@@ -772,9 +850,7 @@ const getPlainText = (htmlContent)=> {
 
       <!-- 中间编辑区域 -->
       <div class="edit-area" 
-           :class="{ 'preview-mode': isPreviewMode }"
-           @dragover.prevent 
-           @drop="onDrop">
+           :class="{ 'preview-mode': isPreviewMode }">
         <div class="survey-header">
           <el-input v-model="survey.name" placeholder="请输入问卷标题" />
           <div class="survey-category-switch">
@@ -794,16 +870,41 @@ const getPlainText = (htmlContent)=> {
           />
         </div>
 
+        <!-- 分类选择区域 -->
+        <div v-if="survey.isCategory === 1" class="category-selection">
+          <div class="category-selection-header">
+            <h4>选择要显示的分类：</h4>
+            <el-button type="primary" size="small" @click="openAddCategoryDialog">添加分类</el-button>
+          </div>
+          <div class="category-tags">
+            <el-tag
+              v-for="category in categories"
+              :key="category.categoryId"
+              :type="isCategorySelected(category.categoryId) ? 'primary' : 'info'"
+              class="category-tag"
+              @click="handleCategorySelect(category.categoryId)"
+            >
+              {{ category.categoryName }}
+            </el-tag>
+          </div>
+        </div>
+
         <div class="questions-container">
           <template v-if="survey.isCategory === 1">
-            <div v-for="group in groupedQuestions" :key="group.categoryId" class="question-group">
+            <div v-for="group in groupedQuestions" 
+                 :key="group.categoryId" 
+                 class="question-group"
+                 v-show="isCategorySelected(group.categoryId)">
               <div class="group-header" @click="toggleCategory(group.categoryId)">
                 <h4>{{ group.categoryName }}</h4>
                 <el-icon :class="{ 'expanded': isCategoryExpanded(group.categoryId) }">
                   <ArrowDown />
                 </el-icon>
               </div>
-              <div class="group-questions" v-show="isCategoryExpanded(group.categoryId)">
+              <div class="group-questions" 
+                   v-show="isCategoryExpanded(group.categoryId)"
+                   @dragover.prevent 
+                   @drop="onDrop($event, group.categoryId)">
                 <transition-group name="question-fade" tag="div">
                   <div v-for="(question, index) in group.questions" 
                        :key="question.questionId || index"
@@ -828,23 +929,6 @@ const getPlainText = (htmlContent)=> {
                       </div>
                     </div>
                     <div class="question-content">
-                      <!-- 分类选择 -->
-                      <div v-if="survey.isCategory === 1" class="question-category">
-                        <el-select
-                          :value="question.categoryId"
-                          placeholder="请选择分类"
-                          clearable
-                          size="small"
-                          @change="(value) => { handleCategoryChange(question, value); $event.stopPropagation() }"
-                        >
-                          <el-option
-                            v-for="category in categories"
-                            :key="category.categoryId"
-                            :label="category.categoryName"
-                            :value="category.categoryId"
-                          />
-                        </el-select>
-                      </div>
                       <component 
                         :is="getQuestionComponent(question.type)"
                         :model-value="question"
@@ -864,9 +948,14 @@ const getPlainText = (htmlContent)=> {
                     </div>
                   </div>
                 </transition-group>
+                <!-- 添加空分类提示 -->
+                <div v-if="group.questions.length === 0" class="empty-category">
+                  <el-empty description="拖拽问题到此处" />
+                </div>
               </div>
             </div>
           </template>
+          <!-- 非分类模式保持不变 -->
           <template v-else>
             <div v-for="(question, index) in questions" 
                  :key="index"
@@ -876,6 +965,7 @@ const getPlainText = (htmlContent)=> {
                    'has-error': getQuestionErrors(index).length > 0
                  }"
                  @click="selectQuestion(index)">
+              <!-- 非分类模式的问题内容保持不变 -->
               <div class="question-header">
                 <span class="question-type">{{ question.type }}</span>
                 <div class="question-actions">
@@ -1014,6 +1104,27 @@ const getPlainText = (htmlContent)=> {
         {{ isPreviewMode ? '取消预览' : '预览问卷' }}
       </el-button>
     </div>
+
+    <!-- 添加分类对话框 -->
+    <el-dialog
+      v-model="showAddCategoryDialog"
+      title="添加分类"
+      width="30%"
+      :before-close="closeAddCategoryDialog"
+    >
+      <el-form :model="newCategory" label-width="100px">
+        <el-form-item label="分类名称">
+          <el-input v-model="newCategory.categoryName" placeholder="请输入分类名称"></el-input>
+        </el-form-item>
+        <el-form-item label="分类描述">
+          <el-input v-model="newCategory.description" placeholder="请输入分类描述"></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="closeAddCategoryDialog">取消</el-button>
+        <el-button type="primary" @click="addCategory">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1189,6 +1300,41 @@ const getPlainText = (htmlContent)=> {
     justify-content: flex-end;
     gap: 10px;
   }
+
+  .category-selection {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    .category-selection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+
+      h4 {
+        margin: 0;
+        color: #606266;
+      }
+    }
+
+    .category-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .category-tag {
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+  }
 }
 
 .question-fade-enter-active,
@@ -1204,5 +1350,22 @@ const getPlainText = (htmlContent)=> {
 
 .question-fade-move {
   transition: transform 0.3s ease;
+}
+
+.empty-category {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fafafa;
+  border: 2px dashed #dcdfe6;
+  border-radius: 4px;
+  margin: 10px 0;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #409EFF;
+    background-color: #f5f7fa;
+  }
 }
 </style> 
