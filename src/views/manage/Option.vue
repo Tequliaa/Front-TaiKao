@@ -71,6 +71,7 @@ const loading = ref(true)
 const getOptions = async () => {
     try {
         let params = {
+            userId:userInfoStore.info.id,
             questionId:props.questionId || "",
             keyword: keyword.value,
             pageNum: pageNum.value,
@@ -280,7 +281,7 @@ const activeSurveyId = ref('')
 
 const getAllQuestions = async () => {
     try {
-        let result = await getAllQuestionsService()
+        let result = await getAllQuestionsService(userInfoStore.info.id)
         if (result.code === 0 && result.data) {
             // 从返回的Map中获取questions数组
             allQuestions.value = result.data.questions || []
@@ -297,7 +298,7 @@ const getAllQuestions = async () => {
 
 const getAllQuestionsBySurveyId = async () => {
     try {
-        let result = await getAllQuestionsBySurveyIdService(surveyId.value)
+        let result = await getAllQuestionsBySurveyIdService(surveyId.value,userInfoStore.id)
         if (result.code === 0 && result.data) {
             // 从返回的Map中获取questions数组
             allQuestions.value = result.data.questions || []
@@ -389,7 +390,7 @@ const getSkipQuestions = async (questionId) => {
         const currentSurveyId = currentQuestion.surveyId;
         
         // 获取该问卷下的所有问题
-        const result = await getAllQuestionsBySurveyIdService(currentSurveyId);
+        const result = await getAllQuestionsBySurveyIdService(currentSurveyId,userInfoStore.info.id);
         if (result.code === 0 && result.data) {
             // 从返回的Map中获取questions数组，并过滤掉当前问题
             skipQuestions.value = (result.data.questions || []).filter(q => q.questionId !== questionId);
@@ -445,7 +446,7 @@ const handleQuestionChange = (value) => {
                 <div class="header">
                     <span>选项管理 - {{ props.questionName || '所有选项' }}</span>
                     <div class="extra">
-                        <!-- <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入选项名称或描述" /> -->
+                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入选项名称或描述" />
                         <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加选项</el-button>
                     </div>
                 </div>

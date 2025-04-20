@@ -454,7 +454,7 @@ const fetchSkipQuestions = async () => {
   
   try {
     // console.log('SurveyBuilder - 开始获取问题列表')
-    const result = await getAllQuestionsBySurveyIdService(props.surveyId)
+    const result = await getAllQuestionsBySurveyIdService(props.surveyId,userInfoStore.info.id)
     const {questions:questionsData} = result.data
     // console.log('SurveyBuilder - 获取问题列表结果:', result)
     if (result.code === 0) {
@@ -705,6 +705,7 @@ const saveSurvey = async () => {
     }
 
     survey.value.status = '草稿'
+    survey.value.createdBy = userInfoStore.info.id
 
     try {
         const res = survey.value.surveyId 
@@ -754,6 +755,7 @@ const submitSurvey = async () => {
     )
 
     survey.value.status = '已发布'
+    survey.value.createdBy = userInfoStore.info.id
     const res = await updateBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
     
     if (res.code === 0) {

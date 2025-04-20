@@ -7,14 +7,14 @@ export const questionListService = (params) => {
   return request.get('/question/list',{params})
 }
 
-//问题列表查询
-export const getAllQuestionsService = () => {
-  return request.get('/question/getAll')
+//获取所有问题
+export const getAllQuestionsService = (userId) => {
+  return request.get('/question/getAll?userId='+userId)
 }
 
 //问题列表查询
-export const getAllQuestionsBySurveyIdService = (surveyId) => {
-  return request.get('/question/getAll?surveyId='+surveyId)
+export const getAllQuestionsBySurveyIdService = (surveyId,userId) => {
+  return request.get('/question/getAll?surveyId='+surveyId+'&userId='+userId)
 }
 
 

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getAllQuestionsBySurveyIdService } from '@/api/question'
 import { ElMessage } from 'element-plus'
+import { useUserInfoStore } from '@/stores/user'
 
 // 问卷ID
 const props = defineProps({
@@ -67,13 +68,13 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     // 返回当前问题的序号（之前的问题数量 + 当前问题在分组中的索引 + 1）
     return previousQuestionsCount + questionIndex + 1;
 }
-
+const userInfoStore = useUserInfoStore()
 // 获取问卷的所有问题
 const getSurveyData = async () => {
     try {
         // 获取问题列表（包含选项）
         console.log(props.surveyId)
-        const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId)
+        const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId,userInfoStore.info.id)
         const {survey,questions:questionsData} = questionsResult.data
         // 处理每个问题，添加必要的响应式数据
         questions.value = questionsData.map(question => {

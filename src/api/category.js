@@ -3,13 +3,13 @@ import request from '@/utils/request.js'
 
 
 //获取一级分类
-export const getParentCategories = () => {
-  return request.get('/category/getParentCategories')
+export const getParentCategories = (userId) => {
+  return request.get('/category/getParentCategories?userId='+userId)
 }
 
 //获取全部分类
-export const getAllCategoriesService = () => {
-  return request.get('/category/getAll')
+export const getAllCategoriesService = (userId) => {
+  return request.get('/category/getAll?userId='+userId)
 }
 
 //根据用户获取近8条分类

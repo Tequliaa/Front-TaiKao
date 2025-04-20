@@ -55,9 +55,10 @@ const keyword = ref('')
 const loading = ref(true)
 
 // 修改获取分类数据的方法
-const getCategorys = async () => {
+const getCategories = async () => {
     try {
         let params = {
+            userId:userInfoStore.info.id,
             keyword: keyword.value,
             pageNum: pageNum.value,
             pageSize: pageSize.value
@@ -78,7 +79,7 @@ const initData = async () => {
     try {
         await Promise.all([
             getUserInf(),
-            getCategorys(),
+            getCategories(),
             getparentCategories()
         ])
     } finally {
@@ -101,7 +102,7 @@ const parentCategories = ref({
 })
 
 const getparentCategories = async () => {
-    let result = await getParentCategories();
+    let result = await getParentCategories(userInfoStore.info.id);
     parentCategories.value = result.data;
 }
 
@@ -110,12 +111,12 @@ console.log("123")
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getCategorys();
+    getCategories();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getCategorys()
+    getCategories()
 }
 
 //在category.vue中标识是添加分类还是编辑分类
@@ -156,11 +157,11 @@ const openAddDialog = () => {
 
 //添加分类处理逻辑
 const addCategory = async () => {
-    categoryModel.value.userId = userInfoStore.info.id
+    categoryModel.value.createdBy = userInfoStore.info.id
     let result = await categoryAddService(categoryModel.value);
     ElMessage.success(result.message ? result.message : '添加成功')
-    //再次调用getCategorys,获取分类
-    getCategorys()
+    //再次调用getCategories,获取分类
+    getCategories()
     //隐藏抽屉
     visibleDrawer.value = false
 
@@ -186,8 +187,8 @@ const delCategory = (row) => {
                 type: 'success',
                 message: '删除成功',
             })
-            //再次调用再次调用getCategorys，获取分类
-            getCategorys()
+            //再次调用再次调用getCategories，获取分类
+            getCategories()
         })
         .catch(() => {
             //用户点击了取消
@@ -214,8 +215,8 @@ const editCategory = async () => {
     categoryModel.value.userId = userInfoStore.info.id
     let result = await categoryUpdateService(categoryModel.value);
     ElMessage.success(result.message ? result.message : '修改成功')
-    //再次调用getCategorys,获取分类
-    getCategorys()
+    //再次调用getCategories,获取分类
+    getCategories()
     //隐藏抽屉
     visibleDrawer.value = false
 
@@ -226,7 +227,7 @@ import { debounce } from 'lodash';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
-    getCategorys()
+    getCategories()
     }, 500);  // 延时 500ms
 
 const levelOptions = [

@@ -65,6 +65,8 @@ const loading = ref(true)
 const getSurveys = async () => {
     try {
         let params = {
+            userId: userInfoStore.info.id,
+            role: userInfoStore.info.role,
             keyword: keyword.value,
             pageNum: pageNum.value,
             pageSize: pageSize.value
@@ -127,7 +129,7 @@ const departments = ref([
     }
 ])
 
-// 修改获取部门数据的方法
+// 获取部门数据的方法
 const getDepartments = async () => {
     try {
         let params = {

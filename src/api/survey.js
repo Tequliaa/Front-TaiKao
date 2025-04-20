@@ -44,6 +44,7 @@ export function saveBuildSurvey(survey, questions, { categories }) {
         name: survey.name,
         description: survey.description,
         isCategory: survey.isCategory,
+        createdBy:survey.createdBy,
         // status: survey.status,
         allowView: survey.allowView
       },
@@ -83,6 +84,7 @@ export function updateBuildSurvey(survey, questions, { categories }) {
         name: survey.name,
         description: survey.description,
         isCategory: survey.isCategory,
+        createdBy:survey.createdBy,
         status: survey.status,
         allowView: survey.allowView
       },

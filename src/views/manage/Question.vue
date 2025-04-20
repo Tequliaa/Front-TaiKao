@@ -365,7 +365,7 @@ const allCategories = ref({
 })
 
 const getCategories = async () => {
-    let result = await getAllCategoriesService();
+    let result = await getAllCategoriesService(userInfoStore.info.id);
     allCategories.value = result.data;
 }
 getCategories()
