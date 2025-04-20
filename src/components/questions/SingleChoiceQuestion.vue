@@ -72,7 +72,7 @@ watch(() => questionData.value.isOpen, (newVal) => {
     const hasOpenOption = questionData.value.options.some(option => option.isOpen === 1)
     if (!hasOpenOption) {
       questionData.value.options.push({
-        description: '其他，请输入',
+        description: '其他（请填写）',
         type: '行选项',
         isOpen: 1,
         isOpenOption: 1,

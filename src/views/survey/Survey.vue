@@ -396,7 +396,7 @@ const buildSurvey = (row) => {
                                 <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="构建" placement="top">
-                                <el-button :icon="Tools" circle plain type="primary" @click="buildSurvey(row)"></el-button>
+                                <el-button :icon="Tools" circle plain type="primary" @click="buildSurvey(row)" :disabled="row.status === '已发布'"></el-button>
                             </el-tooltip>
                             <el-tooltip content="删除" placement="top" class-name="hide-on-mobile">
                                 <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>

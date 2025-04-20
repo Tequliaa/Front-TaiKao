@@ -34,7 +34,7 @@ export const surveyUpdateService = (studentModel)=>{
  }
 
 // 保存构建问卷
-export function saveBuildSurvey(survey, questions) {
+export function saveBuildSurvey(survey, questions, { categories }) {
   return request({
     url: '/survey/saveBuild',
     method: 'post',
@@ -47,6 +47,10 @@ export function saveBuildSurvey(survey, questions) {
         // status: survey.status,
         allowView: survey.allowView
       },
+      categories: categories.map(c => ({
+        categoryId: c.categoryId,
+        sortKey: c.sortKey
+      })),
       questions: questions.map(q => ({
         questionId: q.questionId,
         surveyId: q.surveyId,
@@ -60,7 +64,7 @@ export function saveBuildSurvey(survey, questions) {
         minSelections: q.minSelections,
         isSkip: q.isSkip,
         sortType: q.sortType,
-        sortKey:q.sortKey,
+        sortKey: q.sortKey,
         instructions: q.instructions,
         options: q.options
       }))
@@ -69,7 +73,7 @@ export function saveBuildSurvey(survey, questions) {
 }
 
 // 更新构建问卷
-export function updateBuildSurvey(survey, questions) {
+export function updateBuildSurvey(survey, questions, { categories }) {
   return request({
     url: '/survey/updateBuild',
     method: 'post',
@@ -82,6 +86,10 @@ export function updateBuildSurvey(survey, questions) {
         status: survey.status,
         allowView: survey.allowView
       },
+      categories: categories.map(c => ({
+        categoryId: c.categoryId,
+        sortKey: c.sortKey
+      })),
       questions: questions.map(q => ({
         questionId: q.questionId,
         surveyId: q.surveyId,
@@ -93,7 +101,7 @@ export function updateBuildSurvey(survey, questions) {
         displayType: q.displayType,
         isSkip: q.isSkip,
         sortType: q.sortType,
-        sortKey:q.sortKey,
+        sortKey: q.sortKey,
         instructions: q.instructions,
         minSelections: q.minSelections,
         maxSelections: q.maxSelections,

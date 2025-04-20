@@ -54,10 +54,18 @@ const groupedQuestions = computed(() => {
         return [{ categoryId: null, categoryName: '所有问题', questions: props.questions }]
     }
     
+    // 先对分类按照sortKey排序
+    const sortedCategories = [...props.categories].sort((a, b) => {
+        const sortKeyA = a.sortKey || '999999'
+        const sortKeyB = b.sortKey || '999999'
+        return parseInt(sortKeyA) - parseInt(sortKeyB)
+    })
+    
+    // 创建分组对象
     const groups = {}
     
     // 初始化所有分类
-    props.categories.forEach(category => {
+    sortedCategories.forEach(category => {
         groups[`cat_${category.categoryId}`] = {
             categoryId: category.categoryId,
             categoryName: category.categoryName,
@@ -84,8 +92,19 @@ const groupedQuestions = computed(() => {
         }
     })
     
-    // 过滤掉没有问题的分类
-    return Object.values(groups).filter(group => group.questions.length > 0)
+    // 对每个分类下的问题按照sortKey排序
+    Object.values(groups).forEach(group => {
+        group.questions.sort((a, b) => {
+            const sortKeyA = a.sortKey || '999999'
+            const sortKeyB = b.sortKey || '999999'
+            return parseInt(sortKeyA) - parseInt(sortKeyB)
+        })
+    })
+    
+    // 过滤掉没有问题的分类，并保持分类的排序
+    return sortedCategories
+        .map(category => groups[`cat_${category.categoryId}`])
+        .filter(group => group && group.questions.length > 0)
 })
 
 // 处理选项选择

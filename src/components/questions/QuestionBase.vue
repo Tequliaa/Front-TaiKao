@@ -72,8 +72,8 @@ const addOption = () => {
 // 编辑选项
 const editOption = (index) => {
   const option = props.modelValue.options[index]
-  console.log('QuestionBase - 编辑选项:', { option, index })
-  console.log('QuestionBase - 当前modelValue:', props.modelValue)
+  // console.log('QuestionBase - 编辑选项:', { option, index })
+  // console.log('QuestionBase - 当前modelValue:', props.modelValue)
   emit('edit-option', { option, index })
 }
 

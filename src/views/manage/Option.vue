@@ -279,15 +279,37 @@ const surveyId = ref(0)
 const activeSurveyId = ref('')
 
 const getAllQuestions = async () => {
-    let result = await getAllQuestionsService()
-    allQuestions.value = result.data
+    try {
+        let result = await getAllQuestionsService()
+        if (result.code === 0 && result.data) {
+            // 从返回的Map中获取questions数组
+            allQuestions.value = result.data.questions || []
+            console.log('获取到的所有问题:', allQuestions.value)
+        } else {
+            console.error('获取问题列表失败:', result)
+            ElMessage.error('获取问题列表失败')
+        }
+    } catch (error) {
+        console.error('获取问题列表出错:', error)
+        ElMessage.error('获取问题列表失败')
+    }
 }
 
-getAllQuestions()
-
 const getAllQuestionsBySurveyId = async () => {
-    let result = await getAllQuestionsBySurveyIdService(surveyId.value)
-    allQuestions.value = result.data
+    try {
+        let result = await getAllQuestionsBySurveyIdService(surveyId.value)
+        if (result.code === 0 && result.data) {
+            // 从返回的Map中获取questions数组
+            allQuestions.value = result.data.questions || []
+            console.log('获取到的问卷问题:', allQuestions.value)
+        } else {
+            console.error('获取问卷问题列表失败:', result)
+            ElMessage.error('获取问卷问题列表失败')
+        }
+    } catch (error) {
+        console.error('获取问卷问题列表出错:', error)
+        ElMessage.error('获取问卷问题列表失败')
+    }
 }
 
 // 修改为监听surveyId，且不为空时调用getAllQuestions
@@ -358,16 +380,25 @@ const skipQuestions = ref([])
 const getSkipQuestions = async (questionId) => {
     if (!questionId) return;
     
-    // 从allQuestions中找到当前问题
-    const currentQuestion = allQuestions.value.find(q => q.questionId === questionId);
-    if (!currentQuestion) return;
-    
-    // 获取该问题所属的问卷ID
-    const currentSurveyId = currentQuestion.surveyId;
-    
-    // 获取该问卷下的所有问题
-    let result = await getAllQuestionsBySurveyIdService(currentSurveyId);
-    skipQuestions.value = result.data;
+    try {
+        // 从allQuestions中找到当前问题
+        const currentQuestion = allQuestions.value.find(q => q.questionId === questionId);
+        if (!currentQuestion) return;
+        
+        // 获取该问题所属的问卷ID
+        const currentSurveyId = currentQuestion.surveyId;
+        
+        // 获取该问卷下的所有问题
+        const result = await getAllQuestionsBySurveyIdService(currentSurveyId);
+        if (result.code === 0 && result.data) {
+            // 从返回的Map中获取questions数组，并过滤掉当前问题
+            skipQuestions.value = (result.data.questions || []).filter(q => q.questionId !== questionId);
+            console.log('获取到的跳转问题列表:', skipQuestions.value);
+        }
+    } catch (error) {
+        console.error('获取跳转问题列表出错:', error);
+        ElMessage.error('获取跳转问题列表失败');
+    }
 }
 
 // 监听questionId的变化

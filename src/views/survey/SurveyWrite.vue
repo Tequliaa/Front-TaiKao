@@ -90,16 +90,23 @@ const handleOptionChange = (question, optionId, checked) => {
 
         if (selectedOption?.isSkip) {
             // 获取当前问题索引
-            const currentIndex = questions.value.findIndex(q => q.questionId === question.questionId)
+            const currentIndex = getQuestionIndex(question.questionId) - 1;
             // 获取目标问题索引
-            const targetIndex = questions.value.findIndex(q => q.questionId === selectedOption.skipTo)
+            const targetIndex = getQuestionIndex(selectedOption.skipTo) - 1;
             
             if (currentIndex !== -1 && targetIndex !== -1) {
                 // 设置当前问题的隐藏状态
-                questionVisibility.value[question.questionId].isActive = true
+                questionVisibility.value[question.questionId].isActive = true;
+                
+                // 获取所有可见的问题
+                const visibleQuestions = questions.value.filter(q => shouldShowQuestion(q.questionId));
+                
                 // 记录需要隐藏的问题
                 for (let i = currentIndex + 1; i < targetIndex; i++) {
-                    questionVisibility.value[question.questionId].hiddenQuestions.add(questions.value[i].questionId)
+                    const questionToHide = visibleQuestions[i];
+                    if (questionToHide) {
+                        questionVisibility.value[question.questionId].hiddenQuestions.add(questionToHide.questionId);
+                    }
                 }
             }
         }
@@ -157,7 +164,7 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
     }
 }
 
-// 修改获取问卷数据的方法
+// 获取问卷数据的方法
 const getSurveyData = async () => {
     loading.value = true
     try {
@@ -357,8 +364,44 @@ const getSurveyData = async () => {
 }
 
 const getQuestionIndex = (questionId) => {
-    const index = questions.value.findIndex(q => q.questionId === questionId)
-    return index + 1
+    // 如果是分类模式，需要按照分类内顺序重新编号
+    if (surveyInfo.value.isCategory === 1) {
+        // 找到问题所属的分类
+        let categoryId = null;
+        let questionInCategory = null;
+        
+        // 查找问题所属的分类
+        for (const group of groupedQuestions.value) {
+            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            if (foundQuestion) {
+                categoryId = group.categoryId;
+                questionInCategory = foundQuestion;
+                break;
+            }
+        }
+        
+        if (categoryId && questionInCategory) {
+            // 计算该分类之前的所有问题数量
+            let previousQuestionsCount = 0;
+            for (const group of groupedQuestions.value) {
+                if (group.categoryId === categoryId) {
+                    break;
+                }
+                previousQuestionsCount += group.questions.length;
+            }
+            
+            // 找到问题在当前分类中的索引
+            const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            
+            // 返回分类内编号 + 之前分类的问题数量
+            return previousQuestionsCount + questionIndex + 1;
+        }
+    }
+    
+    // 非分类模式，使用原来的逻辑
+    const index = questions.value.findIndex(q => q.questionId === questionId);
+    return index + 1;
 }
 
 const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
@@ -378,86 +421,153 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
     }
 }
 
-// 修改验证必答题的方法
+// 验证必答题的方法
 const validateRequiredQuestions = () => {
     const invalidQuestions = []
     
-    questions.value.forEach(question => {
-        // 跳过被隐藏的问题
-        if (!shouldShowQuestion(question.questionId)) return
-        if (!question.isRequired) return
-        
-        let isValid = true
-        switch (question.type) {
-            case '单选':
-                isValid = !!question.selectedOption
-                // 检查开放选项
-                if (isValid) {
-                    const selectedOption = question.options.find(opt => opt.optionId === question.selectedOption)
-                    if (selectedOption?.isOpenOption && !selectedOption.openAnswer?.trim()) {
-                        isValid = false
+    // 如果是分类模式，使用 groupedQuestions 来验证
+    if (surveyInfo.value.isCategory === 1) {
+        groupedQuestions.value.forEach(group => {
+            group.questions.forEach(question => {
+                // 跳过被隐藏的问题
+                if (!shouldShowQuestion(question.questionId)) return
+                if (!question.isRequired) return
+                
+                let isValid = true
+                switch (question.type) {
+                    case '单选':
+                        isValid = !!question.selectedOption
+                        // 检查开放选项
+                        if (isValid) {
+                            const selectedOption = question.options.find(opt => opt.optionId === question.selectedOption)
+                            if (selectedOption?.isOpenOption && !selectedOption.openAnswer?.trim()) {
+                                isValid = false
+                            }
+                        }
+                        break
+                    case '多选':
+                        // 检查最小选择数量
+                        if (question.minSelections) {
+                            isValid = question.selectedOptions.length >= question.minSelections
+                        } else {
+                            isValid = question.selectedOptions.length > 0
+                        }
+                        // 检查开放选项
+                        if (isValid) {
+                            const hasEmptyOpenAnswer = question.selectedOptions.some(optionId => {
+                                const option = question.options.find(opt => opt.optionId === optionId)
+                                return option?.isOpenOption && !option.openAnswer?.trim()
+                            })
+                            if (hasEmptyOpenAnswer) {
+                                isValid = false
+                            }
+                        }
+                        break
+                    case '填空':
+                        isValid = !!question.answer?.trim()
+                        break
+                    case '矩阵单选':
+                        // 检查每一行是否都选择了答案
+                        const rowOptions = question.options.filter(opt => opt.type === '行选项')
+                        isValid = rowOptions.every(row => !!question.matrixAnswers[row.optionId])
+                        break
+                    case '矩阵多选':
+                        // 检查每一行是否都至少选择了一个答案
+                        const matrixRowOptions = question.options.filter(opt => opt.type === '行选项')
+                        isValid = matrixRowOptions.every(row => 
+                            question.matrixAnswers[row.optionId]?.length > 0
+                        )
+                        break
+                    case '评分题':
+                        isValid = question.options.some(option => option.rating)
+                        break
+                    case '文件上传题':
+                        const hasFiles = question.uploadedFiles && question.uploadedFiles.length > 0;
+                        if (!hasFiles) {
+                            isValid = false;
+                        }
+                        break;
+                    case '排序':
+                        isValid = question.sortedOrder && question.sortedOrder.length > 0
+                        break;
+                }
+                
+                if (!isValid) {
+                    invalidQuestions.push(question)
+                }
+            })
+        })
+    } else {
+        // 非分类模式的验证逻辑保持不变
+        questions.value.forEach(question => {
+            // 跳过被隐藏的问题
+            if (!shouldShowQuestion(question.questionId)) return
+            if (!question.isRequired) return
+            
+            let isValid = true
+            switch (question.type) {
+                case '单选':
+                    isValid = !!question.selectedOption
+                    // 检查开放选项
+                    if (isValid) {
+                        const selectedOption = question.options.find(opt => opt.optionId === question.selectedOption)
+                        if (selectedOption?.isOpenOption && !selectedOption.openAnswer?.trim()) {
+                            isValid = false
+                        }
                     }
-                }
-                break
-            case '多选':
-                // 检查最小选择数量
-                if (question.minSelections) {
-                    isValid = question.selectedOptions.length >= question.minSelections
-                } else {
-                    isValid = question.selectedOptions.length > 0
-                }
-                // 检查开放选项
-                if (isValid) {
-                    const hasEmptyOpenAnswer = question.selectedOptions.some(optionId => {
-                        const option = question.options.find(opt => opt.optionId === optionId)
-                        return option?.isOpenOption && !option.openAnswer?.trim()
-                    })
-                    if (hasEmptyOpenAnswer) {
-                        isValid = false
+                    break
+                case '多选':
+                    // 检查最小选择数量
+                    if (question.minSelections) {
+                        isValid = question.selectedOptions.length >= question.minSelections
+                    } else {
+                        isValid = question.selectedOptions.length > 0
                     }
-                }
-                break
-            case '填空':
-                isValid = !!question.answer?.trim()
-                break
-            case '矩阵单选':
-                // 检查每一行是否都选择了答案
-                const rowOptions = question.options.filter(opt => opt.type === '行选项')
-                isValid = rowOptions.every(row => !!question.matrixAnswers[row.optionId])
-                break
-            case '矩阵多选':
-                // 检查每一行是否都至少选择了一个答案
-                const matrixRowOptions = question.options.filter(opt => opt.type === '行选项')
-                isValid = matrixRowOptions.every(row => 
-                    question.matrixAnswers[row.optionId]?.length > 0
-                )
-                break
-            case '评分题':
-                isValid = question.options.some(option => option.rating)
-                break
-            case '文件上传题':
-                // 检查必答题的文件上传情况
-                console.log('验证文件上传题:', {
-                    questionId: question.questionId,
-                    isRequired: question.isRequired,
-                    uploadedFiles: question.uploadedFiles,
-                    newUploadedFiles: question.newUploadedFiles
-                });
-                const hasFiles = question.uploadedFiles && question.uploadedFiles.length > 0;
-                if (!hasFiles) {
-                    isValid = false;
-                    console.log('文件上传题验证失败：没有文件');
-                }
-                break;
-            case '排序':
-                isValid = question.sortedOrder && question.sortedOrder.length > 0
-                break;
-        }
-        
-        if (!isValid) {
-            invalidQuestions.push(question)
-        }
-    })
+                    // 检查开放选项
+                    if (isValid) {
+                        const hasEmptyOpenAnswer = question.selectedOptions.some(optionId => {
+                            const option = question.options.find(opt => opt.optionId === optionId)
+                            return option?.isOpenOption && !option.openAnswer?.trim()
+                        })
+                        if (hasEmptyOpenAnswer) {
+                            isValid = false
+                        }
+                    }
+                    break
+                case '填空':
+                    isValid = !!question.answer?.trim()
+                    break
+                case '矩阵单选':
+                    // 检查每一行是否都选择了答案
+                    const rowOptions = question.options.filter(opt => opt.type === '行选项')
+                    isValid = rowOptions.every(row => !!question.matrixAnswers[row.optionId])
+                    break
+                case '矩阵多选':
+                    // 检查每一行是否都至少选择了一个答案
+                    const matrixRowOptions = question.options.filter(opt => opt.type === '行选项')
+                    isValid = matrixRowOptions.every(row => 
+                        question.matrixAnswers[row.optionId]?.length > 0
+                    )
+                    break
+                case '评分题':
+                    isValid = question.options.some(option => option.rating)
+                    break
+                case '文件上传题':
+                    const hasFiles = question.uploadedFiles && question.uploadedFiles.length > 0;
+                    if (!hasFiles) {
+                        isValid = false;
+                    }
+                    break;
+                case '排序':
+                    isValid = question.sortedOrder && question.sortedOrder.length > 0
+                    break;
+            }
+            
+            if (!isValid) {
+                invalidQuestions.push(question)
+            }
+        })
+    }
     
     return invalidQuestions
 }
@@ -469,9 +579,7 @@ const submitSurvey = async (isSaveAction = false) => {
         if (!isSaveAction) {
             const invalidQuestions = validateRequiredQuestions()
             if (invalidQuestions.length > 0) {
-                const questionNumbers = invalidQuestions.map(q => 
-                    questions.value.findIndex(question => question.questionId === q.questionId) + 1
-                ).join('、')
+                const questionNumbers = invalidQuestions.map(q => getQuestionIndex(q.questionId)).join('、')
                 ElMessage.error(`第${questionNumbers}题是必答题，请填写后再提交`)
                 return
             }
@@ -807,16 +915,6 @@ const selectSortOption = (question, optionId) => {
     }
 }
 
-const getGroupQuestionIndex = (groupIndex, questionIndex) => {
-    // 计算当前分组之前的所有问题数量
-    let previousQuestionsCount = 0;
-    for (let i = 0; i < groupIndex; i++) {
-        previousQuestionsCount += groupedQuestions.value[i].questions.length;
-    }
-    // 返回当前问题的序号（之前的问题数量 + 当前问题在分组中的索引 + 1）
-    return previousQuestionsCount + questionIndex + 1;
-}
-
 </script>
 
 <template>
@@ -832,7 +930,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                     </div>
 
                     <!-- 问题列表 -->
-                    <div class="questions-list">
+                    <div class="questions-list" v-if="questions && questions.length">
                         <!-- 按分类显示问题 -->
                         <template v-if="surveyInfo.isCategory === 1">
                             <div v-for="(group, groupIndex) in groupedQuestions" :key="group.categoryId" class="category-group">
@@ -844,12 +942,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                         :key="question.questionId" 
                                         :id="'question_' + question.questionId"
                                         class="question-item"
-                                        :data-index="getGroupQuestionIndex(groupIndex, index)"
+                                        :data-index="getQuestionIndex(question.questionId)"
                                         :data-has-skip="question.isSkip"
                                         v-show="shouldShowQuestion(question.questionId)">
                                         <!-- 问题标题 -->
                                         <div class="question-title">
-                                            <span class="question-number">{{ getGroupQuestionIndex(groupIndex, index) }}.</span>
+                                            <span class="question-number">{{ getQuestionIndex(question.questionId) }}.</span>
                                             <span class="question-text">{{ question.description }}</span>
                                             <span class="question-type">({{ question.type }}, {{ question.isRequired ? '必答' : '选填' }})</span>
                                             <span v-if="question.isRequired" class="required">*</span>

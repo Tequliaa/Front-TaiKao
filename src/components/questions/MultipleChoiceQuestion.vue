@@ -43,6 +43,7 @@
           :min="0" 
           :max="questionData.options.length"
           :disabled="!questionData.isRequired"
+          :placeholder="questionData.isRequired ? '1' : '0'"
         />
       </el-form-item>
 
@@ -51,6 +52,7 @@
           v-model="questionData.maxSelections" 
           :min="1" 
           :max="questionData.options.length"
+          :placeholder="questionData.options.length.toString()"
         />
       </el-form-item>
     </div>
@@ -58,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import QuestionBase from './QuestionBase.vue'
 
@@ -85,7 +87,7 @@ watch(() => questionData.value.isOpen, (newVal) => {
     const hasOpenOption = questionData.value.options.some(option => option.isOpen === 1)
     if (!hasOpenOption) {
       questionData.value.options.push({
-        description: '其他，请输入',
+        description: '其他（请填写）',
         type: '行选项',
         isOpen: 1,
         isOpenOption: 1,
@@ -155,6 +157,25 @@ watch(questionData, (newVal) => {
     emit('update:modelValue', { ...newVal })
   }
 }, { deep: true })
+
+// 在 script 部分添加 watch
+watch(() => questionData.value.isRequired, (newValue) => {
+  if (newValue) {
+    questionData.value.minSelections = 1
+  } else {
+    questionData.value.minSelections = 0
+  }
+}, { immediate: true })
+
+// 在初始化时设置默认值
+onMounted(() => {
+  if (questionData.value.isRequired) {
+    questionData.value.minSelections = 1
+  } else {
+    questionData.value.minSelections = 0
+  }
+  questionData.value.maxSelections = questionData.value.options.length
+})
 </script>
 
 <style lang="scss" scoped>
