@@ -221,8 +221,9 @@ const getPlainText = (htmlContent)=> {
 const viewDepartment = (row) => {
     router.push({
         name: 'User',
-        query: {
-            departmentId: row.id
+        params: {
+            departmentId: row.id,
+            departmentName:row.name
         }
     })
 }

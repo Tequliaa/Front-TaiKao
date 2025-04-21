@@ -37,16 +37,23 @@ const departments = ref([])
 const loading = ref(true)
 
 const router = useRouter()
-const route = useRoute()
-
+const props =defineProps({
+    departmentId:{
+        type:Number
+    },
+    departmentName:{
+        type:String
+    },
+})
 // 修改获取用户数据的方法
 const getUsers = async () => {
     try {
         let params = {
+            userId:userInfoStore.info.id,
             keyword: keyword.value,
             pageNum: pageNum.value,
             pageSize: pageSize.value,
-            departmentId: route.query.departmentId || 0
+            departmentId: props.departmentId
         }
         let result = await userListService(params);
         //渲染总条数
@@ -114,17 +121,6 @@ onMounted(() => {
         });
     });
 })
-
-// 监听路由参数变化
-watch(
-    () => route.query.departmentId,
-    (newVal) => {
-        if (newVal) {
-            pageNum.value = 1
-            getUsers()
-        }
-    }
-)
 
 // 用户角色
 const roles = [
@@ -254,7 +250,9 @@ const exportUsers = async () => {
     try {
         const response = await userExportService({
             keyword: keyword.value,
-            departmentId: 0
+            departmentId: props.departmentId,
+            userId:userInfoStore.info.id
+            
         })
 
         // 获取文件名
@@ -287,74 +285,131 @@ const exportUsers = async () => {
     }
 }
 
-// 导入用户
-const handleImport = async (file, fileList) => {
-    const formData = new FormData()
-    formData.append('file', file.raw)
+const fileInputRef = ref()
+const showImportDialog = async () => {
     try {
-        const response = await userImportService(formData)
-        if (response.code === 0) {
-            const result = response.data
-            
-            // 使用HTML格式构建消息，居中显示
-            let message = `
-                <div class="import-result">
-                    <div class="import-result-title">导入完成！</div>
-                    <div class="import-result-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${result.total}</div>
-                            <div class="stat-label">总计</div>
+        await ElMessageBox.confirm(
+            `<div class="import-guide">
+                <div class="guide-title">Excel导入格式说明</div>
+                <div class="guide-content">
+                    <div class="guide-item">
+                        <span class="item-label">第1列：</span>
+                        <span class="item-value">用户名</span>
+                    </div>
+                    <div class="guide-item">
+                        <span class="item-label">第2列：</span>
+                        <span class="item-value">昵称</span>
+                    </div>
+                    <div class="guide-item">
+                        <span class="item-label">第3列：</span>
+                        <span class="item-value">默认密码</span>
+                    </div>
+                    ${!props.departmentName ? `
+                    <div class="guide-item">
+                        <span class="item-label">第4列：</span>
+                        <span class="item-value">部门名称</span>
+                    </div>
+                    ` : ''}
+                    <div class="guide-note">注：数据从第2行开始读取</div>
+                    <div class="guide-example">
+                        <div class="example-title">示例：</div>
+                        <div class="example-content">
+                            <div>用户名</div>
+                            <div>昵称</div>
+                            <div>默认密码</div>
+                            ${!props.departmentName ? '<div>部门名称</div>' : ''}
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${result.success}</div>
-                            <div class="stat-label">成功</div>
+                        <div class="example-content">
+                            <div>123</div>
+                            <div>321</div>
+                            <div>123</div>
+                            ${!props.departmentName ? '<div>312</div>' : ''}
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${result.skip}</div>
-                            <div class="stat-label">跳过</div>
-                        </div>
-                    </div>`
-            
-            if (result.skip > 0) {
-                message += `
-                    <div class="import-result-reasons">
-                        <div class="reasons-title">跳过原因</div>
-                        <ul class="reasons-list">`
-                
-                // 只显示前3条跳过原因
-                const displayReasons = result.skipReasons.slice(0, 3)
-                displayReasons.forEach(reason => {
-                    message += `<li class="reason-item">${reason}</li>`
-                })
-                
-                // 如果有更多跳过原因，显示提示
-                if (result.skipReasons.length > 3) {
-                    message += `<li class="reason-more">... 还有 ${result.skipReasons.length - 3} 条原因未显示</li>`
-                }
-                
-                message += `
-                        </ul>
-                    </div>`
-            }
-            
-            message += `</div>`
-            
-            // 使用ElMessageBox在页面中间显示结果
-            ElMessageBox.alert(message, '导入结果', {
+                    </div>
+                </div>
+            </div>`,
+            '导入确认',
+            {
                 confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'info',
                 dangerouslyUseHTMLString: true,
-                customClass: 'import-result-dialog',
-                callback: () => {
-                    getUsers() // 刷新数据
-                }
-            })
-        } else {
-            ElMessage.error(response.message || '导入失败')
-        }
+                customClass: 'import-guide-dialog'
+            }
+        )
+        // 用户点击确定后，触发文件选择
+    fileInputRef.value.value = null // 清除旧文件记录，支持重复上传相同文件
+    fileInputRef.value.click() // 手动打开文件选择框
     } catch (error) {
-        ElMessage.error('导入失败：' + (error.response?.data?.message || error.message))
+        // 用户点击取消，不做任何操作
     }
 }
+
+// 导入用户
+const handleImport = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const isExcel =
+    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.type === 'application/vnd.ms-excel'
+  if (!isExcel) {
+    ElMessage.error('只能上传Excel文件！')
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const response = await userImportService(formData, props.departmentName)
+    if (response.code === 0) {
+      const result = response.data
+      let message = `
+        <div class="import-result">
+          <div class="import-result-title">导入完成！</div>
+          <div class="import-result-stats">
+              <div class="stat-item"><div class="stat-value">${result.total}</div><div class="stat-label">总计</div></div>
+              <div class="stat-item"><div class="stat-value">${result.success}</div><div class="stat-label">成功</div></div>
+              <div class="stat-item"><div class="stat-value">${result.skip}</div><div class="stat-label">跳过</div></div>
+          </div>`
+
+      if (result.skip > 0) {
+        message += `
+          <div class="import-result-reasons">
+            <div class="reasons-title">跳过原因</div>
+            <ul class="reasons-list">`
+
+        const displayReasons = result.skipReasons.slice(0, 3)
+        displayReasons.forEach(reason => {
+          message += `<li class="reason-item">${reason}</li>`
+        })
+
+        if (result.skipReasons.length > 3) {
+          message += `<li class="reason-more">... 还有 ${result.skipReasons.length - 3} 条原因未显示</li>`
+        }
+
+        message += `</ul></div>`
+      }
+
+      message += `</div>`
+
+      ElMessageBox.alert(message, '导入结果', {
+        confirmButtonText: '确定',
+        dangerouslyUseHTMLString: true,
+        customClass: 'import-result-dialog',
+        callback: () => {
+          getUsers() // 刷新用户数据
+        }
+      })
+    } else {
+      ElMessage.error(response.message || '导入失败')
+    }
+  } catch (err) {
+    ElMessage.error('导入失败：' + (err.response?.data?.message || err.message))
+  }
+}
+
 
 onMounted(() => {
 window.addEventListener('resize', () => {
@@ -370,32 +425,26 @@ window.addEventListener('resize', () => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>用户管理</span>
+                    <span>用户管理 - {{props.departmentName || '所有用户'}}</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入用户名查询" />
                         <div class="button-group">
-                            <el-upload
-                                class="upload-btn"
-                                action=""
-                                :auto-upload="false"
-                                :show-file-list="false"
-                                accept=".xlsx,.xls"
-                                :on-change="handleImport"
-                                :before-upload="(file) => {
-                                    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-                                                  file.type === 'application/vnd.ms-excel'
-                                    if (!isExcel) {
-                                        ElMessage.error('只能上传Excel文件！')
-                                        return false
-                                    }
-                                    return true
-                                }"
-                            >
-                                <el-button type="primary" class="action-button">
-                                    <el-icon><Upload /></el-icon>
-                                    导入
-                                </el-button>
-                            </el-upload>
+                        <!-- 隐藏的文件输入框 -->
+                        <input
+                            ref="fileInputRef"
+                            type="file"
+                            accept=".xlsx,.xls"
+                            class="hidden"
+                            @change="handleImport"
+                            style="display: none;"
+                        />
+
+                        <!-- 显示的导入按钮 -->
+                        <el-button type="primary" class="action-button" @click="showImportDialog">
+                            <el-icon><Upload /></el-icon>
+                            {{ props.departmentName }}导入
+                        </el-button>
+
                             <el-button type="primary" @click="exportUsers" class="action-button">
                                 <el-icon><Download /></el-icon>
                                 导出
@@ -662,5 +711,112 @@ window.addEventListener('resize', () => {
 }
 .import-result-dialog .el-message-box__message p {
     text-align: center !important;
+}
+
+/* 导入指南对话框样式 */
+.import-guide-dialog {
+    min-width: 500px !important;
+}
+
+.import-guide-dialog .el-message-box__header {
+    text-align: center;
+    padding-bottom: 0;
+}
+
+.import-guide-dialog .el-message-box__title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #303133;
+}
+
+.import-guide-dialog .el-message-box__status {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
+.import-guide-dialog .el-message-box__message {
+    padding-left: 40px;
+}
+
+.import-guide {
+
+    width: 375px;
+    padding: 10px;
+}
+
+.guide-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #409EFF;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.guide-content {
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.guide-item {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.item-label {
+    color: #606266;
+    margin-right: 10px;
+    min-width: 60px;
+}
+
+.item-value {
+    color: #303133;
+    font-weight: 500;
+}
+
+.guide-note {
+    color: #909399;
+    font-size: 13px;
+    margin: 15px 0;
+    text-align: center;
+}
+
+.guide-example {
+
+    margin-top: 20px;
+    border-top: 1px solid #dcdfe6;
+    padding-top: 15px;
+}
+
+.example-title {
+    color: #606266;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.example-content {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.example-content div {
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #dcdfe6;
+}
+
+.import-guide-dialog .el-message-box__btns {
+    text-align: center;
+    padding-top: 20px;
+}
+
+.import-guide-dialog .el-button {
+    min-width: 100px;
 }
 </style>

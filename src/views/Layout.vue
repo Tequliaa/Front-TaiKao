@@ -144,7 +144,7 @@ const handleLogout = () => {
                     </el-menu-item>
 
                     <!-- 管理员菜单 -->
-                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'">
+                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'||userInfoStore.info.role === '普通用户'">
                         <el-sub-menu index="geren1" class="mobile-submenu">
                             <template #title>
                                 <el-icon><Menu /></el-icon>

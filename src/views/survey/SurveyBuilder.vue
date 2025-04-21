@@ -647,34 +647,6 @@ watch(() => survey.value.isCategory, (newValue, oldValue) => {
   }
 })
 
-// 组件挂载时获取数据
-onMounted(() => {
-    // 检查是否是刷新页面
-    const pageLoadTime = sessionStorage.getItem('pageLoadTime')
-    const currentTime = new Date().getTime()
-    
-    if (pageLoadTime && currentTime - parseInt(pageLoadTime) < 1000) {
-        // 如果页面加载时间间隔小于1秒，认为是刷新
-        isPageRefresh.value = true
-    } else {
-        // 否则认为是新进入页面
-        isPageRefresh.value = false
-        // 清除之前的surveyId
-        sessionStorage.removeItem('currentSurveyId')
-    }
-    
-    // 获取问卷详情
-    fetchSurveyDetail()
-    
-    // 如果 isCategory 为 1，获取分类数据
-    if (survey.value.isCategory === 1) {
-        fetchCategories()
-    }
-    
-    // 初始化sortKey
-    updateSortKeys()
-})
-
 // 添加计算属性，获取处理后的选中分类列表
 const selectedCategoriesList = computed(() => {
   return categoryOrder.value
@@ -895,307 +867,363 @@ const addCategory = async () => {
 const openAddCategoryDialog = () => {
     showAddCategoryDialog.value = true
 }
+
+const isMobile = ref(false)
+
+// 检测是否为移动端
+const checkMobile = () => {
+  const userAgent = navigator.userAgent.toLowerCase()
+  const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'windows phone']
+  isMobile.value = mobileKeywords.some(keyword => userAgent.includes(keyword))
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+    // 检测是否为移动端
+    checkMobile()
+    
+    // 检查是否是刷新页面
+    const pageLoadTime = sessionStorage.getItem('pageLoadTime')
+    const currentTime = new Date().getTime()
+    
+    if (pageLoadTime && currentTime - parseInt(pageLoadTime) < 1000) {
+        // 如果页面加载时间间隔小于1秒，认为是刷新
+        isPageRefresh.value = true
+    } else {
+        // 否则认为是新进入页面
+        isPageRefresh.value = false
+        // 清除之前的surveyId
+        sessionStorage.removeItem('currentSurveyId')
+    }
+    
+    // 获取问卷详情
+    fetchSurveyDetail()
+    
+    // 如果 isCategory 为 1，获取分类数据
+    if (survey.value.isCategory === 1) {
+        fetchCategories()
+    }
+    
+    // 初始化sortKey
+    updateSortKeys()
+})
 </script>
 
 <template>
   <div class="survey-builder">
-    <div class="builder-container" :class="{ 'preview-mode': isPreviewMode }">
-      <!-- 左侧问题模板库 -->
-      <div class="template-library" v-if="!isPreviewMode">
-        <h3>问题模板</h3>
-        <div class="template-list">
-          <div v-for="(template, index) in questionTemplates" 
-               :key="index"
-               class="template-item"
-               draggable="true"
-               @dragstart="onDragStart($event, template)">
-            <el-icon><component :is="template.icon" /></el-icon>
-            <span>{{ template.name }}</span>
+    <!-- 移动端提示 -->
+    <div v-if="isMobile" class="mobile-notice">
+      <el-result
+        icon="warning"
+        title="移动端暂不支持该功能"
+        sub-title="请使用电脑端访问问卷设计器"
+      >
+        <template #extra>
+          <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
+        </template>
+      </el-result>
+    </div>
+
+    <!-- 非移动端显示原有内容 -->
+    <template v-else>
+      <div class="builder-container" :class="{ 'preview-mode': isPreviewMode }">
+        <!-- 左侧问题模板库 -->
+        <div class="template-library" v-if="!isPreviewMode">
+          <h3>问题模板</h3>
+          <div class="template-list">
+            <div v-for="(template, index) in questionTemplates" 
+                 :key="index"
+                 class="template-item"
+                 draggable="true"
+                 @dragstart="onDragStart($event, template)">
+              <el-icon><component :is="template.icon" /></el-icon>
+              <span>{{ template.name }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 中间编辑区域 -->
-      <div class="edit-area" 
-           :class="{ 'preview-mode': isPreviewMode }">
-        <div class="survey-header">
-          <el-input v-model="survey.name" placeholder="请输入问卷标题" />
-          <div class="survey-category-switch">
-            <el-switch
-              v-model="survey.isCategory"
-              :active-value="1"
-              :inactive-value="0"
-              active-text="按分类排序"
-              inactive-text="不按分类排序"
+        <!-- 中间编辑区域 -->
+        <div class="edit-area" 
+             :class="{ 'preview-mode': isPreviewMode }">
+          <div class="survey-header">
+            <el-input v-model="survey.name" placeholder="请输入问卷标题" />
+            <div class="survey-category-switch">
+              <el-switch
+                v-model="survey.isCategory"
+                :active-value="1"
+                :inactive-value="0"
+                active-text="按分类排序"
+                inactive-text="不按分类排序"
+              />
+            </div>
+            <el-input
+              v-model="survey.description"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入问卷描述"
             />
           </div>
-          <el-input
-            v-model="survey.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入问卷描述"
-          />
-        </div>
 
-        <!-- 分类选择区域 -->
-        <div v-if="survey.isCategory === 1" class="category-selection">
-          <div class="category-selection-header">
-            <h4>选择要显示的分类：</h4>
-            <el-button type="primary" size="small" @click="openAddCategoryDialog">添加分类</el-button>
+          <!-- 分类选择区域 -->
+          <div v-if="survey.isCategory === 1" class="category-selection">
+            <div class="category-selection-header">
+              <h4>选择要显示的分类：</h4>
+              <el-button type="primary" size="small" @click="openAddCategoryDialog">添加分类</el-button>
+            </div>
+            <div class="category-tags">
+              <el-tag
+                v-for="category in categories"
+                :key="category.categoryId"
+                :type="isCategorySelected(category.categoryId) ? 'primary' : 'info'"
+                class="category-tag"
+                @click="handleCategorySelect(category.categoryId)"
+              >
+                {{ category.categoryName }}
+              </el-tag>
+            </div>
           </div>
-          <div class="category-tags">
-            <el-tag
-              v-for="category in categories"
-              :key="category.categoryId"
-              :type="isCategorySelected(category.categoryId) ? 'primary' : 'info'"
-              class="category-tag"
-              @click="handleCategorySelect(category.categoryId)"
-            >
-              {{ category.categoryName }}
-            </el-tag>
-          </div>
-        </div>
 
-        <div class="questions-container">
-          <template v-if="survey.isCategory === 1">
-            <div v-for="group in orderedGroupedQuestions" 
-                 :key="group.categoryId" 
-                 class="question-group"
-                 v-show="isCategorySelected(group.categoryId)">
-              <div class="group-header" @click="toggleCategory(group.categoryId)">
-                <h4>{{ group.categoryName }}</h4>
-                <el-icon :class="{ 'expanded': isCategoryExpanded(group.categoryId) }">
-                  <ArrowDown />
-                </el-icon>
-              </div>
-              <div class="group-questions" 
-                   v-show="isCategoryExpanded(group.categoryId)"
-                   @dragover.prevent 
-                   @drop="onDrop($event, group.categoryId)">
-                <transition-group name="question-fade" tag="div">
-                  <div v-for="(question, index) in group.questions" 
-                       :key="question.questionId || index"
-                       class="question-item"
-                       :class="{ 
-                         'active': activeQuestionIndex === questions.findIndex(q => q.questionId === question.questionId),
-                         'has-error': getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0
-                       }"
-                       @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId || q === question))">
-                    <div class="question-header">
-                      <span class="question-type">{{ question.type }}</span>
-                      <div class="question-actions">
-                        <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'up')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === 0">
-                          <el-icon><ArrowUp /></el-icon>
-                        </el-button>
-                        <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'down')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === questions.length - 1">
-                          <el-icon><ArrowDown /></el-icon>
-                        </el-button>
-                        <el-button type="text" @click.stop="deleteQuestion(questions.findIndex(q => q.questionId === question.questionId))">
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
+          <div class="questions-container">
+            <template v-if="survey.isCategory === 1">
+              <div v-for="group in orderedGroupedQuestions" 
+                   :key="group.categoryId" 
+                   class="question-group"
+                   v-show="isCategorySelected(group.categoryId)">
+                <div class="group-header" @click="toggleCategory(group.categoryId)">
+                  <h4>{{ group.categoryName }}</h4>
+                  <el-icon :class="{ 'expanded': isCategoryExpanded(group.categoryId) }">
+                    <ArrowDown />
+                  </el-icon>
+                </div>
+                <div class="group-questions" 
+                     v-show="isCategoryExpanded(group.categoryId)"
+                     @dragover.prevent 
+                     @drop="onDrop($event, group.categoryId)">
+                  <transition-group name="question-fade" tag="div">
+                    <div v-for="(question, index) in group.questions" 
+                         :key="question.questionId || index"
+                         class="question-item"
+                         :class="{ 
+                           'active': activeQuestionIndex === questions.findIndex(q => q.questionId === question.questionId),
+                           'has-error': getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0
+                         }"
+                         @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId || q === question))">
+                      <div class="question-header">
+                        <span class="question-type">{{ question.type }}</span>
+                        <div class="question-actions">
+                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'up')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === 0">
+                            <el-icon><ArrowUp /></el-icon>
+                          </el-button>
+                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'down')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === questions.length - 1">
+                            <el-icon><ArrowDown /></el-icon>
+                          </el-button>
+                          <el-button type="text" @click.stop="deleteQuestion(questions.findIndex(q => q.questionId === question.questionId))">
+                            <el-icon><Delete /></el-icon>
+                          </el-button>
+                        </div>
+                      </div>
+                      <div class="question-content">
+                        <component 
+                          :is="getQuestionComponent(question.type)"
+                          :model-value="question"
+                          @update:model-value="updateQuestion(questions.findIndex(q => q.questionId === question.questionId), $event)"
+                          @edit-option="handleEditOption"
+                        />
+                      </div>
+                      <div v-if="getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0" class="question-errors">
+                        <el-alert
+                          v-for="(error, errorIndex) in getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId))"
+                          :key="errorIndex"
+                          :title="error"
+                          type="error"
+                          :closable="false"
+                          show-icon
+                        />
                       </div>
                     </div>
-                    <div class="question-content">
-                      <component 
-                        :is="getQuestionComponent(question.type)"
-                        :model-value="question"
-                        @update:model-value="updateQuestion(questions.findIndex(q => q.questionId === question.questionId), $event)"
-                        @edit-option="handleEditOption"
-                      />
-                    </div>
-                    <div v-if="getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0" class="question-errors">
-                      <el-alert
-                        v-for="(error, errorIndex) in getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId))"
-                        :key="errorIndex"
-                        :title="error"
-                        type="error"
-                        :closable="false"
-                        show-icon
-                      />
-                    </div>
-                  </div>
-                </transition-group>
-                <!-- 添加空分类提示 -->
-                <div v-if="group.questions.length === 0" class="empty-category">
-                  <el-empty description="拖拽问题到此处" />
-                </div>
-              </div>
-            </div>
-          </template>
-          <!-- 非分类模式保持不变 -->
-          <template v-else>
-            <div class="questions-container"
-                 @dragover.prevent 
-                 @drop="onDrop($event, null)">
-              <div v-for="(question, index) in questions" 
-                   :key="index"
-                   class="question-item"
-                   :class="{ 
-                     'active': activeQuestionIndex === index,
-                     'has-error': getQuestionErrors(index).length > 0
-                   }"
-                   @click="selectQuestion(index)">
-                <!-- 非分类模式的问题内容保持不变 -->
-                <div class="question-header">
-                  <span class="question-type">{{ question.type }}</span>
-                  <div class="question-actions">
-                    <el-button type="text" @click="moveQuestion(index, 'up')" :disabled="index === 0">
-                      <el-icon><ArrowUp /></el-icon>
-                    </el-button>
-                    <el-button type="text" @click="moveQuestion(index, 'down')" :disabled="index === questions.length - 1">
-                      <el-icon><ArrowDown /></el-icon>
-                    </el-button>
-                    <el-button type="text" @click="deleteQuestion(index)">
-                      <el-icon><Delete /></el-icon>
-                    </el-button>
+                  </transition-group>
+                  <!-- 添加空分类提示 -->
+                  <div v-if="group.questions.length === 0" class="empty-category">
+                    <el-empty description="拖拽问题到此处" />
                   </div>
                 </div>
-                <div class="question-content">
-                  <component 
-                    :is="getQuestionComponent(question.type)"
-                    :model-value="question"
-                    @update:model-value="updateQuestion(index, $event)"
-                    @edit-option="handleEditOption"
-                  />
+              </div>
+            </template>
+            <!-- 非分类模式保持不变 -->
+            <template v-else>
+              <div class="questions-container"
+                   @dragover.prevent 
+                   @drop="onDrop($event, null)">
+                <div v-for="(question, index) in questions" 
+                     :key="index"
+                     class="question-item"
+                     :class="{ 
+                       'active': activeQuestionIndex === index,
+                       'has-error': getQuestionErrors(index).length > 0
+                     }"
+                     @click="selectQuestion(index)">
+                  <!-- 非分类模式的问题内容保持不变 -->
+                  <div class="question-header">
+                    <span class="question-type">{{ question.type }}</span>
+                    <div class="question-actions">
+                      <el-button type="text" @click="moveQuestion(index, 'up')" :disabled="index === 0">
+                        <el-icon><ArrowUp /></el-icon>
+                      </el-button>
+                      <el-button type="text" @click="moveQuestion(index, 'down')" :disabled="index === questions.length - 1">
+                        <el-icon><ArrowDown /></el-icon>
+                      </el-button>
+                      <el-button type="text" @click="deleteQuestion(index)">
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                  <div class="question-content">
+                    <component 
+                      :is="getQuestionComponent(question.type)"
+                      :model-value="question"
+                      @update:model-value="updateQuestion(index, $event)"
+                      @edit-option="handleEditOption"
+                    />
+                  </div>
+                  <div v-if="getQuestionErrors(index).length > 0" class="question-errors">
+                    <el-alert
+                      v-for="(error, errorIndex) in getQuestionErrors(index)"
+                      :key="errorIndex"
+                      :title="error"
+                      type="error"
+                      :closable="false"
+                      show-icon
+                    />
+                  </div>
                 </div>
-                <div v-if="getQuestionErrors(index).length > 0" class="question-errors">
-                  <el-alert
-                    v-for="(error, errorIndex) in getQuestionErrors(index)"
-                    :key="errorIndex"
-                    :title="error"
-                    type="error"
-                    :closable="false"
-                    show-icon
-                  />
+                <!-- 添加空容器提示 -->
+                <div class="empty-placeholder" v-if="questions.length === 0">
+                  <el-empty description="拖拽问题模板到此处开始创建问卷" />
                 </div>
               </div>
-              <!-- 添加空容器提示 -->
-              <div class="empty-placeholder" v-if="questions.length === 0">
-                <el-empty description="拖拽问题模板到此处开始创建问卷" />
-              </div>
-            </div>
-          </template>
+            </template>
+          </div>
         </div>
-      </div>
 
-      <!-- 右侧面板 -->
-      <div class="property-panel" 
-           :class="{ 'preview-mode': isPreviewMode }"
-           :style="{ width: isPreviewMode ? '60%' : '300px' }">
-        <div class="panel-header">
-          <h3>{{ isPreviewMode ? '问卷预览' : (isEditingOption ? '编辑选项' : '属性设置') }}</h3>
-          <el-button v-if="isPreviewMode" type="text" @click="togglePreview">
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </div>
-        
-        <div class="panel-content">
-          <template v-if="!isPreviewMode">
-            <!-- 选项编辑面板 -->
-            <div v-if="isEditingOption && editingOption">
-              <el-form :model="editingOption" label-width="100px">
-                <el-form-item label="选项描述">
-                  <el-input v-model="editingOption.description" placeholder="请输入选项描述"></el-input>
-                </el-form-item>
-                <el-form-item label="选项类型">
-                  <el-radio-group v-model="editingOption.type">
-                    <el-radio label="行选项">行选项</el-radio>
-                    <el-radio label="列选项">列选项</el-radio>
-                    <el-radio label="填空">填空</el-radio>
-                  </el-radio-group>
-                </el-form-item>
-                <el-form-item label="开放答案">
-                  <el-switch v-model="editingOption.isOpenOption" :active-value="1" :inactive-value="0"></el-switch>
-                </el-form-item>
-                <el-form-item label="跳转选项">
-                  <el-switch v-model="editingOption.isSkip" :active-value="1" :inactive-value="0"></el-switch>
-                </el-form-item>
-                <el-form-item label="跳转至" v-if="editingOption.isSkip === 1">
-                  <el-select v-model="editingOption.skipTo" clearable placeholder="跳转至">
-                    <el-option v-for="item in skipQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
-                  </el-select>
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary" @click="saveOptionEdit">保存</el-button>
-                  <el-button @click="cancelOptionEdit">取消</el-button>
-                </el-form-item>
-              </el-form>
-            </div>
-            <!-- 问题属性面板 -->
-            <div v-else-if="activeQuestionIndex !== -1">
-              <el-form :model="activeQuestion" label-width="100px">
-                <!-- 单选题设置 -->
-                <template v-if="activeQuestion.type === '单选'">
-                </template>
-
-                <!-- 多选题设置 -->
-                <template v-if="activeQuestion.type === '多选'">
-                  <el-form-item label="选项布局">
-                    <el-radio-group v-model="activeQuestion.layout">
-                      <el-radio label="vertical">垂直排列</el-radio>
-                      <el-radio label="horizontal">水平排列</el-radio>
+        <!-- 右侧面板 -->
+        <div class="property-panel" 
+             :class="{ 'preview-mode': isPreviewMode }"
+             :style="{ width: isPreviewMode ? '60%' : '300px' }">
+          <div class="panel-header">
+            <h3>{{ isPreviewMode ? '问卷预览' : (isEditingOption ? '编辑选项' : '属性设置') }}</h3>
+            <el-button v-if="isPreviewMode" type="text" @click="togglePreview">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+          
+          <div class="panel-content">
+            <template v-if="!isPreviewMode">
+              <!-- 选项编辑面板 -->
+              <div v-if="isEditingOption && editingOption">
+                <el-form :model="editingOption" label-width="100px">
+                  <el-form-item label="选项描述">
+                    <el-input v-model="editingOption.description" placeholder="请输入选项描述"></el-input>
+                  </el-form-item>
+                  <el-form-item label="选项类型">
+                    <el-radio-group v-model="editingOption.type">
+                      <el-radio label="行选项">行选项</el-radio>
+                      <el-radio label="列选项">列选项</el-radio>
+                      <el-radio label="填空">填空</el-radio>
                     </el-radio-group>
                   </el-form-item>
-                  <el-form-item label="最少选择">
-                    <el-input-number 
-                      v-model="activeQuestion.minSelections" 
-                      :min="0" 
-                      :max="activeQuestion.options.length"
-                      :disabled="!activeQuestion.isRequired"
-                    />
+                  <el-form-item label="开放答案">
+                    <el-switch v-model="editingOption.isOpenOption" :active-value="1" :inactive-value="0"></el-switch>
                   </el-form-item>
-                  <el-form-item label="最多选择">
-                    <el-input-number 
-                      v-model="activeQuestion.maxSelections" 
-                      :min="1" 
-                      :max="activeQuestion.options.length"
-                    />
+                  <el-form-item label="跳转选项">
+                    <el-switch v-model="editingOption.isSkip" :active-value="1" :inactive-value="0"></el-switch>
                   </el-form-item>
-                </template>
-              </el-form>
-            </div>
-            <el-empty v-else description="请选择问题或点击预览按钮" />
-          </template>
-          <template v-else>
-            <SurveyBuildPreview 
-              :survey="survey"
-              :questions="questions"
-              :categories="selectedCategoriesList"
-            />
-          </template>
+                  <el-form-item label="跳转至" v-if="editingOption.isSkip === 1">
+                    <el-select v-model="editingOption.skipTo" clearable placeholder="跳转至">
+                      <el-option v-for="item in skipQuestions" :key="item.questionId" :label="item.description" :value="item.questionId"/>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" @click="saveOptionEdit">保存</el-button>
+                    <el-button @click="cancelOptionEdit">取消</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <!-- 问题属性面板 -->
+              <div v-else-if="activeQuestionIndex !== -1">
+                <el-form :model="activeQuestion" label-width="100px">
+                  <!-- 单选题设置 -->
+                  <template v-if="activeQuestion.type === '单选'">
+                  </template>
+
+                  <!-- 多选题设置 -->
+                  <template v-if="activeQuestion.type === '多选'">
+                    <el-form-item label="选项布局">
+                      <el-radio-group v-model="activeQuestion.layout">
+                        <el-radio label="vertical">垂直排列</el-radio>
+                        <el-radio label="horizontal">水平排列</el-radio>
+                      </el-radio-group>
+                    </el-form-item>
+                    <el-form-item label="最少选择">
+                      <el-input-number 
+                        v-model="activeQuestion.minSelections" 
+                        :min="0" 
+                        :max="activeQuestion.options.length"
+                        :disabled="!activeQuestion.isRequired"
+                      />
+                    </el-form-item>
+                    <el-form-item label="最多选择">
+                      <el-input-number 
+                        v-model="activeQuestion.maxSelections" 
+                        :min="1" 
+                        :max="activeQuestion.options.length"
+                      />
+                    </el-form-item>
+                  </template>
+                </el-form>
+              </div>
+              <el-empty v-else description="请选择问题或点击预览按钮" />
+            </template>
+            <template v-else>
+              <SurveyBuildPreview 
+                :survey="survey"
+                :questions="questions"
+                :categories="selectedCategoriesList"
+              />
+            </template>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 底部操作栏 -->
-    <div class="action-bar">
-      <el-button type="primary" @click="saveSurvey">保存问卷</el-button>
-      <el-button type="success" @click="submitSurvey">提交问卷</el-button>
-      <el-button link @click="togglePreview">
-        {{ isPreviewMode ? '取消预览' : '预览问卷' }}
-      </el-button>
-    </div>
+      <!-- 底部操作栏 -->
+      <div class="action-bar">
+        <el-button type="primary" @click="saveSurvey">保存问卷</el-button>
+        <el-button type="success" @click="submitSurvey">提交问卷</el-button>
+        <el-button link @click="togglePreview">
+          {{ isPreviewMode ? '取消预览' : '预览问卷' }}
+        </el-button>
+      </div>
 
-    <!-- 添加分类对话框 -->
-    <el-dialog
-      v-model="showAddCategoryDialog"
-      title="添加分类"
-      width="30%"
-      :before-close="closeAddCategoryDialog"
-    >
-      <el-form :model="newCategory" label-width="100px">
-        <el-form-item label="分类名称">
-          <el-input v-model="newCategory.categoryName" placeholder="请输入分类名称"></el-input>
-        </el-form-item>
-        <el-form-item label="分类描述">
-          <el-input v-model="newCategory.description" placeholder="请输入分类描述"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="closeAddCategoryDialog">取消</el-button>
-        <el-button type="primary" @click="addCategory">确定</el-button>
-      </template>
-    </el-dialog>
+      <!-- 添加分类对话框 -->
+      <el-dialog
+        v-model="showAddCategoryDialog"
+        title="添加分类"
+        width="30%"
+        :before-close="closeAddCategoryDialog"
+      >
+        <el-form :model="newCategory" label-width="100px">
+          <el-form-item label="分类名称">
+            <el-input v-model="newCategory.categoryName" placeholder="请输入分类名称"></el-input>
+          </el-form-item>
+          <el-form-item label="分类描述">
+            <el-input v-model="newCategory.description" placeholder="请输入分类描述"></el-input>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="closeAddCategoryDialog">取消</el-button>
+          <el-button type="primary" @click="addCategory">确定</el-button>
+        </template>
+      </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -1206,6 +1234,15 @@ const openAddCategoryDialog = () => {
   position: relative;
   display: flex;
   flex-direction: column;
+
+  .mobile-notice {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f7fa;
+  }
 
   .builder-container {
     flex: 1;

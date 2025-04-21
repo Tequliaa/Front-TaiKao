@@ -58,7 +58,8 @@ export const userExportService = (params) => {
 }
 
 //导入用户列表
-export const userImportService = (formData) => {
+export const userImportService = (formData,departmentName) => {
+  formData.append('departmentName',departmentName)
   return request.post('/user/import', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'

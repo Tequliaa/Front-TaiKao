@@ -42,7 +42,7 @@ const routes = [
       { path: '/manage/question/:surveyId?/:surveyName?',component:QuestionVue,props:true,name:'Question'},
       { path: '/manage/option/:questionId?/:questionName?',component:OptionVue,props:true,name:'Option'},
       { path: '/survey/survey',component:SurveyVue},
-      { path: '/manage/user/:departmentId?' ,component:UserVue,props:true,name:'User'},
+      { path: '/manage/user/:departmentId?/:departmentName?' ,component:UserVue,props:true,name:'User'},
       { path: '/user/info', component: UserInfoVue },
       { path: '/user/avatar', component: UserAvatarVue },
       { path: '/user/password', component: UserResetPasswordVue },
