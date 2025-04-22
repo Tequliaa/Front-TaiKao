@@ -286,7 +286,7 @@ const handleLogout = () => {
                         <el-icon><EditPen /></el-icon>
                         <template #title>重置密码</template>
                     </el-menu-item>
-                    <el-menu-item index="/user/logout" class="submenu-item">
+                    <el-menu-item index="/user/logout" class="submenu-item"  @click="handleCommand('logout')">
                         <el-icon><SwitchButton /></el-icon>
                         <template #title>退出登录</template>
                     </el-menu-item>

@@ -377,6 +377,8 @@ const handlePreview = async (file) => {
   }
 };
 console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
+
+
 </script>
 
 <template>

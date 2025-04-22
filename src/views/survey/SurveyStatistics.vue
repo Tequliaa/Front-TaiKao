@@ -593,6 +593,13 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     // 返回当前问题的序号（之前的问题数量 + 当前问题在分组中的索引 + 1）
     return previousQuestionsCount + questionIndex + 1;
 }
+
+const getPlainText = (htmlContent)=> {
+      // 使用正则去掉 HTML 标签，获取纯文本
+      const div = document.createElement('div');
+      div.innerHTML = htmlContent;
+      return div.textContent || div.innerText || '';
+}
 </script>
 
 <template>
@@ -610,7 +617,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                         <div class="unfinished-info">
                             <h4>{{props.departmentName}}——未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span></h4>
                         </div>
-                        <h6 class="survey-description">{{ surveyInfo.description }}</h6>
+                        <!-- <h6 class="survey-description">{{ getPlainText(surveyInfo.description) }}</h6> -->
                     </div>
 
                     <!-- 问题列表 -->
