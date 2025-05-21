@@ -1009,7 +1009,7 @@ onMounted(() => {
                          }"
                          @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId || q === question))">
                       <div class="question-header">
-                        <span class="question-type">{{ question.type }}</span>
+                        <!-- <span class="question-type">{{ question.type }}</span> -->
                         <div class="question-actions">
                           <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'up')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === 0">
                             <el-icon><ArrowUp /></el-icon>

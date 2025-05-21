@@ -89,17 +89,29 @@ const handleOptionChange = (question, optionId, checked) => {
         questionVisibility.value[question.questionId].isActive = false
 
         if (selectedOption?.isSkip) {
-            // 获取当前问题索引
-            const currentIndex = questions.value.findIndex(q => q.questionId === question.questionId)
-            // 获取目标问题索引
-            const targetIndex = questions.value.findIndex(q => q.questionId === selectedOption.skipTo)
+            // 设置当前问题的隐藏状态
+            questionVisibility.value[question.questionId].isActive = true;
             
-            if (currentIndex !== -1 && targetIndex !== -1) {
-                // 设置当前问题的隐藏状态
-                questionVisibility.value[question.questionId].isActive = true
+            // 获取所有问题
+            let allQuestions = [];
+            
+            // 如果是分类模式，按照分类顺序获取所有问题
+            if (surveyInfo.value.isCategory === 1) {
+                groupedQuestions.value.forEach(group => {
+                    allQuestions = allQuestions.concat(group.questions);
+                });
+            } else {
+                allQuestions = questions.value;
+            }
+            
+            // 找到当前问题和目标问题的索引
+            const currentQuestionIndex = allQuestions.findIndex(q => q.questionId === question.questionId);
+            const targetQuestionIndex = allQuestions.findIndex(q => q.questionId === selectedOption.skipTo);
+            
+            if (currentQuestionIndex !== -1 && targetQuestionIndex !== -1) {
                 // 记录需要隐藏的问题
-                for (let i = currentIndex + 1; i < targetIndex; i++) {
-                    questionVisibility.value[question.questionId].hiddenQuestions.add(questions.value[i].questionId)
+                for (let i = currentQuestionIndex + 1; i < targetQuestionIndex; i++) {
+                    questionVisibility.value[question.questionId].hiddenQuestions.add(allQuestions[i].questionId);
                 }
             }
         }
@@ -356,6 +368,7 @@ const getSurveyData = async () => {
     }
 }
 
+// 获取问题索引的方法
 const getQuestionIndex = (questionId) => {
     // 如果是分类模式，需要按照分类内顺序重新编号
     if (surveyInfo.value.isCategory === 1) {
