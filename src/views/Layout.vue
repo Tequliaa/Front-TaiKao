@@ -20,7 +20,7 @@ import {
 import avatar from '@/assets/default.png'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 //导入接口函数
-import { userInfoGetService } from '@/api/user.js'
+import { userInfoGetService,userLogoutService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
 const userInfoStore = useUserInfoStore();
@@ -55,12 +55,15 @@ const handleCommand = (command) => {
             }
         )
             .then(async () => {
-                //用户点击了确认
-                //清空pinia中的token和个人信息
-                userInfoStore.info = {}
-                tokenStore.token = ''
-                //跳转到登录页
-                router.push('/login')
+                //退出登录
+                let result = await userLogoutService();
+                if (result.code == 0) {
+                    //清空pinia中的token和个人信息
+                    userInfoStore.info = {}
+                    tokenStore.token = ''
+                    //跳转到登录页
+                    router.push('/login')
+                }
             })
             .catch(() => {
                 //用户点击了取消

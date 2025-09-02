@@ -6,6 +6,8 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 //导入token状态
 import { useTokenStore } from '@/stores/token.js'
+//导入验证码组件
+import Captcha from '@/components/Captcha.vue'
 
 //控制注册与登录表单的显示， 默认显示注册
 const isRegister = ref(false)
@@ -14,6 +16,9 @@ const router = useRouter();
 
 //调用useTokenStore得到状态
 const tokenStore = useTokenStore();
+
+//验证码组件引用
+const captchaRef = ref(null)
 
 //用于注册的数据模型
 const registerData = ref({
@@ -70,14 +75,24 @@ const register = async () => {
         return;
     }
     
+    // 验证图形验证码
+    const captchaValid = await captchaRef.value?.verifyCaptcha()
+    if (!captchaValid) {
+        return
+    }
+    
     let result = await registerService(registerData.value);
     if (result.code == 0) {
         ElMessage.success(result.message ? result.message : '注册成功');
         isRegister.value = false;
         //清空数据模型
         clearRegisterData();
+        //刷新验证码
+        captchaRef.value?.refreshCaptcha()
     } else {
         ElMessage.error(result.message ? result.message : '注册失败!');
+        //注册失败后刷新验证码
+        captchaRef.value?.refreshCaptcha()
     }
 }
 
@@ -98,6 +113,12 @@ const login = async () => {
         return;
     }
     
+    // 验证图形验证码
+    const captchaValid = await captchaRef.value?.verifyCaptcha()
+    if (!captchaValid) {
+        return
+    }
+    
     let result = await loginService(registerData.value)
     if (result.code == 0) {
         //保存token
@@ -106,6 +127,8 @@ const login = async () => {
         router.push('/manage/userSurvey')
     } else {
         ElMessage.error(result.message ? result.message : '登录失败!');
+        //登录失败后刷新验证码
+        captchaRef.value?.refreshCaptcha()
     }
 }
 
@@ -117,6 +140,15 @@ const handleKeyPress = (event) => {
         } else {
             login();
         }
+    }
+}
+
+// 处理验证码回车事件
+const handleCaptchaEnter = () => {
+    if (isRegister.value) {
+        register();
+    } else {
+        login();
     }
 }
 </script>
@@ -165,6 +197,10 @@ const handleKeyPress = (event) => {
                             <el-input :prefix-icon="Lock" type="password" placeholder="请再次输入密码"
                                 v-model="registerData.rePassword"></el-input>
                         </el-form-item>
+                        <!-- 图形验证码 -->
+                        <el-form-item>
+                            <Captcha ref="captchaRef" @enter="handleCaptchaEnter" />
+                        </el-form-item>
                         <!-- 注册按钮 -->
                         <el-form-item>
                             <el-button class="submit-btn" type="primary" @click="register">
@@ -187,6 +223,10 @@ const handleKeyPress = (event) => {
                         <el-form-item prop="password">
                             <el-input name="password" :prefix-icon="Lock" type="password" placeholder="请输入密码"
                                 v-model="registerData.password"></el-input>
+                        </el-form-item>
+                        <!-- 图形验证码 -->
+                        <el-form-item>
+                            <Captcha ref="captchaRef" @enter="handleCaptchaEnter" />
                         </el-form-item>
                         <!-- 登录按钮 -->
                         <el-form-item>

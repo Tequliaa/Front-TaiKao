@@ -30,6 +30,11 @@ export const userUpdateService = (userModel)=>{
   return request.put('/user/update', userModel)
 }
 
+//修改用户
+export const userLogoutService = ()=>{
+  return request.post('/user/logout')
+}
+
 //删除用户
 export const userDeleteService = (id) => {
   return request.delete('/user/delete?id='+id)
