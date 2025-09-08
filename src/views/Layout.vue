@@ -1,6 +1,7 @@
 <script setup>
 import {
     Management,
+    Ticket,
     Promotion,
     UserFilled,
     User,
@@ -182,6 +183,14 @@ const handleLogout = () => {
                             <el-icon><Management /></el-icon>
                             <span>用户管理</span>
                         </el-menu-item>
+                        <el-menu-item index="/manage/role" class="mobile-menu-item">
+                            <el-icon><User /></el-icon>
+                            <span>角色管理</span>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/permission" class="mobile-menu-item">
+                            <el-icon><Ticket /></el-icon>
+                            <span>权限管理</span>
+                        </el-menu-item>
                     </template>
 
                     <el-sub-menu index="geren2" class="mobile-submenu">
@@ -266,10 +275,18 @@ const handleLogout = () => {
                         <el-icon><List /></el-icon>
                         <template #title>部门管理</template>
                     </el-menu-item>
-                    <el-menu-item index="/manage/user" class="menu-item">
-                        <el-icon><Management /></el-icon>
-                        <template #title>用户管理</template>
-                    </el-menu-item>
+                        <el-menu-item index="/manage/user" class="menu-item">
+                            <el-icon><Management /></el-icon>
+                            <template #title>用户管理</template>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/role" class="menu-item">
+                            <el-icon><User /></el-icon>
+                            <template #title>角色管理</template>
+                        </el-menu-item>
+                        <el-menu-item index="/manage/permission" class="menu-item">
+                            <el-icon><Ticket /></el-icon>
+                            <template #title>权限管理</template>
+                        </el-menu-item>
                 </template>
 
                 <el-sub-menu index="geren2" class="submenu">
@@ -308,11 +325,11 @@ const handleLogout = () => {
                 </div>
                 <div class="header-right" v-if="!isMobile">
                     <div class="user-info" v-if="!isMobile">
-                        <el-icon class="notification-icon"><Bell /></el-icon>
-                        <div class="department-info">
+                        <!-- <el-icon class="notification-icon"><Bell /></el-icon> -->
+                        <!-- <div class="department-info">
                             <span class="department-label">用户昵称：</span>
                             <span class="user-name">{{ userInfoStore.info.name }}</span>
-                        </div>
+                        </div> -->
                     </div>
                     <el-dropdown placement="bottom-end" @command="handleCommand" class="user-dropdown">
                         <div class="avatar-container">

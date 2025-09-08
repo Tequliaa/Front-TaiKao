@@ -20,6 +20,8 @@ import SurveyStatisticsVue from '@/views/survey/SurveyStatistics.vue'
 import UnfinishedListVue from '@/views/manage/UnfinishedList.vue'
 import SurveyBuilder from '@/views/survey/SurveyBuilder.vue'
 import SurveyPreview from '@/views/survey/SurveyPreview.vue'
+import RoleVue from '@/views/manage/Role.vue'
+import PermissionVue from '@/views/manage/Permission.vue'
 // import SurveyBuild from '@/views/survey/SurveyBuild.vue'
 
 const routes = [
@@ -29,6 +31,8 @@ const routes = [
     component: LayoutVue,
     redirect: '/manage/userSurvey',
     children:[
+      { path: '/manage/role',component:RoleVue},
+      { path: '/manage/permission',component:PermissionVue},
       { path: '/survey/surveyPreview/:surveyId',component:SurveyPreview,props:true,name:'SurveyPreview'},
       { path: '/survey/builder/:surveyId?',component:SurveyBuilder,props:true,name:'SurveyBuilder'},
       { path: '/manage/unfinishedList/:surveyId/:departmentId?/:surveyName?/:departmentName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},

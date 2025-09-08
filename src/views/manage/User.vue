@@ -457,7 +457,7 @@ window.addEventListener('resize', () => {
             <el-table :data="users" style="width: 100%">
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"> </el-table-column>
                 <el-table-column label="用户名称" style="text-align: center;" align="center" prop="name"> </el-table-column>
-                <el-table-column label="角色" style="text-align: center;" align="center" prop="role"></el-table-column>
+                <el-table-column label="角色" style="text-align: center;" align="center" prop="roleName"></el-table-column>
                 <el-table-column label="所属部门" style="text-align: center;" align="center" prop="departmentName"></el-table-column>
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">

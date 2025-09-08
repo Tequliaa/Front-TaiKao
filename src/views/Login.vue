@@ -4,30 +4,37 @@ import { ref } from 'vue'
 import { registerService, loginService } from '@/api/user.js'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-//导入token状态
+// 导入token状态
 import { useTokenStore } from '@/stores/token.js'
-//导入验证码组件
+// 导入验证码组件
 import Captcha from '@/components/Captcha.vue'
 
-//控制注册与登录表单的显示， 默认显示注册
+// 控制注册与登录表单的显示，默认显示注册
 const isRegister = ref(false)
-//用于设置路由切换
+// 用于设置路由切换
 const router = useRouter();
 
-//调用useTokenStore得到状态
+// 调用useTokenStore得到状态
 const tokenStore = useTokenStore();
 
-//验证码组件引用
+// 验证码组件引用
 const captchaRef = ref(null)
 
-//用于注册的数据模型
+// 分离注册和登录数据模型，避免字段混用
 const registerData = ref({
     username: '',
     password: '',
     rePassword: '',
     departmentId: 0
 })
-//自定义确认密码的校验函数
+
+const loginData = ref({
+    username: '',
+    password: '',
+    rememberMe: false
+})
+
+// 自定义确认密码的校验函数
 const rePasswordValid = (rule, value, callback) => {
     if (value == null || value === '') {
         callback(new Error('请再次确认密码'))
@@ -37,7 +44,8 @@ const rePasswordValid = (rule, value, callback) => {
         callback()
     }
 }
-//用于注册的表单校验模型
+
+// 用于注册的表单校验模型
 const registerDataRules = {
     username: [
         { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -53,7 +61,7 @@ const registerDataRules = {
     ]
 }
 
-//用于登录的表单校验模型
+// 用于登录的表单校验模型
 const loginDataRules = {
     username: [
         { required: true, message: '请输入用户名', trigger: 'blur' }
@@ -63,7 +71,7 @@ const loginDataRules = {
     ]
 }
 
-//用于注册的事件函数
+// 用于注册的事件函数
 const register = async () => {
     // 先进行表单验证
     if (!registerData.value.username || !registerData.value.password || !registerData.value.rePassword) {
@@ -85,30 +93,39 @@ const register = async () => {
     if (result.code == 0) {
         ElMessage.success(result.message ? result.message : '注册成功');
         isRegister.value = false;
-        //清空数据模型
+        // 清空数据模型
         clearRegisterData();
-        //刷新验证码
+        // 刷新验证码
         captchaRef.value?.refreshCaptcha()
     } else {
         ElMessage.error(result.message ? result.message : '注册失败!');
-        //注册失败后刷新验证码
+        // 注册失败后刷新验证码
         captchaRef.value?.refreshCaptcha()
     }
 }
 
-//定义函数，清空数据模型的数据
+// 定义函数，清空数据模型的数据
 const clearRegisterData = () => {
     registerData.value = {
         username: '',
         password: '',
-        rePassword: ''
+        rePassword: '',
+        departmentId: 0
     }
 }
 
-//用于登录的事件函数
+const clearLoginData = () => {
+    loginData.value = {
+        username: '',
+        password: '',
+        rememberMe: false
+    }
+}
+
+// 用于登录的事件函数
 const login = async () => {
     // 先进行表单验证
-    if (!registerData.value.username || !registerData.value.password) {
+    if (!loginData.value.username || !loginData.value.password) {
         ElMessage.warning('请填写完整的登录信息');
         return;
     }
@@ -119,15 +136,15 @@ const login = async () => {
         return
     }
     
-    let result = await loginService(registerData.value)
+    let result = await loginService(loginData.value)
     if (result.code == 0) {
-        //保存token
+        // 保存token
         tokenStore.setToken(result.data)
         ElMessage.success(result.message ? result.message : '登录成功!');
         router.push('/manage/userSurvey')
     } else {
         ElMessage.error(result.message ? result.message : '登录失败!');
-        //登录失败后刷新验证码
+        // 登录失败后刷新验证码
         captchaRef.value?.refreshCaptcha()
     }
 }
@@ -184,10 +201,13 @@ const handleCaptchaEnter = () => {
                     </div>
                     
                     <!-- 注册表单 -->
-                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-if="isRegister"
-                        :rules="registerDataRules" class="login-form" @keyup.enter="handleKeyPress">
+                    <el-form ref="registerForm" size="large" autocomplete="off" 
+                        :model="registerData" v-if="isRegister"
+                        :rules="registerDataRules" class="login-form" 
+                        @keyup.enter="handleKeyPress">
                         <el-form-item prop="username">
-                            <el-input :prefix-icon="User" placeholder="请输入用户名" v-model="registerData.username"></el-input>
+                            <el-input :prefix-icon="User" placeholder="请输入用户名" 
+                                v-model="registerData.username"></el-input>
                         </el-form-item>
                         <el-form-item prop="password">
                             <el-input :prefix-icon="Lock" type="password" placeholder="请输入密码"
@@ -209,32 +229,44 @@ const handleCaptchaEnter = () => {
                         </el-form-item>
                         <div class="form-footer">
                             <span>已有账号？</span>
-                            <el-link type="primary" :underline="false" @click="isRegister = false; clearRegisterData();">
+                            <el-link type="primary" :underline="false" 
+                                @click="isRegister = false; clearRegisterData();">
                                 立即登录
                             </el-link>
                         </div>
                     </el-form>
 
                     <!-- 登录表单 -->
-                    <el-form ref="form" size="large" autocomplete="off" :model="registerData" v-else :rules="loginDataRules" class="login-form" @keyup.enter="handleKeyPress">
+                    <el-form ref="loginForm" size="large" autocomplete="off" 
+                        :model="loginData" v-else :rules="loginDataRules" 
+                        class="login-form" @keyup.enter="handleKeyPress">
                         <el-form-item prop="username">
-                            <el-input :prefix-icon="User" placeholder="请输入用户名" v-model="registerData.username"></el-input>
+                            <el-input :prefix-icon="User" placeholder="请输入用户名" 
+                                v-model="loginData.username"></el-input>
                         </el-form-item>
                         <el-form-item prop="password">
-                            <el-input name="password" :prefix-icon="Lock" type="password" placeholder="请输入密码"
-                                v-model="registerData.password"></el-input>
+                            <el-input name="password" :prefix-icon="Lock" type="password" 
+                                placeholder="请输入密码" v-model="loginData.password"></el-input>
                         </el-form-item>
                         <!-- 图形验证码 -->
                         <el-form-item>
                             <Captcha ref="captchaRef" @enter="handleCaptchaEnter" />
                         </el-form-item>
+                        <el-form-item class="remember-me-item">
+                            <el-checkbox v-model="loginData.rememberMe">
+                                记住我（7天内免登录）
+                            </el-checkbox>
+                        </el-form-item>
                         <!-- 登录按钮 -->
                         <el-form-item>
-                            <el-button class="submit-btn" type="primary" @click="login">登录</el-button>
+                            <el-button class="submit-btn" type="primary" @click="login">
+                                登录
+                            </el-button>
                         </el-form-item>
                         <div class="form-footer">
                             <span>没有账号？</span>
-                            <el-link type="primary" :underline="false" @click="isRegister = true; clearRegisterData();">
+                            <el-link type="primary" :underline="false" 
+                                @click="isRegister = true; clearLoginData();">
                                 立即注册
                             </el-link>
                         </div>
@@ -328,21 +360,22 @@ const handleCaptchaEnter = () => {
     margin-bottom: 30px;
     
     h2 {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 600;
-        color: #303133;
+        color: #2c3e50;
         margin-bottom: 8px;
     }
     
     p {
-        font-size: 14px;
-        color: #909399;
+        font-size: 13px;
+        color: #999;
+        margin-top: 5px;
     }
 }
 
 .login-form {
     .el-form-item {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
     
     .el-input {
@@ -375,13 +408,37 @@ const handleCaptchaEnter = () => {
         font-size: 16px;
         font-weight: 500;
         margin-top: 10px;
-        background: linear-gradient(90deg, #409EFF 0%, #3a8ee6 100%);
+        background: linear-gradient(90deg, #409EFF 0%, #66b1ff 100%);
         border: none;
         transition: all 0.3s;
         
         &:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+        }
+        
+        &:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+        }
+    }
+}
+
+// 记住我样式
+.remember-me-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 2px;
+    
+    :deep(.el-checkbox) {
+        font-size: 14px;
+        color: #606266;
+        transition: color 0.3s;
+        
+        &:hover {
+            color: #409EFF;
+            cursor: pointer;
         }
     }
 }
