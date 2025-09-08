@@ -32,11 +32,21 @@ const loading = ref(true)
 // 添加问题显示状态控制
 const visibleQuestions = ref(new Set())
 
-// 添加一个计算属性来检查用户角色
-const canHitBack = computed(() => {
-    return userInfoStore.info && 
-           userInfoStore.info.role && 
-           userInfoStore.info.role !== '普通用户'
+// 导入权限检查
+import { usePermission, PERMISSIONS } from '@/utils/permission.js'
+const { hasPermission } = usePermission()
+
+// 添加一个计算属性来检查用户权限
+const canHitBack = ref(false)
+
+// 检查权限
+const checkHitBackPermission = async () => {
+    canHitBack.value = await hasPermission(PERMISSIONS.RESPONSE_DELETE)
+}
+
+// 在组件挂载时检查权限
+onMounted(() => {
+    checkHitBackPermission()
 })
 
 // 添加分类展示相关的计算属性

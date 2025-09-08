@@ -13,7 +13,8 @@ import locale from 'element-plus/dist/locale/zh-cn.js'
 
 import App from './App.vue'
 import router from './router'
-
+// 导入权限指令
+import { permission, role } from './directives/permission.js'
 
 const app = createApp(App)
 
@@ -27,5 +28,14 @@ app.use(router)
 
 // 使用中文语言包
 app.use(ElementPlus,{locale})
+
+// 注册权限指令
+app.directive('permission', permission)
+app.directive('role', role)
+
+// 在开发环境下测试权限系统
+if (import.meta.env.DEV) {
+  import('./utils/testPermission.js')
+}
 
 app.mount('#app')

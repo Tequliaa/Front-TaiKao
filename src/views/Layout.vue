@@ -19,7 +19,7 @@ import {
     Fold
 } from '@element-plus/icons-vue'
 import avatar from '@/assets/default.png'
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 //导入接口函数
 import { userInfoGetService,userLogoutService } from '@/api/user.js'
 //导入pinia
@@ -27,13 +27,17 @@ import { useUserInfoStore } from '@/stores/user.js'
 const userInfoStore = useUserInfoStore();
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTokenStore } from '@/stores/token.js'
+import { usePermission, PERMISSIONS } from '@/utils/permission.js'
 const tokenStore = useTokenStore()
+const { hasPermission, hasAnyPermission } = usePermission()
 
 //获取个人信息
 const getUserInf = async () => {
     let result = await userInfoGetService();
     //存储pinia
     userInfoStore.info = result.data;
+    // 用户信息更新后重新检查权限
+    await refreshPermissions();
 }
 
 //获取用户基本信息
@@ -102,7 +106,7 @@ const handleResize = () => {
 }
 
 // 在组件挂载时添加窗口大小变化监听
-onMounted(() => {
+onMounted(async () => {
     // 初始化时检查窗口大小
     handleResize()
     // 强制重新计算布局
@@ -114,12 +118,122 @@ onMounted(() => {
         }, 100)
     })
     window.addEventListener('resize', handleResize)
+    
+    // 检查权限 - 现在 getUserInf 中会自动调用 refreshPermissions
 })
 
 // 在组件卸载时移除监听
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
 })
+
+// 权限状态
+const permissionState = reactive({
+    canManageSurvey: false,
+    canCreateSurvey: false,
+    canEditSurvey: false,
+    canDeleteSurvey: false,
+    canPublishSurvey: false,
+    canViewSurveyStats: false,
+    
+    canManageUser: false,
+    canCreateUser: false,
+    canEditUser: false,
+    canDeleteUser: false,
+    canImportUser: false,
+    canExportUser: false,
+    
+    canManageDepartment: false,
+    canCreateDepartment: false,
+    canEditDepartment: false,
+    canDeleteDepartment: false,
+    
+    canManageRole: false,
+    canCreateRole: false,
+    canEditRole: false,
+    canDeleteRole: false,
+    canAssignRole: false,
+    
+    canManagePermission: false,
+    canViewPermission: false,
+    
+    canManageCategory: false,
+    canManageQuestion: false,
+    canManageOption: false,
+    
+    canManageResponse: false,
+    canExportResponse: false,
+    canDeleteResponse: false
+})
+
+// 检查权限
+const checkPermissions = async () => {
+    try {
+        const { hasPermission } = usePermission()
+        
+        // 检查问卷管理权限
+        permissionState.canManageSurvey = await hasPermission(PERMISSIONS.SURVEY_VIEW)
+        permissionState.canCreateSurvey = await hasPermission(PERMISSIONS.SURVEY_CREATE)
+        permissionState.canEditSurvey = await hasPermission(PERMISSIONS.SURVEY_EDIT)
+        permissionState.canDeleteSurvey = await hasPermission(PERMISSIONS.SURVEY_DELETE)
+        permissionState.canPublishSurvey = await hasPermission(PERMISSIONS.SURVEY_PUBLISH)
+        permissionState.canViewSurveyStats = await hasPermission(PERMISSIONS.SURVEY_STATISTICS)
+        
+        // 检查用户管理权限
+        permissionState.canManageUser = await hasPermission(PERMISSIONS.USER_VIEW)
+        permissionState.canCreateUser = await hasPermission(PERMISSIONS.USER_CREATE)
+        permissionState.canEditUser = await hasPermission(PERMISSIONS.USER_EDIT)
+        permissionState.canDeleteUser = await hasPermission(PERMISSIONS.USER_DELETE)
+        permissionState.canImportUser = await hasPermission(PERMISSIONS.USER_IMPORT)
+        permissionState.canExportUser = await hasPermission(PERMISSIONS.USER_EXPORT)
+        
+        // 检查部门管理权限
+        permissionState.canManageDepartment = await hasPermission(PERMISSIONS.DEPARTMENT_VIEW)
+        permissionState.canCreateDepartment = await hasPermission(PERMISSIONS.DEPARTMENT_CREATE)
+        permissionState.canEditDepartment = await hasPermission(PERMISSIONS.DEPARTMENT_EDIT)
+        permissionState.canDeleteDepartment = await hasPermission(PERMISSIONS.DEPARTMENT_DELETE)
+        
+        // 检查角色管理权限
+        permissionState.canManageRole = await hasPermission(PERMISSIONS.ROLE_VIEW)
+        permissionState.canCreateRole = await hasPermission(PERMISSIONS.ROLE_CREATE)
+        permissionState.canEditRole = await hasPermission(PERMISSIONS.ROLE_EDIT)
+        permissionState.canDeleteRole = await hasPermission(PERMISSIONS.ROLE_DELETE)
+        permissionState.canAssignRole = await hasPermission(PERMISSIONS.ROLE_ASSIGN)
+        
+        // 检查权限管理权限
+        permissionState.canViewPermission = await hasPermission(PERMISSIONS.PERMISSION_VIEW)
+        permissionState.canManagePermission = await hasPermission(PERMISSIONS.PERMISSION_MANAGE)
+        
+        // 检查分类管理权限
+        permissionState.canManageCategory = await hasPermission(PERMISSIONS.CATEGORY_VIEW)
+        
+        // 检查问题管理权限
+        permissionState.canManageQuestion = await hasPermission(PERMISSIONS.QUESTION_VIEW)
+        
+        // 检查选项管理权限
+        permissionState.canManageOption = await hasPermission(PERMISSIONS.OPTION_VIEW)
+        
+        // 检查响应管理权限
+        permissionState.canManageResponse = await hasPermission(PERMISSIONS.RESPONSE_VIEW)
+        permissionState.canExportResponse = await hasPermission(PERMISSIONS.RESPONSE_EXPORT)
+        permissionState.canDeleteResponse = await hasPermission(PERMISSIONS.RESPONSE_DELETE)
+    } catch (error) {
+        console.error('权限检查失败:', error)
+    }
+}
+
+// 刷新权限 - 清除缓存并重新检查权限
+const refreshPermissions = async () => {
+    try {
+        const { clearCache } = usePermission()
+        // 清除权限缓存
+        clearCache()
+        // 重新检查权限
+        await checkPermissions()
+    } catch (error) {
+        console.error('刷新权限失败:', error)
+    }
+}
 
 // 添加退出登录处理函数
 const handleLogout = () => {
@@ -148,46 +262,46 @@ const handleLogout = () => {
                     </el-menu-item>
 
                     <!-- 管理员菜单 -->
-                    <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'||userInfoStore.info.role === '普通用户'">
-                        <el-sub-menu index="geren1" class="mobile-submenu">
+                    <template v-if="permissionState.canManageSurvey || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
+                        <el-sub-menu v-if="permissionState.canManageSurvey || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="mobile-submenu">
                             <template #title>
                                 <el-icon><Menu /></el-icon>
                                 <span>问卷管理</span>
                             </template>
-                            <el-menu-item index="/survey/survey" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/survey" class="mobile-submenu-item">
                                 <el-icon><User /></el-icon>
                                 <span>问卷管理</span>
                             </el-menu-item>
-                            <el-menu-item index="/survey/builder" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/builder" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
                                 <span>问卷构建器</span>
                             </el-menu-item>
-                            <el-menu-item index="/manage/category" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageCategory" index="/manage/category" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
                                 <span>分类管理</span>
                             </el-menu-item>
-                            <el-menu-item index="/manage/question" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageQuestion" index="/manage/question" class="mobile-submenu-item">
                                 <el-icon><Crop /></el-icon>
                                 <span>问题管理</span>
                             </el-menu-item>
-                            <el-menu-item index="/manage/option" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageOption" index="/manage/option" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
                                 <span>选项管理</span>
                             </el-menu-item>
                         </el-sub-menu>
-                        <el-menu-item index="/manage/department" class="mobile-menu-item">
+                        <el-menu-item v-if="permissionState.canManageDepartment" index="/manage/department" class="mobile-menu-item">
                             <el-icon><List /></el-icon>
                             <span>部门管理</span>
                         </el-menu-item>
-                        <el-menu-item index="/manage/user" class="mobile-menu-item">
+                        <el-menu-item v-if="permissionState.canManageUser" index="/manage/user" class="mobile-menu-item">
                             <el-icon><Management /></el-icon>
                             <span>用户管理</span>
                         </el-menu-item>
-                        <el-menu-item index="/manage/role" class="mobile-menu-item">
+                        <el-menu-item v-if="permissionState.canManageRole" index="/manage/role" class="mobile-menu-item">
                             <el-icon><User /></el-icon>
                             <span>角色管理</span>
                         </el-menu-item>
-                        <el-menu-item index="/manage/permission" class="mobile-menu-item">
+                        <el-menu-item v-if="permissionState.canManagePermission" index="/manage/permission" class="mobile-menu-item">
                             <el-icon><Ticket /></el-icon>
                             <span>权限管理</span>
                         </el-menu-item>
@@ -246,44 +360,43 @@ const handleLogout = () => {
                             <template #title>问卷构建器</template>
                         </el-menu-item>
                 <!-- 管理员菜单 -->
-                <!-- <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'"> -->
-                <template v-if="userInfoStore.info.role === '超级管理员'||userInfoStore.info.role === '普通管理员'||userInfoStore.info.role === '普通用户'">
-                    <el-sub-menu index="geren1" class="submenu">
+                <template v-if="permissionState.canManageSurvey || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
+                    <el-sub-menu v-if="permissionState.canManageSurvey || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="submenu">
                         <template #title>
                             <el-icon><Menu /></el-icon>
                             <span>问卷管理</span>
                         </template>
-                        <el-menu-item index="/survey/survey" class="submenu-item">
+                        <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/survey" class="submenu-item">
                             <el-icon><User /></el-icon>
                             <template #title>问卷管理</template>
                         </el-menu-item>
 
-                        <el-menu-item index="/manage/category" class="submenu-item">
+                        <el-menu-item v-if="permissionState.canManageCategory" index="/manage/category" class="submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <template #title>分类管理</template>
                         </el-menu-item>
-                        <el-menu-item index="/manage/question" class="submenu-item">
+                        <el-menu-item v-if="permissionState.canManageQuestion" index="/manage/question" class="submenu-item">
                             <el-icon><Crop /></el-icon>
                             <template #title>问题管理</template>
                         </el-menu-item>
-                        <el-menu-item index="/manage/option" class="submenu-item">
+                        <el-menu-item v-if="permissionState.canManageOption" index="/manage/option" class="submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <template #title>选项管理</template>
                         </el-menu-item>
                     </el-sub-menu>
-                    <el-menu-item index="/manage/department" class="menu-item">
+                    <el-menu-item v-if="permissionState.canManageDepartment" index="/manage/department" class="menu-item">
                         <el-icon><List /></el-icon>
                         <template #title>部门管理</template>
                     </el-menu-item>
-                        <el-menu-item index="/manage/user" class="menu-item">
+                        <el-menu-item v-if="permissionState.canManageUser" index="/manage/user" class="menu-item">
                             <el-icon><Management /></el-icon>
                             <template #title>用户管理</template>
                         </el-menu-item>
-                        <el-menu-item index="/manage/role" class="menu-item">
+                        <el-menu-item v-if="permissionState.canManageRole" index="/manage/role" class="menu-item">
                             <el-icon><User /></el-icon>
                             <template #title>角色管理</template>
                         </el-menu-item>
-                        <el-menu-item index="/manage/permission" class="menu-item">
+                        <el-menu-item v-if="permissionState.canManagePermission" index="/manage/permission" class="menu-item">
                             <el-icon><Ticket /></el-icon>
                             <template #title>权限管理</template>
                         </el-menu-item>

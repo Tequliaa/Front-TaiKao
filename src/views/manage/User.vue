@@ -12,6 +12,7 @@ import { userListService, userUpdateService, userDeleteService, userExportServic
 import { getAllSurveysService } from '@/api/department.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
+import { getAllRolesService } from '@/api/role.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
 import LoadingWrapper from '@/components/LoadingWrapper.vue'
@@ -94,14 +95,29 @@ const getAllDepartments = async () => {
     }
 }
 
+// 获取所有角色数据的方法
+const getAllRoles = async () => {
+    try {
+        let result = await getAllRolesService();
+        // 根据后端Role实体类结构，将数据转换为select组件需要的格式
+        roles.value = result.data.map(role => ({
+            value: role.id,
+            label: role.name
+        }));
+    } catch (error) {
+        ElMessage.error('获取角色列表失败')
+    }
+}
+
 // 初始化数据
 const initData = async () => {
     loading.value = true
     try {
         await Promise.all([
-            getUserInf(),
+            // getUserInf(),
             getUsers(),
-            getAllDepartments()
+            getAllDepartments(),
+            getAllRoles()
         ])
     } finally {
         loading.value = false
@@ -123,20 +139,7 @@ onMounted(() => {
 })
 
 // 用户角色
-const roles = [
-  {
-    value: '普通用户',
-    label: '普通用户',
-  },
-  {
-    value: '普通管理员',
-    label: '普通管理员',
-  },
-  {
-    value: '超级管理员',
-    label: '超级管理员',
-  }
-]
+const roles = ref([])
 
 
 //控制添加用户弹窗
@@ -176,7 +179,8 @@ const updateUserEcho = (row) => {
     dialogVisible.value = true
     //将row中的数据赋值给userModel
     userModel.value.name = row.name
-    userModel.value.role = row.role
+    // 根据后端返回的数据结构，使用roleId或role作为角色ID
+    userModel.value.role = row.roleId || row.role
     userModel.value.departmentId = row.departmentId
     //修改的时候必须传递用户的id，所以扩展一个id属性
     userModel.value.id = row.id
@@ -440,12 +444,12 @@ window.addEventListener('resize', () => {
                         />
 
                         <!-- 显示的导入按钮 -->
-                        <el-button type="primary" class="action-button" @click="showImportDialog">
+                        <el-button v-permission="'user:import'" type="primary" class="action-button" @click="showImportDialog">
                             <el-icon><Upload /></el-icon>
                             {{ props.departmentName }}导入
                         </el-button>
 
-                            <el-button type="primary" @click="exportUsers" class="action-button">
+                            <el-button v-permission="'user:export'" type="primary" @click="exportUsers" class="action-button">
                                 <el-icon><Download /></el-icon>
                                 导出
                             </el-button>
@@ -462,13 +466,13 @@ window.addEventListener('resize', () => {
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
+                            <el-button v-permission="'user:view'" :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
-                            <el-button :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>
+                            <el-button v-permission="'user:edit'" :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
-                            <el-button :icon="Delete" circle plain type="danger" @click="deleteUser(row)"></el-button>
+                            <el-button v-permission="'user:delete'" :icon="Delete" circle plain type="danger" @click="deleteUser(row)"></el-button>
                         </el-tooltip>          
                     </template>
                 </el-table-column>
@@ -500,7 +504,7 @@ window.addEventListener('resize', () => {
 
                 <el-form-item label="用户角色">
                     <el-select v-model="userModel.role" clearable placeholder="请选择用户角色">
-                        <el-option v-for="item in roles" :key="item.value" :label="item.value" :value="item.value"/>
+                        <el-option v-for="item in roles" :key="item.value" :label="item.label" :value="item.value"/>
                     </el-select>
                 </el-form-item>
 

@@ -9,8 +9,8 @@ import { ref } from 'vue'
 import LoadingWrapper from '@/components/LoadingWrapper.vue'
 import { useRouter } from 'vue-router'
 
-//部门列表查询
-import { departmentListService, departmentAddService, departmentDelService, departmentUpdateService } from '@/api/department.js'
+//权限列表查询
+import { permissionListService, permissionAddService, permissionDeleteService, permissionUpdateService } from '@/api/permission.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -36,12 +36,13 @@ const getUserInf = async () => {
 //获取用户基本信息
 getUserInf()
 
-//部门数据模型
-const departments = ref([
+//权限数据模型
+const permissions = ref([
     {
         "id": 1,
-        "name": "早餐调查部门",
-        "description": "张三",
+        "name": "查看问卷",
+        "permissionCode": "survey:view",
+        "comment": "查看问卷列表和详情",
     }
 ])
 
@@ -54,22 +55,21 @@ const keyword = ref('')
 // 添加加载状态
 const loading = ref(true)
 
-// 修改获取部门数据的方法
-const getDepartments = async () => {
+// 修改获取权限数据的方法
+const getPermissions = async () => {
     try {
         let params = {
-            userId: userInfoStore.info.id,
             keyword: keyword.value,
             pageNum: pageNum.value,
             pageSize: pageSize.value
         }
-        let result = await departmentListService(params);
+        let result = await permissionListService(params);
         //渲染总条数
         total.value = result.data.totalCount
         //渲染列表数据
-        departments.value = result.data.departments
+        permissions.value = result.data.permissions
     } catch (error) {
-        ElMessage.error('获取部门列表失败')
+        ElMessage.error('获取权限列表失败')
     }
 }
 
@@ -79,7 +79,7 @@ const initData = async () => {
     try {
         await Promise.all([
             getUserInf(),
-            getDepartments()
+            getPermissions()
         ])
     } finally {
         loading.value = false
@@ -100,58 +100,57 @@ onMounted(() => {
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getDepartments();
+    getPermissions();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getDepartments()
+    getPermissions()
 }
 
-//在department.vue中标识是添加部门还是编辑部门
-const addDepartmentFlag = ref(true);
+//在permission.vue中标识是添加权限还是编辑权限
+const addPermissionFlag = ref(true);
 
 //控制抽屉是否显示
 const visibleDrawer = ref(false)
 
 //添加表单数据模型
-const departmentModel = ref({
+const permissionModel = ref({
     id: '',
     name: '',
+    permissionCode: '',
     description:'',
-    userId: '',
 })
 
-//打开添加部门窗口
+//打开添加权限窗口
 const openAddDialog = () => {
-    departmentModel.value = {};
+    permissionModel.value = {};
     visibleDrawer.value = true;
-    addDepartmentFlag.value = true;
+    addPermissionFlag.value = true;
        // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
        nextTick(() => {
         const editor = document.querySelector('.ql-editor');
         if (editor) editor.innerHTML = ''; // 清空编辑器内容
     });
-    console.log('departmentModel: '+departmentModel.value.description)
 }
 
-//添加部门处理逻辑
-const addDepartment = async () => {
-    let result = await departmentAddService(departmentModel.value,userInfoStore.info.id);
+//添加权限处理逻辑
+const addPermission = async () => {
+    let result = await permissionAddService(permissionModel.value);
     ElMessage.success(result.message ? result.message : '添加成功')
-    //再次调用getDepartments,获取部门
-    getDepartments()
+    //再次调用getPermissions,获取权限
+    getPermissions()
     //隐藏抽屉
     visibleDrawer.value = false
 
     //清空页面数据
-    departmentModel.value = {};
+    permissionModel.value = {};
 }
 
-//删除部门
-const delDepartment = async (row) => {
+//删除权限
+const delPermission = async (row) => {
     ElMessageBox.confirm(
-        '你确认删除该部门吗？',
+        '你确认删除该权限吗？',
         '温馨提示',
         {
             confirmButtonText: '确认',
@@ -161,13 +160,13 @@ const delDepartment = async (row) => {
     )
         .then(async () => {
             //用户点击了确认
-            let result = await departmentDelService(row.id);
+            let result = await permissionDeleteService(row.id);
             ElMessage({
                 type: 'success',
                 message: '删除成功',
             })
-            //再次调用再次调用getDepartments()，获取部门
-            getDepartments()
+            //再次调用再次调用getPermissions()，获取权限
+            getPermissions()
         })
         .catch(() => {
             //用户点击了取消
@@ -179,35 +178,33 @@ const delDepartment = async (row) => {
     
 }
 
-//修改部门回显
-const editDepartmentEcho = (row) => {
+//修改权限回显
+const editPermissionEcho = (row) => {
     //操作改为编辑
-    addDepartmentFlag.value = false;
+    addPermissionFlag.value = false;
     //显示抽屉
     visibleDrawer.value = true
-    departmentModel.value = row;
-    // console.log('departmentModel: '+departmentModel.value.description)
+    permissionModel.value = row;
 }
 
-//修改部门
-const editDepartment = async () => {
-    departmentModel.value.userId = userInfoStore.info.id
-    let result = await departmentUpdateService(departmentModel.value);
+//修改权限
+const editPermission = async () => {
+    let result = await permissionUpdateService(permissionModel.value);
     ElMessage.success(result.message ? result.message : '修改成功')
-    //再次调用getDepartments,获取部门
-    getDepartments()
+    //再次调用getPermissions,获取权限
+    getPermissions()
     //隐藏抽屉
     visibleDrawer.value = false
 
     //清空页面数据
-    departmentModel.value = {};
+    permissionModel.value = {};
 }
 
 import { debounce } from 'lodash';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
-    getDepartments()
+    getPermissions()
     }, 500);  // 延时 500ms
 
 const getPlainText = (htmlContent)=> {
@@ -217,15 +214,9 @@ const getPlainText = (htmlContent)=> {
       return div.textContent || div.innerText || '';
     }
 
-// 查看部门用户
-const viewDepartment = (row) => {
-    router.push({
-        name: 'User',
-        params: {
-            departmentId: row.id,
-            departmentName:row.name
-        }
-    })
+// 查看权限详情（暂时不实现）
+const viewPermission = (row) => {
+    console.log('查看权限详情:', row)
 }
 
 // 检测是否为移动设备
@@ -247,35 +238,36 @@ window.addEventListener('resize', () => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>部门管理</span>
+                    <span>权限管理</span>
                     <div class="extra">
-                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入部门名称或描述" />
-                        <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加部门</el-button>
+                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入权限名称或代码" />
+                        <el-button v-permission="'permission:manage'" type="primary" @click="openAddDialog()" class="hide-on-mobile">添加权限</el-button>
                     </div>
                 </div>
             </template>
 
-            <!-- 部门列表 -->
-            <el-table :data="departments" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="departmentId"></el-table-column> -->
+            <!-- 权限列表 -->
+            <el-table :data="permissions" style="width: 100%">
+                <!-- <el-table-column label="序号" prop="permissionId"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                <el-table-column label="部门名称" style="text-align: center;" align="center" prop="name"></el-table-column>
-                <el-table-column label="部门介绍" style="text-align: center;" align="center">
+                <el-table-column label="权限名称" style="text-align: center;" align="center" prop="name"></el-table-column>
+                <el-table-column label="权限代码" style="text-align: center;" align="center" prop="permissionCode"></el-table-column>
+                <el-table-column label="权限描述" style="text-align: center;" align="center">
                 <template #default="scope">
-                    <!-- 通过 row.description 获取每行数据的部门介绍，并去掉 HTML 标签 -->
-                    <span>{{ getPlainText(scope.row.description) }}</span>
+                    <!-- 通过 row.comment 获取每行数据的权限描述，并去掉 HTML 标签 -->
+                    <span>{{ getPlainText(scope.row.comment) }}</span>
                 </template>
                 </el-table-column>
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary" @click="viewDepartment(row)"></el-button>
+                            <el-button v-permission="'permission:view'" :icon="Pointer" circle plain type="primary" @click="viewPermission(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
-                            <el-button :icon="Edit" circle plain type="primary" @click="editDepartmentEcho(row)"></el-button>
+                            <el-button v-permission="'permission:manage'" :icon="Edit" circle plain type="primary" @click="editPermissionEcho(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
-                            <el-button :icon="Delete" circle plain type="danger" @click="delDepartment(row)"></el-button>
+                            <el-button v-permission="'permission:manage'" :icon="Delete" circle plain type="danger" @click="delPermission(row)"></el-button>
                         </el-tooltip>          
                     </template>
                 </el-table-column>
@@ -302,20 +294,23 @@ window.addEventListener('resize', () => {
 
 
     <!-- 抽屉 -->
-    <el-drawer v-model="visibleDrawer" :title="addDepartmentFlag ? '添加部门' : '编辑部门'" direction="rtl" size="50%">
-        <!-- 添加部门表单 -->
-        <el-form :model="departmentModel" label-width="100px">
-            <el-form-item label="部门名称">
-                <el-input v-model="departmentModel.name" placeholder="请输入部门名称"></el-input>
+    <el-drawer v-model="visibleDrawer" :title="addPermissionFlag ? '添加权限' : '编辑权限'" direction="rtl" size="50%">
+        <!-- 添加权限表单 -->
+        <el-form :model="permissionModel" label-width="100px">
+            <el-form-item label="权限名称">
+                <el-input v-model="permissionModel.name" placeholder="请输入权限名称"></el-input>
             </el-form-item>
-            <el-form-item label="部门描述">
+            <el-form-item label="权限代码">
+                <el-input v-model="permissionModel.permissionCode" placeholder="请输入权限代码，如：survey:view"></el-input>
+            </el-form-item>
+            <el-form-item label="权限描述">
                 <div class="editor">
-                    <quill-editor theme="snow" v-model:content="departmentModel.description" contentType="html">
+                    <quill-editor theme="snow" v-model:content="permissionModel.comment" contentType="html">
                     </quill-editor>
                 </div>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="addDepartmentFlag ? addDepartment() : editDepartment()">{{ addDepartmentFlag ?
+                <el-button type="primary" @click="addPermissionFlag ? addPermission() : editPermission()">{{ addPermissionFlag ?
                         "添加" :
                         "修改" }}</el-button>
                 <el-button type="info" @click="visibleDrawer = false">取消</el-button>

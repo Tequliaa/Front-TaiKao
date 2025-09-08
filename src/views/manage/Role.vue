@@ -3,7 +3,8 @@ import {
     Edit,
     Delete,
     Pointer,
-    Connection
+    Connection,
+    Setting
 } from '@element-plus/icons-vue'
 import { nextTick, onMounted,computed, watch ,reactive} from 'vue';
 import { ref } from 'vue'
@@ -19,6 +20,8 @@ import { useUserInfoStore } from '@/stores/user.js'
 import { assignRoleToDepartment } from '@/api/role.js'
 //导入部门接口
 import { departmentListService } from '@/api/department.js'
+//导入权限接口
+import { getAllPermissionsService, getPermissionsByRoleIdService, assignRolePermissionsService } from '@/api/permission.js'
 
 //富文本编辑器
 import { QuillEditor } from '@vueup/vue-quill'
@@ -84,7 +87,8 @@ const initData = async () => {
         await Promise.all([
             getUserInf(),
             getRoles(),
-            getDepartments()
+            getDepartments(),
+            getAllPermissions()
         ])
     } finally {
         loading.value = false
@@ -205,6 +209,27 @@ const assignRole = async () => {
     assignForm.value = {};
 }
 
+// 打开权限分配对话框
+const openPermissionDialog = async (row) => {
+    currentRole.value = row
+    permissionDialogVisible.value = true
+    
+    // 获取角色当前权限
+    const rolePermissions = await getRolePermissions(row.id)
+    selectedPermissions.value = rolePermissions.map(p => p.id)
+}
+
+// 保存角色权限
+const saveRolePermissions = async () => {
+    try {
+        await assignRolePermissionsService(currentRole.value.id, selectedPermissions.value)
+        ElMessage.success('权限分配成功')
+        permissionDialogVisible.value = false
+    } catch (error) {
+        ElMessage.error('权限分配失败')
+    }
+}
+
 //修改角色回显
 const editRoleEcho = (row) => {
     //操作改为编辑
@@ -271,6 +296,14 @@ const assignForm = ref({
 // 部门列表数据模型
 const departments = ref([])
 
+// 所有权限列表
+const allPermissions = ref([])
+
+// 角色权限分配对话框
+const permissionDialogVisible = ref(false)
+const currentRole = ref({})
+const selectedPermissions = ref([])
+
 // 表单标签宽度
 const formLabelWidth = '100px'
 
@@ -286,6 +319,27 @@ const getDepartments = async () => {
         departments.value = result.data.departments || []
     } catch (error) {
         ElMessage.error('获取部门列表失败')
+    }
+}
+
+// 获取所有权限
+const getAllPermissions = async () => {
+    try {
+        let result = await getAllPermissionsService();
+        allPermissions.value = result.data || []
+    } catch (error) {
+        ElMessage.error('获取权限列表失败')
+    }
+}
+
+// 获取角色权限
+const getRolePermissions = async (roleId) => {
+    try {
+        let result = await getPermissionsByRoleIdService(roleId);
+        return result.data || []
+    } catch (error) {
+        ElMessage.error('获取角色权限失败')
+        return []
     }
 }
 
@@ -306,7 +360,7 @@ window.addEventListener('resize', () => {
                     <span>角色管理</span>
                     <div class="extra">
                         <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入角色名称或描述" />
-                        <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加角色</el-button>
+                        <el-button v-permission="'role:create'" type="primary" @click="openAddDialog()" class="hide-on-mobile">添加角色</el-button>
                     </div>
                 </div>
             </template>
@@ -322,19 +376,22 @@ window.addEventListener('resize', () => {
                     <span> {{ getPlainText(scope.row.comment) }} </span>
                 </template>
                 </el-table-column>
-                <el-table-column label="操作" style="text-align: center;" align="center" width="200px">
+                <el-table-column label="操作" style="text-align: center;" align="center" width="250px">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Connection" circle plain type="primary" @click="viewRole(row)"></el-button>
+                            <el-button v-permission="'role:view'" :icon="Connection" circle plain type="primary" @click="viewRole(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="分发角色" placement="top">
-                                <el-button :icon="Pointer" circle plain type="primary" @click="assignRoleEcho(row)"></el-button>
+                                <el-button v-permission="'role:assign'" :icon="Pointer" circle plain type="primary" @click="assignRoleEcho(row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="分配权限" placement="top">
+                            <el-button v-permission="'role:assign'" :icon="Setting" circle plain type="success" @click="openPermissionDialog(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
-                            <el-button :icon="Edit" circle plain type="primary" @click="editRoleEcho(row)"></el-button>
+                            <el-button v-permission="'role:edit'" :icon="Edit" circle plain type="primary" @click="editRoleEcho(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
-                            <el-button :icon="Delete" circle plain type="danger" @click="delRole(row)"></el-button>
+                            <el-button v-permission="'role:delete'" :icon="Delete" circle plain type="danger" @click="delRole(row)"></el-button>
                         </el-tooltip>          
                     </template>
                 </el-table-column>
@@ -384,6 +441,43 @@ window.addEventListener('resize', () => {
         </template>
     </el-dialog>
 
+    <!-- 权限分配对话框 -->
+    <el-dialog 
+        class="custom-dialog" 
+        v-model="permissionDialogVisible" 
+        title="分配权限" 
+        :width="isMobile ? '300px' : '600px'"
+        :style="{ '--el-dialog-width': isMobile ? '300px' : '600px' }">
+        <div class="permission-assignment">
+            <div class="role-info">
+                <h4>角色：{{ currentRole.name }}</h4>
+                <p>{{ currentRole.comment }}</p>
+            </div>
+            <el-divider />
+            <div class="permission-list">
+                <h4>选择权限：</h4>
+                <el-checkbox-group v-model="selectedPermissions" class="permission-checkboxes">
+                    <el-checkbox 
+                        v-for="permission in allPermissions" 
+                        :key="permission.id" 
+                        :label="permission.id"
+                        class="permission-checkbox">
+                        <div class="permission-item">
+                            <div class="permission-name">{{ permission.name }}</div>
+                            <div class="permission-code">{{ permission.code }}</div>
+                            <div class="permission-desc">{{ permission.description }}</div>
+                        </div>
+                    </el-checkbox>
+                </el-checkbox-group>
+            </div>
+        </div>
+        <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="permissionDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveRolePermissions">确认分配</el-button>
+            </div>
+        </template>
+    </el-dialog>
 
     <!-- 抽屉 -->
     <el-drawer v-model="visibleDrawer" :title="addRoleFlag ? '添加角色' : '编辑角色'" direction="rtl" size="50%">
@@ -516,6 +610,83 @@ window.addEventListener('resize', () => {
 
     :deep(.ql-editor) {
         min-height: 200px;
+    }
+}
+
+/* 权限分配对话框样式 */
+.permission-assignment {
+    .role-info {
+        margin-bottom: 20px;
+        
+        h4 {
+            margin: 0 0 8px 0;
+            color: #303133;
+        }
+        
+        p {
+            margin: 0;
+            color: #606266;
+            font-size: 14px;
+        }
+    }
+    
+    .permission-list {
+        h4 {
+            margin: 0 0 16px 0;
+            color: #303133;
+        }
+        
+        .permission-checkboxes {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 12px;
+            
+            .permission-checkbox {
+                display: block;
+                margin-bottom: 12px;
+                padding: 8px;
+                border: 1px solid #f0f0f0;
+                border-radius: 4px;
+                transition: all 0.3s;
+                
+                &:hover {
+                    background-color: #f5f7fa;
+                    border-color: #c0c4cc;
+                }
+                
+                &.is-checked {
+                    background-color: #ecf5ff;
+                    border-color: #409eff;
+                }
+                
+                .permission-item {
+                    .permission-name {
+                        font-weight: 500;
+                        color: #303133;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .permission-code {
+                        font-family: 'Courier New', monospace;
+                        font-size: 12px;
+                        color: #909399;
+                        background-color: #f5f7fa;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        display: inline-block;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .permission-desc {
+                        font-size: 12px;
+                        color: #606266;
+                        line-height: 1.4;
+                    }
+                }
+            }
+        }
     }
 }
 </style>

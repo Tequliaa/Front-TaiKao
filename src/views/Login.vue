@@ -252,6 +252,12 @@ const handleCaptchaEnter = () => {
                         <el-form-item>
                             <Captcha ref="captchaRef" @enter="handleCaptchaEnter" />
                         </el-form-item>
+
+                        <!-- <el-form-item label="验证码" prop="loginCode" class="captcha">
+                            <el-input placeholder="请输入验证码" v-model="loginData.passCode" auto-complete="off">
+                                <el-button class="phoneCodeButton" type="danger" slot="append" @click="sendMeg" :disabled="isDisabled">{{codeName}}</el-button>
+                            </el-input>
+                        </el-form-item> -->
                         <el-form-item class="remember-me-item">
                             <el-checkbox v-model="loginData.rememberMe">
                                 记住我（7天内免登录）
