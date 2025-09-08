@@ -2,7 +2,8 @@
 import {
     Edit,
     Delete,
-    Pointer
+    Pointer,
+    Connection
 } from '@element-plus/icons-vue'
 import { nextTick, onMounted,computed, watch ,reactive} from 'vue';
 import { ref } from 'vue'
@@ -15,6 +16,9 @@ import { roleListService, roleAddService, roleDelService, roleUpdateService } fr
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
+import { assignRoleToDepartment } from '@/api/role.js'
+//导入部门接口
+import { departmentListService } from '@/api/department.js'
 
 //富文本编辑器
 import { QuillEditor } from '@vueup/vue-quill'
@@ -40,8 +44,8 @@ getUserInf()
 const roles = ref([
     {
         "id": 1,
-        "name": "早餐调查角色",
-        "comment": "张三",
+        "name": "普通用户",
+        "comment": "普通用户的角色",
     }
 ])
 
@@ -79,7 +83,8 @@ const initData = async () => {
     try {
         await Promise.all([
             getUserInf(),
-            getRoles()
+            getRoles(),
+            getDepartments()
         ])
     } finally {
         loading.value = false
@@ -184,7 +189,11 @@ const delRole = async (row) => {
 const assignRoleEcho = (row) => {
     //操作改为编辑
     dialogFormVisible.value = true
-    assignForm.value = row;
+    assignForm.value = {
+        name: row.name,
+        departmentId: '',
+        roleId: row.id
+    };
 }
 
 const assignRole = async () => {
@@ -252,6 +261,34 @@ const isMobile = computed(() => {
 
 const dialogFormVisible = ref(false)
 
+// 分配角色表单数据模型
+const assignForm = ref({
+    name: '',
+    departmentId: '',
+    roleId: ''
+})
+
+// 部门列表数据模型
+const departments = ref([])
+
+// 表单标签宽度
+const formLabelWidth = '100px'
+
+// 获取部门列表
+const getDepartments = async () => {
+    try {
+        let params = {
+            userId: userInfoStore.info.id,
+            pageNum: 1,
+            pageSize: 1000 // 获取所有部门
+        }
+        let result = await departmentListService(params);
+        departments.value = result.data.departments || []
+    } catch (error) {
+        ElMessage.error('获取部门列表失败')
+    }
+}
+
 onMounted(() => {
 window.addEventListener('resize', () => {
         // 强制更新组件
@@ -285,12 +322,12 @@ window.addEventListener('resize', () => {
                     <span> {{ getPlainText(scope.row.comment) }} </span>
                 </template>
                 </el-table-column>
-                <el-table-column label="操作" style="text-align: center;" align="center" width="150">
+                <el-table-column label="操作" style="text-align: center;" align="center" width="200px">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary" @click="viewRole(row)"></el-button>
+                            <el-button :icon="Connection" circle plain type="primary" @click="viewRole(row)"></el-button>
                         </el-tooltip>
-                        <el-tooltip content="发布" placement="top">
+                        <el-tooltip content="分发角色" placement="top">
                                 <el-button :icon="Pointer" circle plain type="primary" @click="assignRoleEcho(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">

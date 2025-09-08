@@ -30,5 +30,5 @@ export const roleUpdateService = (roleModel)=>{
 
  // 向部门成员分配角色
 export const assignRoleToDepartment = (departmentId,roleId) => {
-  return request.post('/role/assignRole?departmentId='+departmentId+'&roleId='+roleId)
+  return request.post('/role/assignRoleToDepartment?departmentId='+departmentId+'&roleId='+roleId)
 }
