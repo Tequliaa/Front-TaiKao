@@ -33,9 +33,4 @@ app.use(ElementPlus,{locale})
 app.directive('permission', permission)
 app.directive('role', role)
 
-// 在开发环境下测试权限系统
-if (import.meta.env.DEV) {
-  import('./utils/testPermission.js')
-}
-
 app.mount('#app')

@@ -234,13 +234,6 @@ const refreshPermissions = async () => {
         console.error('刷新权限失败:', error)
     }
 }
-
-// 添加退出登录处理函数
-const handleLogout = () => {
-    // 实现退出登录的逻辑
-    // 这里可以根据需要调用API或执行其他操作
-    console.log('退出登录')
-}
 </script>
 
 <template>

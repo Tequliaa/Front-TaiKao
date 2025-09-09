@@ -365,7 +365,7 @@ const buildSurvey = (row) => {
                     <span>问卷管理</span>
                     <div class="extra">
                         <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
-                        <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加问卷</el-button>
+                        <el-button type="primary" v-permission="'survey:create'" @click="openAddDialog()" class="hide-on-mobile">添加问卷</el-button>
                     </div>
                 </div>
             </template>
@@ -392,10 +392,10 @@ const buildSurvey = (row) => {
                                 <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="查看答题情况" placement="top">
-                                <el-button :icon="DataLine" circle plain type="primary" @click="checkResponse(row)"></el-button>
+                                <el-button :icon="DataLine" v-permission="'survey:edit'" circle plain type="primary" @click="checkResponse(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="编辑" placement="top">
-                                <el-button :icon="Edit" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                                <el-button :icon="Edit" v-permission="'survey:edit'" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="构建" placement="top">
                                 <el-button :icon="Tools" circle plain type="primary" @click="buildSurvey(row)" :disabled="row.status === '已发布'"></el-button>
