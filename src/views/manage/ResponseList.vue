@@ -175,7 +175,7 @@ const getStatistics = async () => {
     loading.value = true
     try {
         const response = await getStatisticsService(props.surveyId,0)
-        if (response.code === 0) {
+        if (response.code === 200) {
             unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
             userSurveys.value = response.data.userSurveys
         } else {

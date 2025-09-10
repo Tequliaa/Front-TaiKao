@@ -335,7 +335,7 @@ const deleteQuestion = async (index) => {
   if (question.questionId) {
     try {
       const result = await questionDelService(question.questionId)
-      if (result.code === 0) {
+      if (result.code === 200) {
         ElMessage.success('问题删除成功')
         questions.value.splice(index, 1)
         if (activeQuestionIndex.value === index) {
@@ -457,7 +457,7 @@ const fetchSkipQuestions = async () => {
     const result = await getAllQuestionsBySurveyIdService(props.surveyId,userInfoStore.info.id)
     const {questions:questionsData} = result.data
     // console.log('SurveyBuilder - 获取问题列表结果:', result)
-    if (result.code === 0) {
+    if (result.code === 200) {
       const currentQuestionId = questionsData[activeQuestionIndex.value]?.questionId
       skipQuestions.value = questionsData.filter(q => q.questionId !== currentQuestionId)
       // console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
@@ -547,7 +547,7 @@ const fetchSurveyDetail = async () => {
     
     try {
         const result = await getSurveyAndQuestionsById(currentSurveyId)
-        if (result.code === 0) {
+        if (result.code === 200) {
             const data = result.data
             survey.value = {
                 ...data.survey,
@@ -577,7 +577,7 @@ const fetchSurveyDetail = async () => {
 const fetchCategories = async () => {
   try {
     const result = await getAllCategoriesByIdService(userInfoStore.info.id)
-    if (result.code === 0) {
+    if (result.code === 200) {
       // 按照 sortKey 排序分类
       categories.value = result.data.sort((a, b) => {
         const sortKeyA = parseInt(a.sortKey || '999999')
@@ -684,7 +684,7 @@ const saveSurvey = async () => {
             ? await updateBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
             : await saveBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
           console.log('保存提交前questions数据',questions.value)
-        if (res.code === 0) {
+        if (res.code === 200) {
             ElMessage.success('问卷保存成功')
             if (!survey.value.surveyId) {
                 survey.value.surveyId = res.data
@@ -730,7 +730,7 @@ const submitSurvey = async () => {
     survey.value.createdBy = userInfoStore.info.id
     const res = await updateBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
     
-    if (res.code === 0) {
+    if (res.code === 200) {
       ElMessage.success('问卷提交成功')
       // 提交成功后重新获取问卷详情，确保数据同步
       await fetchSurveyDetail()
@@ -840,7 +840,7 @@ const addCategory = async () => {
         // 调用添加分类API
         const result = await categoryAddService(newCategory.value)
         
-        if (result.code === 0) {
+        if (result.code === 200) {
             ElMessage.success('分类添加成功')
             // 重新获取分类列表
             await fetchCategories()

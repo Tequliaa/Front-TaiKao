@@ -177,7 +177,7 @@ const getSurveyData = async () => {
         const responseResult = await getResponseDetailsService(props.surveyId, userInfoStore.info.id)
         // console.log('接口返回数据：', responseResult)
         
-        if (responseResult.code === 0) {
+        if (responseResult.code === 200) {
             const { userResponses, questions: questionsData,survey } = responseResult.data
             
             // 初始化 questionVisibility
@@ -648,7 +648,7 @@ const submitSurvey = async (isSaveAction = false) => {
         // 发送请求
         const result = await submitResponseService(formData)
         
-        if (result.code === 0) {
+        if (result.code === 200) {
             ElMessage.success(isSaveAction ? '保存成功' : '提交成功')
             if (!isSaveAction) {
                 router.push('/manage/userSurvey')

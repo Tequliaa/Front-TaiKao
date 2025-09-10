@@ -367,7 +367,7 @@ const handleImport = async (event) => {
 
   try {
     const response = await userImportService(formData, props.departmentName)
-    if (response.code === 0) {
+    if (response.code === 200) {
       const result = response.data
       let message = `
         <div class="import-result">

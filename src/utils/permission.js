@@ -59,7 +59,7 @@ export class PermissionChecker {
         userInfoStore.info.id, 
         permissionCode
       )
-      const hasPermission = result.code === 0 && result.data === true
+      const hasPermission = result.code === 200 && result.data === true
       
       // 缓存结果
       if (useCache) {

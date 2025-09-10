@@ -41,7 +41,7 @@ const captchaToken = ref('')
 const refreshCaptcha = async () => {
   try {
     const result = await getCaptchaService(captchaToken.value)
-    if (result.code === 0) {
+    if (result.code === 200) {
       captchaToken.value = result.data.token
       captchaImage.value = result.data.imageBase64
       captchaCode.value = '' // 清空输入框
@@ -67,7 +67,7 @@ const verifyCaptcha = async () => {
       code: captchaCode.value
     })
     
-    if (result.code === 0) {
+    if (result.code === 200) {
       emit('verified', result.data)
       return true
     } else {

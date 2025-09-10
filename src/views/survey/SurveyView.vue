@@ -104,7 +104,7 @@ const getSurveyData = async () => {
         // 获取用户答题记录
         const responseResult = await getResponseDetailsService(props.surveyId, props.userId || userInfoStore.info.id)
         console.log('接口返回数据：', responseResult)
-        if (responseResult.code === 0) {
+        if (responseResult.code === 200) {
             const { userResponses, questions: questionsData,survey } = responseResult.data
             
             // 先初始化所有问题为显示状态

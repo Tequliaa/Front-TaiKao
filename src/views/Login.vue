@@ -90,7 +90,7 @@ const register = async () => {
     }
     
     let result = await registerService(registerData.value);
-    if (result.code == 0) {
+    if (result.code == 200) {
         ElMessage.success(result.message ? result.message : '注册成功');
         isRegister.value = false;
         // 清空数据模型
@@ -137,7 +137,7 @@ const login = async () => {
     }
     
     let result = await loginService(loginData.value)
-    if (result.code == 0) {
+    if (result.code == 200) {
         // 保存token
         tokenStore.setToken(result.data)
         ElMessage.success(result.message ? result.message : '登录成功!');

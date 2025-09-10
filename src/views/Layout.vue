@@ -62,7 +62,7 @@ const handleCommand = (command) => {
             .then(async () => {
                 //退出登录
                 let result = await userLogoutService();
-                if (result.code == 0) {
+                if (result.code == 200) {
                     //清空pinia中的token和个人信息
                     userInfoStore.info = {}
                     tokenStore.token = ''

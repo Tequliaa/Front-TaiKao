@@ -374,7 +374,7 @@ const getStatistics = async () => {
     loading.value = true
     try {
         const response = await getStatisticsService(props.surveyId,props.departmentId)
-        if (response.code === 0) {
+        if (response.code === 200) {
             // 直接使用返回的 questions 数组
             questions.value = response.data.questions
             unfinishedTotalRecords.value = response.data.unfinishedTotalRecords

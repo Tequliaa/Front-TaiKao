@@ -42,7 +42,7 @@ const getUnfinishedList = async () => {
             departmentId: props.departmentId
         }
         const response = await unfinishedListService(params)
-        if (response.code === 0) {
+        if (response.code === 200) {
             userSurveys.value = response.data.userSurveys
             total.value = response.data.total
         } else {

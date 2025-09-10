@@ -39,7 +39,7 @@ instance.interceptors.response.use(
         }
         
         // 普通JSON响应处理
-        if (result.data.code == 0) {
+        if (result.data.code == 200) {
             return result.data;
         }
         

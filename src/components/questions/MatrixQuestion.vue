@@ -159,7 +159,7 @@ const deleteRowOption = async (index) => {
   if (option.optionId) {
     try {
       const result = await optionDelService(option.optionId)
-      if (result.code === 0) {
+      if (result.code === 200) {
         ElMessage.success('选项删除成功')
         const newOptions = [...questionData.value.rowOptions]
         newOptions.splice(index, 1)
@@ -201,7 +201,7 @@ const deleteColumnOption = async (index) => {
   if (option.optionId) {
     try {
       const result = await optionDelService(option.optionId)
-      if (result.code === 0) {
+      if (result.code === 200) {
         ElMessage.success('选项删除成功')
         const newOptions = [...questionData.value.columnOptions]
         newOptions.splice(index, 1)
