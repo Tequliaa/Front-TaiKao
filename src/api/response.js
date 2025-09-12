@@ -34,3 +34,9 @@ export const getDetailsService = (surveyId,userId) => {
   console.log("到调用接口部分了")
   return request.get('/survey/details?userId='+userId+'&surveyId='+surveyId)
 }
+
+
+export const getSurveyAnalysis = (surveyId,departmentId) => {
+  console.log("到调用接口部分了")
+  return request.get('/response/analysis?surveyId='+surveyId+'&departmentId='+departmentId)
+}

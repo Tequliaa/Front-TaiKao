@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { getStatisticsService } from '@/api/response'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElDialog } from 'element-plus'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import AIAnalysisReport from '@/components/AIAnalysisReport.vue'
 // 问卷ID
 const props = defineProps({
     surveyId: {
@@ -41,6 +42,18 @@ const chartInstances = ref({})
 
 // 添加矩阵单元格数据
 const matrixCellData = ref({})
+// AI分析报告对话框可见性
+const analysisReportDialogVisible = ref(false)
+
+// 打开AI分析报告对话框
+const openAIAnalysisReport = () => {
+  analysisReportDialogVisible.value = true
+}
+
+// 关闭对话框
+const handleCloseDialog = () => {
+  analysisReportDialogVisible.value = false
+}
 
 // 初始化图表
 const initChart = (questionId, type, options) => {
@@ -617,8 +630,29 @@ const getPlainText = (htmlContent)=> {
                         <div class="unfinished-info">
                             <h4>{{props.departmentName}}——未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span></h4>
                         </div>
+
+                        <!-- AI分析报告按钮 -->
+                        <div class="analysis-button-container">
+                            <el-button type="primary" @click="openAIAnalysisReport">查看AI答卷分析报告</el-button>
+                        </div>
+                         
                         <!-- <h6 class="survey-description">{{ getPlainText(surveyInfo.description) }}</h6> -->
                     </div>
+                    
+                    <!-- AI分析报告对话框 -->
+                    <el-dialog
+                      v-model="analysisReportDialogVisible"
+                      title="AI答卷分析报告"
+                      width="80%"
+                      height="80vh"
+                      :before-close="handleCloseDialog"
+                      destroy-on-close
+                    >
+                      <AIAnalysisReport 
+                        :surveyId="props.surveyId" 
+                        :departmentId="props.departmentId"
+                      />
+                    </el-dialog>
 
                     <!-- 问题列表 -->
                     <div class="questions-list">
@@ -1990,4 +2024,41 @@ const getPlainText = (htmlContent)=> {
         padding: 0 20px;
     }
 }
-</style> 
+
+/* AI分析报告按钮样式 */
+.analysis-button-container {
+  margin-top: 10px;
+}
+
+.analysis-button-container .el-button {
+  background-color: #67c23a;
+  border-color: #67c23a;
+  font-size: 14px;
+  padding: 8px 20px;
+}
+
+.analysis-button-container .el-button:hover {
+  background-color: #85ce61;
+  border-color: #85ce61;
+}
+
+.analysis-button-container .el-button:active {
+  background-color: #5daf34;
+  border-color: #5daf34;
+}
+
+/* 调整问卷标题区域布局 */
+.survey-header {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.survey-title {
+  margin: 0;
+}
+
+.unfinished-info {
+  margin-top: 5px;
+}
+</style>
