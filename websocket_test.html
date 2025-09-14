@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .log {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-info { background-color: #d4edda; }
+        .log-error { background-color: #f8d7da; }
+        .log-success { background-color: #d1ecf1; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .connect-btn { background-color: #28a745; color: white; }
+        .disconnect-btn { background-color: #dc3545; color: white; }
+        .send-btn { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket连接测试</h1>
+    
+    <div>
+        <button id="connectBtn" class="connect-btn">连接WebSocket</button>
+        <button id="disconnectBtn" class="disconnect-btn">断开连接</button>
+        <button id="sendPingBtn" class="send-btn">发送Ping</button>
+        <button id="sendSubscribeBtn" class="send-btn">发送订阅</button>
+    </div>
+    
+    <div>
+        <label for="surveyId">问卷ID:</label>
+        <input type="number" id="surveyId" value="1" min="1">
+    </div>
+    
+    <div class="log" id="logContainer"></div>
+
+    <script>
+        let ws = null;
+        const logContainer = document.getElementById('logContainer');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendPingBtn = document.getElementById('sendPingBtn');
+        const sendSubscribeBtn = document.getElementById('sendSubscribeBtn');
+        const surveyIdInput = document.getElementById('surveyId');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('WebSocket已经连接', 'info');
+                return;
+            }
+
+            const surveyId = surveyIdInput.value;
+            const wsUrl = `ws://127.0.0.1:8082/ws/survey/${surveyId}`;
+            log(`尝试连接到: ${wsUrl}`, 'info');
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function(event) {
+                    log('WebSocket连接成功!', 'success');
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    sendPingBtn.disabled = false;
+                    sendSubscribeBtn.disabled = false;
+                };
+
+                ws.onmessage = function(event) {
+                    log(`收到消息: ${event.data}`, 'success');
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`解析后: ${JSON.stringify(data, null, 2)}`, 'info');
+                    } catch (e) {
+                        log(`解析JSON失败: ${e.message}`, 'error');
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    log(`WebSocket错误: ${error}`, 'error');
+                };
+
+                ws.onclose = function(event) {
+                    log(`WebSocket连接关闭: 代码=${event.code}, 原因=${event.reason}`, 'error');
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    sendPingBtn.disabled = true;
+                    sendSubscribeBtn.disabled = true;
+                };
+
+            } catch (error) {
+                log(`连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = JSON.stringify({
+                    type: 'ping',
+                    payload: {}
+                });
+                ws.send(message);
+                log(`发送Ping: ${message}`, 'info');
+            } else {
+                log('WebSocket未连接', 'error');
+            }
+        }
+
+        function sendSubscribe() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = JSON.stringify({
+                    type: 'subscribe',
+                    payload: {
+                        surveyId: parseInt(surveyIdInput.value),
+                        userId: 'test_user',
+                        type: 'response_update'
+                    }
+                });
+                ws.send(message);
+                log(`发送订阅: ${message}`, 'info');
+            } else {
+                log('WebSocket未连接', 'error');
+            }
+        }
+
+        // 事件监听
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        sendPingBtn.addEventListener('click', sendPing);
+        sendSubscribeBtn.addEventListener('click', sendSubscribe);
+
+        // 初始化按钮状态
+        disconnectBtn.disabled = true;
+        sendPingBtn.disabled = true;
+        sendSubscribeBtn.disabled = true;
+
+        log('WebSocket测试页面已加载', 'info');
+    </script>
+</body>
+</html>

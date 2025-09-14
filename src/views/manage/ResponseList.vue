@@ -3,7 +3,7 @@ import {
     Pointer,
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import {  onMounted, computed, nextTick } from 'vue';
+import {  onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { ref } from 'vue'
 //问卷列表查询
 import { getResponseListService } from '@/api/response.js'
@@ -11,6 +11,8 @@ import { getResponseListService } from '@/api/response.js'
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
+//导入WebSocket服务
+import wsService from '@/utils/websocket.js'
 
 //富文本编辑器
 import { QuillEditor } from '@vueup/vue-quill'
@@ -111,6 +113,10 @@ const isMobile = computed(() => {
 // 在组件挂载时初始化数据
 onMounted(() => {
     initData()
+    
+    // 初始化WebSocket连接
+    initWebSocket()
+    
     window.addEventListener('resize', () => {
         // 强制更新组件
         nextTick(() => {
@@ -118,6 +124,89 @@ onMounted(() => {
         });
     });
 })
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+    // 断开WebSocket连接
+    wsService.disconnect()
+})
+
+// 初始化WebSocket连接
+const initWebSocket = () => {
+    // 获取当前环境的WebSocket地址（根据实际后端配置修改）
+    // const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    // const wsHost = '127.0.0.1:8082'
+    // const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`
+    // 临时修改为固定协议（后端未启用HTTPS时）
+    const wsProtocol = 'ws:'; // 不使用window.location.protocol自动判断
+    const wsHost = '127.0.0.1:8082';
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`;
+    console.log('wsUrl:', wsUrl)
+    
+    // 连接WebSocket
+    wsService.connect(wsUrl)
+    
+    // 监听连接成功事件
+    wsService.on('connect', (data) => {
+        console.log('WebSocket连接成功，开始接收实时更新', data)
+        // 可以在这里发送一些初始化消息，比如订阅特定的更新
+        wsService.send('subscribe', {
+            surveyId: props.surveyId,
+            userId: userInfoStore.info?.userId || '',
+            type: 'response_update'
+        })
+    })
+    
+    // 监听订阅成功事件
+    wsService.on('subscribe_success', (data) => {
+        console.log('订阅成功:', data)
+    })
+    
+    // 监听答题列表更新事件
+    wsService.on('response_update', (data) => {
+        console.log('收到答题列表更新:', data)
+        // 刷新答题列表数据
+        refreshResponseData()
+        
+        // 如果有未完成人数更新，单独处理
+        if (data.unfinishedTotalRecords !== undefined) {
+            unfinishedTotalRecords.value = data.unfinishedTotalRecords
+        }
+        
+        // 显示更新提示
+        if (data.message) {
+            ElMessage({ message: data.message, type: 'info' })
+        }
+    })
+    
+    // 监听WebSocket错误
+    wsService.on('error', (error) => {
+        console.error('WebSocket连接错误:', error)
+        ElMessage.error('实时更新连接发生错误')
+    })
+    
+    // 监听WebSocket关闭
+    wsService.on('close', (event) => {
+        console.log('WebSocket连接关闭:', event)
+        if (event.code !== 1000) { // 不是正常关闭
+            ElMessage.warning('实时更新连接已断开')
+        }
+    })
+}
+
+// 刷新答题数据
+const refreshResponseData = async () => {
+    try {
+        // 刷新答题列表
+        await getResponseList()
+        
+        // 刷新统计数据
+        await getStatistics()
+    } catch (error) {
+        console.error('刷新答题数据失败:', error)
+        // 可以选择不显示错误提示，避免频繁打扰用户
+    }
+}
 
 console.log("123")
 //当每页条数发生了变化，调用此函数
