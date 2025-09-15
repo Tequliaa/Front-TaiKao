@@ -57,7 +57,7 @@ const handleCloseDialog = () => {
 
 // 初始化图表
 const initChart = (questionId, type, options) => {
-    console.log('初始化图表:', questionId, type, options)
+    // console.log('初始化图表:', questionId, type, options)
     
     // 如果已经有图表实例，先销毁
     if (chartInstances.value[questionId]) {
@@ -80,7 +80,7 @@ const initChart = (questionId, type, options) => {
     if (type === '单选' || type === '多选') {
         // 计算总人数
         const total = options.reduce((sum, opt) => sum + (parseInt(opt.checkCount) || 0), 0)
-        console.log('总人数:', total)
+        // console.log('总人数:', total)
         
         // 准备数据
         const data = options.map(opt => ({
@@ -88,7 +88,7 @@ const initChart = (questionId, type, options) => {
             value: parseInt(opt.checkCount) || 0,
             percentage: total > 0 ? ((parseInt(opt.checkCount) || 0) / total * 100).toFixed(1) : 0
         }))
-        console.log('饼图数据:', data)
+        // console.log('饼图数据:', data)
         
         // 设置图表配置
         option = {
@@ -137,7 +137,7 @@ const initChart = (questionId, type, options) => {
             name: opt.description,
             value: parseFloat(opt.checkCount) || 0
         }))
-        console.log('柱状图数据:', data)
+        // console.log('柱状图数据:', data)
         
         // 设置图表配置
         option = {
@@ -188,8 +188,8 @@ const initChart = (questionId, type, options) => {
         const rowOptions = options.filter(opt => opt.type === '行选项')
         const colOptions = options.filter(opt => opt.type === '列选项')
         
-        console.log('矩阵题行选项:', rowOptions)
-        console.log('矩阵题列选项:', colOptions)
+        // console.log('矩阵题行选项:', rowOptions)
+        // console.log('矩阵题列选项:', colOptions)
         
         // 准备热力图数据
         const data = []
@@ -197,7 +197,7 @@ const initChart = (questionId, type, options) => {
         
         // 获取该问题的单元格数据
         const cellData = matrixCellData.value[questionId] || []
-        console.log('矩阵单元格数据:', cellData)
+        // console.log('矩阵单元格数据:', cellData)
         
         // 创建单元格数据映射
         const cellDataMap = {}
@@ -206,7 +206,7 @@ const initChart = (questionId, type, options) => {
             cellDataMap[key] = parseInt(cell.checkCount) || 0
             maxValue = Math.max(maxValue, cellDataMap[key])
         })
-        console.log('单元格数据映射:', cellDataMap)
+        // console.log('单元格数据映射:', cellDataMap)
         
         // 遍历每个单元格，获取选择人数
         rowOptions.forEach((row, rowIndex) => {
@@ -218,8 +218,8 @@ const initChart = (questionId, type, options) => {
             })
         })
         
-        console.log('矩阵热力图数据:', data)
-        console.log('最大选择人数:', maxValue)
+        // console.log('矩阵热力图数据:', data)
+        // console.log('最大选择人数:', maxValue)
         
         // 设置图表配置
         option = {
@@ -373,7 +373,7 @@ const initChart = (questionId, type, options) => {
     }
     
     // 设置图表配置
-    console.log('图表配置:', option)
+    // console.log('图表配置:', option)
     chart.setOption(option)
     
     // 添加自适应大小
@@ -394,7 +394,7 @@ const getStatistics = async () => {
             surveyInfo.value = response.data.survey
             // 设置矩阵单元格数据
             matrixCellData.value = response.data.matrixCellData || {}
-            console.log('获取到的矩阵单元格数据:', matrixCellData.value)
+            // console.log('获取到的矩阵单元格数据:', matrixCellData.value)
             
             // 设置问卷信息
             // 处理每个问题，添加必要的响应式数据
@@ -468,7 +468,7 @@ const initCharts = () => {
     questions.value.forEach(question => {
         if (question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
             question.type === '矩阵单选' || question.type === '矩阵多选' || question.type === '排序') {
-            console.log('处理问题:', question.questionId, question.type)
+            // console.log('处理问题:', question.questionId, question.type)
             // 使用 nextTick 确保 DOM 已经渲染
             nextTick(() => {
                 initChart(question.questionId, question.type, question.options)
@@ -607,12 +607,6 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     return previousQuestionsCount + questionIndex + 1;
 }
 
-const getPlainText = (htmlContent)=> {
-      // 使用正则去掉 HTML 标签，获取纯文本
-      const div = document.createElement('div');
-      div.innerHTML = htmlContent;
-      return div.textContent || div.innerText || '';
-}
 </script>
 
 <template>

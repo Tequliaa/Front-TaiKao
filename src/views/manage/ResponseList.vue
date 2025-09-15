@@ -87,6 +87,8 @@ const getResponseList = async () => {
         total.value = result.data.totalCount
         //渲染列表数据
         responses.value = result.data.responses
+        unfinishedTotalRecords.value = result.data.unfinishedTotalRecords
+        userSurveys.value = result.data.userSurveys
     } catch (error) {
         ElMessage.error('获取答题列表失败')
     }
@@ -200,37 +202,22 @@ const refreshResponseData = async () => {
         // 刷新答题列表
         await getResponseList()
         
-        // 刷新统计数据
-        await getStatistics()
     } catch (error) {
         console.error('刷新答题数据失败:', error)
         // 可以选择不显示错误提示，避免频繁打扰用户
     }
 }
 
-console.log("123")
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getResponseListService();
+    getResponseList();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getResponseListService()
+    getResponseList()
 }
-
-
-const options = [
-  {
-    value: 1,
-    label: '是',
-  },
-  {
-    value: 0,
-    label: '否',
-  }
-]
 
 
 // 添加查看答题情况的方法
@@ -256,29 +243,9 @@ const OverallResponse = (departmentId,departmentName) => {
         }
     })
 }
-import { getStatisticsService } from '@/api/response'
 const unfinishedTotalRecords = ref(0)
 const userSurveys = ref([])
-// 获取统计数据
-const getStatistics = async () => {
-    loading.value = true
-    try {
-        const response = await getStatisticsService(props.surveyId,0)
-        if (response.code === 200) {
-            unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
-            userSurveys.value = response.data.userSurveys
-        } else {
-            ElMessage.error('获取统计数据失败')
-        }
-    } catch (error) {
-        console.error('获取统计数据失败:', error)
-        ElMessage.error('获取统计数据失败：' + error.message)
-    } finally {
-        loading.value = false
-    }
-}
 
-getStatistics()
 
 // 跳转到未完成列表
 const goToUnfinishedList = () => {

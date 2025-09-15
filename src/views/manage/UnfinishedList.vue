@@ -1,9 +1,13 @@
 <script setup>
-import { ref, onMounted,nextTick,computed} from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed} from 'vue'
 import { unfinishedListService, exportUnfinishedListService } from '@/api/userSurvey'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import axios from 'axios'
+//导入WebSocket服务
+import wsService from '@/utils/websocket.js'
+//导入pinia
+import { useUserInfoStore } from '@/stores/user.js'
 
 // 定义props
 const props = defineProps({
@@ -24,6 +28,8 @@ const props = defineProps({
         required: true
     }
 })
+
+const userInfoStore = useUserInfoStore();
 
 // 数据列表
 const userSurveys = ref([])
@@ -124,7 +130,88 @@ onMounted(() => {
             // 这里不需要做任何事情，computed 属性会自动重新计算
         });
     });
+    
+    // 初始化WebSocket连接
+    initWebSocket()
 })
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+    // 断开WebSocket连接
+    wsService.disconnect()
+})
+
+// 初始化WebSocket连接
+const initWebSocket = () => {
+    // 获取当前环境的WebSocket地址（根据实际后端配置修改）
+    // 临时修改为固定协议（后端未启用HTTPS时）
+    const wsProtocol = 'ws:'; // 不使用window.location.protocol自动判断
+    const wsHost = '127.0.0.1:8082';
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`;
+    console.log('UnfinishedList WebSocket URL:', wsUrl)
+    
+    // 连接WebSocket
+    wsService.connect(wsUrl)
+    
+    // 监听连接成功事件
+    wsService.on('connect', (data) => {
+        console.log('UnfinishedList WebSocket连接成功，开始接收实时更新', data)
+        // 发送订阅消息
+        wsService.send('subscribe', {
+            surveyId: props.surveyId,
+            departmentId: props.departmentId,
+            userId: userInfoStore.info?.userId || '',
+            type: 'response_update'
+        })
+    })
+    
+    // 监听订阅成功事件
+    wsService.on('subscribe_success', (data) => {
+        console.log('UnfinishedList订阅成功:', data)
+    })
+    
+    // 监听未完成列表更新事件
+    wsService.on('response_update', (data) => {
+        console.log('收到未完成列表更新:', data)
+        // 刷新未完成列表数据
+        refreshUnfinishedData()
+        
+        // 如果有未完成人数更新，单独处理
+        if (data.total !== undefined) {
+            total.value = data.total
+        }
+        
+        // 显示更新提示
+        if (data.message) {
+            ElMessage({ message: data.message, type: 'info' })
+        }
+    })
+    
+    // 监听WebSocket错误
+    wsService.on('error', (error) => {
+        console.error('UnfinishedList WebSocket连接错误:', error)
+        ElMessage.error('实时更新连接发生错误')
+    })
+    
+    // 监听WebSocket关闭
+    wsService.on('close', (event) => {
+        console.log('UnfinishedList WebSocket连接关闭:', event)
+        if (event.code !== 1000) { // 不是正常关闭
+            ElMessage.warning('实时更新连接已断开')
+        }
+    })
+}
+
+// 刷新未完成数据
+const refreshUnfinishedData = async () => {
+    try {
+        // 刷新未完成列表
+        await getUnfinishedList()
+    } catch (error) {
+        console.error('刷新未完成数据失败:', error)
+        // 可以选择不显示错误提示，避免频繁打扰用户
+    }
+}
 </script>
 
 <template>
