@@ -1,29 +1,139 @@
-# SurveyVue
+# 问卷调查系统 - 前端项目
 
-This template should help get you started developing with Vue 3 in Vite.
+## 项目简介
 
-## Recommended IDE Setup
+这是一个基于Vue 3的问卷调查系统前端实现，提供问卷设计、填写、统计分析等功能，支持实时数据更新。
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 技术栈
 
-## Customize configuration
+- **框架**: Vue 3
+- **构建工具**: Vite 5
+- **UI组件库**: Element Plus 2.x
+- **状态管理**: Pinia 2.x
+- **路由管理**: Vue Router 4.x
+- **HTTP请求**: Axios
+- **图表库**: ECharts 5.x
+- **富文本编辑器**: Vue Quill
+- **CSS预处理器**: Sass
+- **实时通信**: WebSocket
+- **拖拽排序**: SortableJS
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## 项目结构
 
-## Project Setup
+```
+src/
+├── App.vue              # 应用入口组件
+├── api/                 # API接口定义
+├── assets/              # 静态资源
+├── components/          # 公共组件
+│   ├── questions/       # 问卷问题组件
+│   └── responsive/      # 响应式组件
+├── directives/          # 自定义指令
+├── main.js              # 程序入口
+├── router/              # 路由配置
+├── stores/              # Pinia状态管理
+├── styles/              # 全局样式
+├── utils/               # 工具函数
+└── views/               # 页面视图
+    ├── Layout.vue       # 布局组件
+    ├── Login.vue        # 登录页面
+    ├── manage/          # 管理页面
+    ├── survey/          # 问卷相关页面
+    └── user/            # 用户相关页面
+```
 
-```sh
+## 主要功能模块
+
+1. **问卷管理**
+   - 问卷创建与编辑
+   - 问卷预览
+   - 问卷发布与管理
+
+2. **答题系统**
+   - 问卷填写界面
+   - 答题进度保存
+   - 提交答卷
+
+3. **统计分析**
+   - 答卷数据可视化
+   - 答题结果统计
+   - 未完成列表管理
+
+4. **用户管理**
+   - 用户信息管理
+   - 部门管理
+   - 角色权限管理
+
+5. **实时更新**
+   - WebSocket实时推送
+   - 答题列表自动刷新
+
+## 安装与运行
+
+### 前提条件
+
+- Node.js >= 18.x
+- npm >= 8.x
+
+### 安装依赖
+
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+### 开发模式运行
 
-```sh
+```bash
 npm run dev
 ```
 
-### Compile and Minify for Production
+### 构建生产版本
 
-```sh
+```bash
 npm run build
 ```
+
+### 预览生产版本
+
+```bash
+npm run preview
+```
+
+## 核心功能说明
+
+### 问卷设计器
+
+问卷设计器支持多种题型，包括单选题、多选题、文本题、评分题、排序题、矩阵题和文件上传题等。通过拖拽排序功能可以灵活调整题目顺序。
+
+### 实时数据更新
+
+系统通过WebSocket实现答题数据的实时更新，当有新的答题提交时，管理员界面会自动刷新最新数据。WebSocket服务实现了断线重连、心跳检测等机制，确保通信稳定可靠。
+
+### 权限管理
+
+系统采用RBAC（基于角色的访问控制）权限模型，支持角色创建、权限分配、用户角色管理等功能，可以精细化控制用户对系统资源的访问权限。
+
+### 数据统计与分析
+
+系统提供丰富的数据统计和分析功能，使用ECharts实现数据可视化展示，帮助用户快速了解问卷答题情况。
+
+## 响应式设计
+
+系统支持响应式设计，能够适应不同屏幕尺寸的设备，在桌面端、平板和手机上都能提供良好的用户体验。
+
+## 浏览器兼容性
+
+- Chrome (推荐)
+- Firefox
+- Safari
+- Edge
+
+## 注意事项
+
+1. 开发环境下，WebSocket连接默认使用`ws://127.0.0.1:8082/ws/survey/{surveyId}`地址
+2. 生产环境需要配置正确的WebSocket连接地址
+3. 系统依赖后端API服务，需要确保后端服务正常运行
+
+## License
+
+MIT
