@@ -12,9 +12,9 @@ import { optionListService, optionAddService, optionDelService, optionUpdateServ
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
-
-//富文本编辑器
-import { QuillEditor } from '@vueup/vue-quill'
+import { debounce } from 'lodash';
+import { getAllExamsService } from '@/api/exam';
+import { getAllQuestionsService,getAllQuestionsByExamIdService } from '@/api/question';
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -40,7 +40,7 @@ const props =defineProps({
     questionName:{
         type:String
     },
-    surveyId: {
+    examId: {
         type: Number
     }
 })
@@ -93,7 +93,7 @@ const initData = async () => {
     try {
         await Promise.all([
             getOptions(),
-            getAllSurveys(),
+            getAllExams(),
             getAllQuestions()
         ])
     } finally {
@@ -132,7 +132,7 @@ const visibleDrawer = ref(false)
 //添加表单数据模型
 const optionModel = ref({
     optionId: '',
-    surveyId:'',
+    examId:'',
     questionId:'',
     isOpenOption:'',
     type:'',
@@ -141,7 +141,7 @@ const optionModel = ref({
     questionName: '',
     skipTo:'',
     userId: '',
-    surveyName: ''
+    examName: ''
 })
 
 //打开添加选项窗口
@@ -149,16 +149,16 @@ const openAddDialog = () => {
     // 设置默认值
     optionModel.value = {
         type: '行选项',
-        surveyId: props.surveyId || '',
+        examId: props.examId || '',
         questionId: props.questionId || ''
     };
     
-    // 如果有surveyId，设置对应的surveyName
-    if (props.surveyId) {
-        // 从allSurveys中查找对应的问卷名称
-        const survey = allSurveys.value.find(s => s.surveyId === props.surveyId);
-        if (survey) {
-            optionModel.value.surveyName = survey.name;
+    // 如果有examId，设置对应的examName
+    if (props.examId) {
+        // 从allExams中查找对应的考试名称
+        const exam = allExams.value.find(s => s.examId === props.examId);
+        if (exam) {
+            optionModel.value.examName = exam.name;
         }
     }
     
@@ -265,19 +265,19 @@ const editOption = async () => {
 // getCategories()
 
 
-const allSurveys = ref({
+const allExams = ref({
 })
 
-const getAllSurveys = async () => {
-    let result = await getAllSurveysService(userInfoStore.info.id);
-    allSurveys.value = result.data;
+const getAllExams = async () => {
+    let result = await getAllExamsService(userInfoStore.info.id);
+    allExams.value = result.data;
 }
-getAllSurveys()
+getAllExams()
 
 
 const allQuestions = ref({})
-const surveyId = ref(0)
-const activeSurveyId = ref('')
+const examId = ref(0)
+const activeExamId = ref('')
 
 const getAllQuestions = async () => {
     try {
@@ -285,7 +285,7 @@ const getAllQuestions = async () => {
         if (result.code === 200 && result.data) {
             // 从返回的Map中获取questions数组
             allQuestions.value = result.data.questions || []
-            console.log('获取到的所有问题:', allQuestions.value)
+            // console.log('获取到的所有问题:', allQuestions.value)
         } else {
             console.error('获取问题列表失败:', result)
             ElMessage.error('获取问题列表失败')
@@ -296,9 +296,9 @@ const getAllQuestions = async () => {
     }
 }
 
-const getAllQuestionsBySurveyId = async () => {
+const getAllQuestionsByExamId = async () => {
     try {
-        let result = await getAllQuestionsBySurveyIdService(surveyId.value,userInfoStore.id)
+        let result = await getAllQuestionsByExamIdService(examId.value,userInfoStore.info.id)
         if (result.code === 200 && result.data) {
             // 从返回的Map中获取questions数组
             allQuestions.value = result.data.questions || []
@@ -313,20 +313,20 @@ const getAllQuestionsBySurveyId = async () => {
     }
 }
 
-// 修改为监听surveyId，且不为空时调用getAllQuestions
-watch(surveyId, (newVal) => {
+// 修改为监听examId，且不为空时调用getAllQuestions
+watch(examId, (newVal) => {
     if (newVal) {
-        console.log("监视surveyId变化，且surveyId不为空，调用getAllQuestions")
-        getAllQuestionsBySurveyId()
+        console.log("监视examId变化，且examId不为空，调用getAllQuestions")
+        getAllQuestionsByExamId()
     }
 }, { immediate: true }) // immediate: true 确保初始值不为空时也会触发
 
-// 监听activeSurveyId的变化
-watch(activeSurveyId, (newVal) => {
-    console.log("监视activeSurveyId变化，新值为: ", newVal);
+// 监听activeExamId的变化
+watch(activeExamId, (newVal) => {
+    console.log("监视activeExamId变化，新值为: ", newVal);
     if (newVal) {
-        surveyId.value = newVal;
-        getAllQuestionsBySurveyId();
+        examId.value = newVal;
+        getAllQuestionsByExamId();
     }else{
         // 给questions置空
         allQuestions.value = {}
@@ -358,9 +358,7 @@ const ischecked = [
     label: '否',
   }
 ]
-import { debounce } from 'lodash';
-import { getAllSurveysService } from '@/api/survey';
-import { getAllQuestionsService,getAllQuestionsBySurveyIdService } from '@/api/question';
+
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
@@ -377,7 +375,7 @@ const getPlainText = (htmlContent)=> {
 // 在 script setup 部分添加新的响应式变量和方法
 const skipQuestions = ref([])
 
-// 根据questionId获取surveyId并获取对应的问题列表
+// 根据questionId获取examId并获取对应的问题列表
 const getSkipQuestions = async (questionId) => {
     if (!questionId) return;
     
@@ -387,10 +385,10 @@ const getSkipQuestions = async (questionId) => {
         if (!currentQuestion) return;
         
         // 获取该问题所属的问卷ID
-        const currentSurveyId = currentQuestion.surveyId;
+        const currentExamId = currentQuestion.examId;
         
         // 获取该问卷下的所有问题
-        const result = await getAllQuestionsBySurveyIdService(currentSurveyId,userInfoStore.info.id);
+        const result = await getAllQuestionsByExamIdService(currentExamId,userInfoStore.info.id);
         if (result.code === 200 && result.data) {
             // 从返回的Map中获取questions数组，并过滤掉当前问题
             skipQuestions.value = (result.data.questions || []).filter(q => q.questionId !== questionId);
@@ -423,11 +421,11 @@ window.addEventListener('resize', () => {
     });
 })
 
-const handleSurveyChange = (value) => {
+const handleExamChange = (value) => {
     // 根据选择的问卷ID获取问卷名称
-    const survey = allSurveys.value.find(s => s.surveyId === value);
-    if (survey) {
-        optionModel.value.surveyName = survey.name;
+    const exam = allExams.value.find(s => s.examId === value);
+    if (exam) {
+        optionModel.value.examName = exam.name;
     }
 }
 
@@ -515,11 +513,11 @@ const handleQuestionChange = (value) => {
                 </el-select>
             </el-form-item>
             <el-form-item label="问题所属问卷">
-                <el-select v-model="activeSurveyId" clearable placeholder="问题所属问卷" @change="handleSurveyChange">
-                    <el-option v-for="item in allSurveys" :key="item.surveyId" :label="item.name" :value="item.surveyId"/>
+                <el-select v-model="activeExamId" clearable placeholder="问题所属问卷" @change="handleExamChange">
+                    <el-option v-for="item in allExams" :key="item.examId" :label="item.name" :value="item.id"/>
                 </el-select>
-                <div v-if="optionModel.surveyName" class="survey-name-display">
-                    当前选择: {{ optionModel.surveyName }}
+                <div v-if="optionModel.examName" class="exam-name-display">
+                    当前选择: {{ optionModel.examName }}
                 </div>
             </el-form-item>
             <el-form-item label="选项所属问题">
@@ -669,7 +667,7 @@ const handleQuestionChange = (value) => {
     }
 }
 
-.survey-name-display {
+.exam-name-display {
     margin-top: 8px;
     font-size: 14px;
     color: #606266;

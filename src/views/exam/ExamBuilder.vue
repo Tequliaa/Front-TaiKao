@@ -11,26 +11,26 @@ import {
   View,
   Close
 } from '@element-plus/icons-vue'
-import SurveyPreview from './SurveyPreview.vue'
-import SurveyBuildPreview from './SurveyBuildPreview.vue'
+import ExamPreview from './ExamPreview.vue'
+import ExamBuildPreview from './ExamBuildPreview.vue'
 import { validateQuestion } from '@/utils/questionValidator'
 import { 
-  saveBuildSurvey,
-  submitBuildSurvey,
-  updateBuildSurvey
-} from '@/api/survey'
+  saveBuildExam,
+  submitBuildExam,
+  updateBuildExam
+} from '@/api/exam'
 import { useRoute, useRouter } from 'vue-router'
-import { getAllQuestionsBySurveyIdService, questionDelService } from '@/api/question'
+import { getAllQuestionsByExamIdService, questionDelService } from '@/api/question'
 import { getAllCategoriesService, getAllCategoriesByIdService, categoryAddService } from '@/api/category'
 import { useUserInfoStore } from '@/stores/user'
 
 const props = defineProps({
-    surveyId: {
+    examId: {
         type: [String, Number],
         required: false
     }
 })
-import { getSurveyAndQuestionsById } from '@/api/survey'
+import { getExamAndQuestionsById } from '@/api/exam'
 
 // 导入问题组件
 import QuestionBase from '@/components/questions/QuestionBase.vue'
@@ -50,8 +50,8 @@ const router = useRouter()
 const isPageRefresh = ref(false)
 
 // 问卷数据
-const survey = ref({
-    surveyId: null,
+const exam = ref({
+    examId: null,
     name: '',
     description: '',
     status: '',
@@ -105,7 +105,7 @@ const activeQuestion = computed(() => {
 
 // 按分类分组的问题
 const groupedQuestions = computed(() => {
-  if (survey.value.isCategory !== 1) {
+  if (exam.value.isCategory !== 1) {
     return [{ categoryId: null, categoryName: '所有问题', questions: questions.value }]
   }
   
@@ -144,7 +144,7 @@ const groupedQuestions = computed(() => {
 
 // 修改计算属性，按照选择顺序排序
 const orderedGroupedQuestions = computed(() => {
-  if (!survey.value.isCategory === 1) {
+  if (!exam.value.isCategory === 1) {
     return groupedQuestions.value
   }
   
@@ -180,26 +180,26 @@ const isCategoryExpanded = (categoryId) => {
 
 // 处理分类变化
 const handleCategoryChange = (question, newCategoryId) => {
-  console.log('handleCategoryChange - 开始处理分类变化')
-  console.log('当前问题:', question)
-  console.log('新分类ID:', newCategoryId)
+  // console.log('handleCategoryChange - 开始处理分类变化')
+  // console.log('当前问题:', question)
+  // console.log('新分类ID:', newCategoryId)
   
   // 找到问题在数组中的索引
   const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId)
   console.log('问题索引:', questionIndex)
   
   if (questionIndex !== -1) {
-    console.log('原始问题对象:', questions.value[questionIndex])
+    // console.log('原始问题对象:', questions.value[questionIndex])
     // 创建新的问题对象，只更新 categoryId
     const updatedQuestion = JSON.parse(JSON.stringify(questions.value[questionIndex]))
     updatedQuestion.categoryId = newCategoryId
-    console.log('更新后的问题对象:', updatedQuestion)
+    // console.log('更新后的问题对象:', updatedQuestion)
     
     // 更新问题数组
     questions.value[questionIndex] = updatedQuestion
     // 强制更新视图
     questions.value = [...questions.value]
-    console.log('更新后的问题数组:', questions.value)
+    // console.log('更新后的问题数组:', questions.value)
     
     // 分类变化后更新sortKey
     updateSortKeys()
@@ -384,10 +384,10 @@ const selectQuestion = (index) => {
 }
 
 const updateQuestion = (index, updatedQuestion) => {
-  console.log('updateQuestion - 开始更新问题')
-  console.log('问题索引:', index)
-  console.log('更新前的问题:', questions.value[index])
-  console.log('新的问题数据:', updatedQuestion)
+  // console.log('updateQuestion - 开始更新问题')
+  // console.log('问题索引:', index)
+  // console.log('更新前的问题:', questions.value[index])
+  // console.log('新的问题数据:', updatedQuestion)
   
   if (index >= 0 && index < questions.value.length) {
     // 保持原有的 categoryId
@@ -408,19 +408,19 @@ const updateQuestion = (index, updatedQuestion) => {
     }
     
     finalQuestion.categoryId = currentCategoryId
-    console.log('最终的问题对象:', finalQuestion)
+    // console.log('最终的问题对象:', finalQuestion)
     
     questions.value[index] = finalQuestion
     // 强制更新视图
     questions.value = [...questions.value]
-    console.log('更新后的问题数组:', questions.value)
+    // console.log('更新后的问题数组:', questions.value)
   }
 }
 
 // 处理编辑选项
 const handleEditOption = (data) => {
-  console.log('SurveyBuilder - 处理编辑选项:', data)
-  console.log('SurveyBuilder - 当前activeQuestion:', activeQuestion.value)
+  // console.log('ExamBuilder - 处理编辑选项:', data)
+  // console.log('ExamBuilder - 当前activeQuestion:', activeQuestion.value)
   
   const questionIndex = questions.value.findIndex(q => q.questionId === data.questionId)
   if (questionIndex !== -1) {
@@ -434,7 +434,7 @@ const handleEditOption = (data) => {
   }
   editingOptionIndex.value = data.index
   isEditingOption.value = true
-  // console.log('SurveyBuilder - 设置后的状态:', {
+  // console.log('ExamBuilder - 设置后的状态:', {
   //   editingOption: editingOption.value,
   //   editingOptionIndex: editingOptionIndex.value,
   //   isEditingOption: isEditingOption.value,
@@ -447,23 +447,23 @@ const handleEditOption = (data) => {
 
 // 获取可跳转的问题列表
 const fetchSkipQuestions = async () => {
-  if (!props.surveyId) {
-    // console.log('SurveyBuilder - 没有surveyId，跳过获取问题列表')
+  if (!props.examId) {
+    // console.log('ExamBuilder - 没有ExamId，跳过获取问题列表')
     return
   }
   
   try {
-    // console.log('SurveyBuilder - 开始获取问题列表')
-    const result = await getAllQuestionsBySurveyIdService(props.surveyId,userInfoStore.info.id)
+    // console.log('ExamBuilder - 开始获取问题列表')
+    const result = await getAllQuestionsByExamIdService(props.examId,userInfoStore.info.id)
     const {questions:questionsData} = result.data
-    // console.log('SurveyBuilder - 获取问题列表结果:', result)
+    // console.log('ExamBuilder - 获取问题列表结果:', result)
     if (result.code === 200) {
       const currentQuestionId = questionsData[activeQuestionIndex.value]?.questionId
       skipQuestions.value = questionsData.filter(q => q.questionId !== currentQuestionId)
-      // console.log('SurveyBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
+      // console.log('ExamBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
     }
   } catch (error) {
-    // console.error('SurveyBuilder - 获取问题列表失败:', error)
+    // console.error('ExamBuilder - 获取问题列表失败:', error)
     ElMessage.error('获取问题列表失败')
   }
 }
@@ -528,38 +528,38 @@ const getQuestionErrors = (index) => {
 }
 
 // 获取问卷详情
-const fetchSurveyDetail = async () => {
-    // 确定要使用的surveyId
-    let currentSurveyId = null
+const fetchExamDetail = async () => {
+    // 确定要使用的ExamId
+    let currentExamId = null
     
     if (isPageRefresh.value) {
-        // 如果是刷新页面，优先使用会话存储中的surveyId
-        currentSurveyId = sessionStorage.getItem('currentSurveyId')
+        // 如果是刷新页面，优先使用会话存储中的ExamId
+        currentExamId = sessionStorage.getItem('currentExamId')
     } else {
-        // 如果是新进入页面，优先使用props或路由参数中的surveyId
-        currentSurveyId = props.surveyId || route.query.surveyId
+        // 如果是新进入页面，优先使用props或路由参数中的ExamId
+        currentExamId = props.examId || route.query.examId
     }
     
-    if (!currentSurveyId) {
-        console.log('没有surveyId，无法获取问卷详情')
+    if (!currentExamId) {
+        console.log('没有ExamId，无法获取问卷详情')
         return
     }
     
     try {
-        const result = await getSurveyAndQuestionsById(currentSurveyId)
+        const result = await getExamAndQuestionsById(currentExamId)
         if (result.code === 200) {
             const data = result.data
-            survey.value = {
-                ...data.survey,
-                description: getPlainText(data.survey.description)
+            exam.value = {
+                ...data.exam,
+                description: getPlainText(data.exam.description)
             }
             questions.value = data.questions || []
             
-            // 保存surveyId到会话存储
-            sessionStorage.setItem('currentSurveyId', currentSurveyId)
+            // 保存ExamId到会话存储
+            sessionStorage.setItem('currentExamId', currentExamId)
 
             // 如果是分类模式，自动选中有问题的分类
-            if (survey.value.isCategory === 1) {
+            if (exam.value.isCategory === 1) {
                 // 清空已选分类
                 selectedCategories.value.clear()
                 // 获取所有有问题的分类ID
@@ -631,7 +631,7 @@ const updateSortKeys = () => {
 }
 
 // 监听isCategory变化
-watch(() => survey.value.isCategory, (newValue, oldValue) => {
+watch(() => exam.value.isCategory, (newValue, oldValue) => {
   if (newValue === 1) {
     fetchCategories()
     // 当切换到分类模式时，自动选中有问题的分类
@@ -665,8 +665,8 @@ const selectedCategoriesList = computed(() => {
 })
 
 // 保存问卷
-const saveSurvey = async () => {
-    if (!survey.value.name) {
+const saveExam = async () => {
+    if (!exam.value.name) {
         ElMessage.warning('请输入问卷标题')
         return
     }
@@ -676,24 +676,24 @@ const saveSurvey = async () => {
         return
     }
 
-    survey.value.status = '草稿'
-    survey.value.createdBy = userInfoStore.info.id
+    exam.value.status = '草稿'
+    exam.value.createdBy = userInfoStore.info.id
 
     try {
-        const res = survey.value.surveyId 
-            ? await updateBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
-            : await saveBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
-          console.log('保存提交前questions数据',questions.value)
+        const res = exam.value.examId 
+            ? await updateBuildExam(exam.value, questions.value, { categories: selectedCategoriesList.value })
+            : await saveBuildExam(exam.value, questions.value, { categories: selectedCategoriesList.value })
+          // console.log('保存提交前questions数据',questions.value)
         if (res.code === 200) {
             ElMessage.success('问卷保存成功')
-            if (!survey.value.surveyId) {
-                survey.value.surveyId = res.data
+            if (!exam.value.examId) {
+                exam.value.examId = res.data
                 // 更新会话存储
-                sessionStorage.setItem('currentSurveyId', res.data)
+                sessionStorage.setItem('currentExamId', res.data)
             }
             
             // 保存成功后重新获取问卷详情，确保数据同步
-            await fetchSurveyDetail()
+            await fetchExamDetail()
         } else {
             ElMessage.error(res.message || '问卷保存失败')
         }
@@ -704,8 +704,8 @@ const saveSurvey = async () => {
 }
 
 // 提交问卷
-const submitSurvey = async () => {
-  if (!survey.value.name) {
+const submitExam = async () => {
+  if (!exam.value.name) {
     ElMessage.warning('请输入问卷标题')
     return
   }
@@ -726,14 +726,14 @@ const submitSurvey = async () => {
       }
     )
 
-    survey.value.status = '已发布'
-    survey.value.createdBy = userInfoStore.info.id
-    const res = await updateBuildSurvey(survey.value, questions.value, { categories: selectedCategoriesList.value })
+    exam.value.status = '已发布'
+    exam.value.createdBy = userInfoStore.info.id
+    const res = await updateBuildExam(exam.value, questions.value, { categories: selectedCategoriesList.value })
     
     if (res.code === 200) {
       ElMessage.success('问卷提交成功')
       // 提交成功后重新获取问卷详情，确保数据同步
-      await fetchSurveyDetail()
+      await fetchExamDetail()
     } else {
       ElMessage.error(res.message || '问卷提交失败')
     }
@@ -747,7 +747,7 @@ const submitSurvey = async () => {
 // 切换预览状态
 const togglePreview = () => {
     // 验证问卷基本信息
-    if (!survey.value.name) {
+    if (!exam.value.name) {
         ElMessage.warning('请填写问卷标题')
         return
     }
@@ -892,15 +892,15 @@ onMounted(() => {
     } else {
         // 否则认为是新进入页面
         isPageRefresh.value = false
-        // 清除之前的surveyId
-        sessionStorage.removeItem('currentSurveyId')
+        // 清除之前的ExamId
+        sessionStorage.removeItem('currentExamId')
     }
     
     // 获取问卷详情
-    fetchSurveyDetail()
+    fetchExamDetail()
     
     // 如果 isCategory 为 1，获取分类数据
-    if (survey.value.isCategory === 1) {
+    if (exam.value.isCategory === 1) {
         fetchCategories()
     }
     
@@ -910,7 +910,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="survey-builder">
+  <div class="exam-builder">
     <!-- 移动端提示 -->
     <div v-if="isMobile" class="mobile-notice">
       <el-result
@@ -945,11 +945,11 @@ onMounted(() => {
         <!-- 中间编辑区域 -->
         <div class="edit-area" 
              :class="{ 'preview-mode': isPreviewMode }">
-          <div class="survey-header">
-            <el-input v-model="survey.name" placeholder="请输入问卷标题" />
-            <div class="survey-category-switch">
+          <div class="exam-header">
+            <el-input v-model="exam.name" placeholder="请输入问卷标题" />
+            <div class="exam-category-switch">
               <el-switch
-                v-model="survey.isCategory"
+                v-model="exam.isCategory"
                 :active-value="1"
                 :inactive-value="0"
                 active-text="按分类排序"
@@ -957,7 +957,7 @@ onMounted(() => {
               />
             </div>
             <el-input
-              v-model="survey.description"
+              v-model="exam.description"
               type="textarea"
               :rows="3"
               placeholder="请输入问卷描述"
@@ -965,7 +965,7 @@ onMounted(() => {
           </div>
 
           <!-- 分类选择区域 -->
-          <div v-if="survey.isCategory === 1" class="category-selection">
+          <div v-if="exam.isCategory === 1" class="category-selection">
             <div class="category-selection-header">
               <h4>选择要显示的分类：</h4>
               <el-button type="primary" size="small" @click="openAddCategoryDialog">添加分类</el-button>
@@ -984,7 +984,7 @@ onMounted(() => {
           </div>
 
           <div class="questions-container">
-            <template v-if="survey.isCategory === 1">
+            <template v-if="exam.isCategory === 1">
               <div v-for="group in orderedGroupedQuestions" 
                    :key="group.categoryId" 
                    class="question-group"
@@ -1184,8 +1184,8 @@ onMounted(() => {
               <el-empty v-else description="请选择问题或点击预览按钮" />
             </template>
             <template v-else>
-              <SurveyBuildPreview 
-                :survey="survey"
+              <ExamBuildPreview 
+                :exam="exam"
                 :questions="questions"
                 :categories="selectedCategoriesList"
               />
@@ -1196,8 +1196,8 @@ onMounted(() => {
 
       <!-- 底部操作栏 -->
       <div class="action-bar">
-        <el-button type="primary" @click="saveSurvey">保存问卷</el-button>
-        <el-button type="success" @click="submitSurvey">提交问卷</el-button>
+        <el-button type="primary" @click="saveExam">保存问卷</el-button>
+        <el-button type="success" @click="submitExam">提交问卷</el-button>
         <el-button link @click="togglePreview">
           {{ isPreviewMode ? '取消预览' : '预览问卷' }}
         </el-button>
@@ -1228,7 +1228,7 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.survey-builder {
+.exam-builder {
   width: 100%;
   height: 100%;
   position: relative;
@@ -1317,7 +1317,7 @@ onMounted(() => {
       width: 40%;
     }
 
-    .survey-header {
+    .exam-header {
       margin-bottom: 20px;
     }
 

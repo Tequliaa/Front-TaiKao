@@ -7,51 +7,54 @@ import DepartmentVue from '@/views/manage/Department.vue'
 import QuestionVue from '@/views/manage/Question.vue'
 import CategoryVue from '@/views/manage/Category.vue'
 import OptionVue from '@/views/manage/Option.vue'
-import SurveyVue from '@/views/survey/Survey.vue'
 import UserVue from '@/views/manage/User.vue'
-import UserSurveyVue from '@/views/manage/UserSurvey.vue'
+import UserExamVue from '@/views/manage/UserExam.vue'
 import UserInfoVue from '@/views/user/UserInfo.vue'
 import UserAvatarVue from '@/views/user/UserAvatar.vue'
 import UserResetPasswordVue from '@/views/user/UserResetPassword.vue'
 import ResponseVue from '@/views/manage/ResponseList.vue'
-import SurveyWriteVue from '@/views/survey/SurveyWrite.vue'
-import SurveyViewVue from '@/views/survey/SurveyView.vue'
-import SurveyStatisticsVue from '@/views/survey/SurveyStatistics.vue'
 import UnfinishedListVue from '@/views/manage/UnfinishedList.vue'
-import SurveyBuilder from '@/views/survey/SurveyBuilder.vue'
-import SurveyPreview from '@/views/survey/SurveyPreview.vue'
 import RoleVue from '@/views/manage/Role.vue'
 import PermissionVue from '@/views/manage/Permission.vue'
-// import SurveyBuild from '@/views/survey/SurveyBuild.vue'
+import ExamVue from '@/views/exam/Exam.vue'
+import ExamBuilder from '@/views/exam/ExamBuilder.vue'
+import ExamPreview from '@/views/exam/ExamPreview.vue'
+import ExamBuildPreview from '@/views/exam/ExamBuildPreview.vue'
+import ExamWrite from '@/views/exam/ExamWrite.vue'
+import ExamStatistics from '@/views/exam/ExamStatistics.vue'
+import ExamView from '@/views/exam/ExamView.vue'
+
+// import ExamBuild from '@/views/exam/ExamBuild.vue'
 
 const routes = [
   { path: '/login', component: LoginVue },
   { 
     path: '/', 
     component: LayoutVue,
-    redirect: '/manage/userSurvey',
+    redirect: '/manage/userExam',
     children:[
       { path: '/manage/role',component:RoleVue},
       { path: '/manage/permission',component:PermissionVue},
-      { path: '/survey/surveyPreview/:surveyId',component:SurveyPreview,props:true,name:'SurveyPreview'},
-      { path: '/survey/builder/:surveyId?',component:SurveyBuilder,props:true,name:'SurveyBuilder'},
-      { path: '/manage/unfinishedList/:surveyId/:departmentId?/:surveyName?/:departmentName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},
-      { path: '/survey/surveyStatistics/:surveyId/:departmentId?/:departmentName?',component:SurveyStatisticsVue,props:true,name:'SurveyStatistics'},
-      { path: '/survey/surveyView/:surveyId/:userId?/:userName?',component:SurveyViewVue,props:true,name:'SurveyView'},
-      { path: '/survey/surveyWrite/:surveyId?',component:SurveyWriteVue,props:true,name:'SurveyWrite'},
-      { path: '/manage/response/:surveyId?/:surveyName?',component:ResponseVue,props:true,name:'Response'},
-      { path: '/manage/userSurvey/:userId?/:username?',component:UserSurveyVue,props:true,name:'UserSurvey'},
+      { path: '/exam/exam',component:ExamVue},
+      { path: '/exam/builder/:examId?',component:ExamBuilder,props:true,name:'ExamBuilder'},
+      { path: '/exam/examPreview/:examId?',component:ExamPreview,props:true,name:'ExamPreview'},
+      { path: '/exam/examBuildPreview/:examId?',component:ExamBuildPreview,props:true,name:'ExamBuildPreview'},
+      { path: '/exam/examWrite/:examId?',component:ExamWrite,props:true,name:'ExamWrite'},
+      { path: '/exam/examStatistics/:examId?/:departmentId?',component:ExamStatistics,props:true,name:'ExamStatistics'},
+      { path: '/manage/unfinishedList/:examId/:departmentId?/:examName?/:departmentName?',component:UnfinishedListVue,props:true,name:'UnfinishedList'},
+      { path: '/manage/response/:examId?/:examName?',component:ResponseVue,props:true,name:'Response'},
+      { path: '/manage/userExam/:userId?/:username?',component:UserExamVue,props:true,name:'UserExam'},
+      { path: '/exam/examView/:examId?/:examName?',component:ExamView,props:true,name:'ExamView'},
       { path: '/manage/category',component:CategoryVue},
       { path: '/manage/department',component:DepartmentVue},
-      { path: '/manage/question/:surveyId?/:surveyName?',component:QuestionVue,props:true,name:'Question'},
+      { path: '/manage/question/:examId?/:examName?',component:QuestionVue,props:true,name:'Question'},
       { path: '/manage/option/:questionId?/:questionName?',component:OptionVue,props:true,name:'Option'},
-      { path: '/survey/survey',component:SurveyVue},
       { path: '/manage/user/:departmentId?/:departmentName?' ,component:UserVue,props:true,name:'User'},
       { path: '/user/info', component: UserInfoVue },
       { path: '/user/avatar', component: UserAvatarVue },
       { path: '/user/password', component: UserResetPasswordVue },
-      // { path: '/survey/builder', name: 'SurveyBuilder', component: SurveyBuilder, meta: { title: '问卷构建器', icon: 'edit' } },
-      // { path: '/survey/builder/:id', name: 'SurveyBuilderEdit', component: SurveyBuilder, meta: { title: '编辑问卷', icon: 'edit' } }
+      // { path: '/exam/builder', name: 'ExamBuilder', component: ExamBuilder, meta: { title: '问卷构建器', icon: 'edit' } },
+      // { path: '/exam/builder/:id', name: 'ExamBuilderEdit', component: ExamBuilder, meta: { title: '编辑问卷', icon: 'edit' } }
     ]
   }
 ]

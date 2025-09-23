@@ -141,7 +141,7 @@ const login = async () => {
         // 保存token
         tokenStore.setToken(result.data)
         ElMessage.success(result.message ? result.message : '登录成功!');
-        router.push('/manage/userSurvey')
+        router.push('/manage/userExam')
     } else {
         ElMessage.error(result.message ? result.message : '登录失败!');
         // 登录失败后刷新验证码

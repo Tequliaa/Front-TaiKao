@@ -10,11 +10,12 @@ import {
 } from '@element-plus/icons-vue'
 import { nextTick, onMounted, computed } from 'vue';
 import { ref,reactive } from 'vue'
-//问卷列表查询
-import { surveyListService, surveyAddService, surveyDelService, surveyUpdateService } from '@/api/survey.js'
+//试卷列表查询
+import { examListService, examAddService, examDelService, examUpdateService } from '@/api/exam.js'
+
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
-import  {assignSurveyToDepartment} from '@/api/userSurvey.js'
+import  {assignExamToDepartment} from '@/api/userExam.js'
 import { departmentListService } from '@/api/department.js'
 //导入pinia
 import { useUserInfoStore } from '@/stores/user.js'
@@ -25,7 +26,7 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 // import { name } from 'element-plus/dist/locale/zh-cn'
-import SurveyPreview from './SurveyPreview.vue'
+import ExamPreview from './ExamPreview.vue'
 import { useRouter } from 'vue-router'
 import LoadingWrapper from '@/components/LoadingWrapper.vue'
 const userInfoStore = useUserInfoStore();
@@ -41,11 +42,11 @@ const getUserInf = async () => {
 //获取用户基本信息
 getUserInf()
 
-//问卷数据模型
-const surveys = ref([
+//试卷数据模型
+const exams = ref([
     {
-        "surveyId": 1,
-        "name": "早餐调查问卷",
+        "id": 1,
+        "name": "早餐调查试卷",
         "createdByName": "张三",
         "status": "草稿",
         "allowView": "1",
@@ -61,8 +62,8 @@ const keyword = ref('')
 // 添加加载状态
 const loading = ref(true)
 
-// 修改获取问卷数据的方法
-const getSurveys = async () => {
+// 修改获取试卷数据的方法
+const getExams = async () => {
     try {
         let params = {
             userId: userInfoStore.info.id,
@@ -71,38 +72,38 @@ const getSurveys = async () => {
             pageNum: pageNum.value,
             pageSize: pageSize.value
         }
-        let result = await surveyListService(params);
+        let result = await examListService(params);
         //渲染总条数
         total.value = result.data.totalCount
         //渲染列表数据
-        surveys.value = result.data.surveys
+        exams.value = result.data.exams
     } catch (error) {
-        ElMessage.error('获取问卷列表失败')
+        ElMessage.error('获取试卷列表失败')
     }
 }
 
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getSurveys();
+    getExams();
 }
 //当前页码发生变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getSurveys()
+    getExams()
 }
 
-//在survey.vue中标识是添加问卷还是编辑问卷
-const addSurveyFlag = ref(true);
+//在exam.vue中标识是添加试卷还是编辑试卷
+const addExamFlag = ref(true);
 
 //控制抽屉是否显示
 const visibleDrawer = ref(false)
-// 控制分配问卷抽屉是否显示
+// 控制分配试卷抽屉是否显示
 const assignVisible = ref(false)
 
 //添加表单数据模型
-const surveyModel = ref({
-    surveyId: '',
+const examModel = ref({
+    id: '',
     name: '',
     description:'',
     createdByName: '',
@@ -111,9 +112,9 @@ const surveyModel = ref({
     userId: '',
 })
 
-// 分配问卷表单数据模型
+// 分配试卷表单数据模型
 const assignForm = ref({
-    surveyId: '',
+    id: '',
     name: '',
     description:'',
     departmentId: ''
@@ -153,7 +154,7 @@ const initData = async () => {
     loading.value = true
     try {
         await Promise.all([
-            getSurveys(),
+            getExams(),
             getDepartments()
         ])
     } finally {
@@ -172,40 +173,40 @@ onMounted(() => {
     });
 })
 
-//打开添加问卷窗口
+//打开添加试卷窗口
 const openAddDialog = () => {
-    surveyModel.value = {
+    examModel.value = {
         isCategory:0,
         allowView:1
     };
     visibleDrawer.value = true;
-    addSurveyFlag.value = true;
+    addExamFlag.value = true;
        // 使用 Vue 的 nextTick 确保 DOM 更新完成后再清空编辑器内容
        nextTick(() => {
         const editor = document.querySelector('.ql-editor');
         if (editor) editor.innerHTML = ''; // 清空编辑器内容
     });
-    console.log('surveyModel: '+surveyModel.value.description)
+    console.log('examModel: '+examModel.value.description)
 }
 
-//添加问卷处理逻辑
-const addSurvey = async () => {
-    surveyModel.value.userId = userInfoStore.info.id
-    let result = await surveyAddService(surveyModel.value);
+//添加试卷处理逻辑
+const addExam = async () => {
+    examModel.value.userId = userInfoStore.info.id
+    let result = await examAddService(examModel.value);
     ElMessage.success(result.message ? result.message : '添加成功')
-    //再次调用getSurveys,获取问卷
-    getSurveys()
+    //再次调用getExams,获取试卷
+    getExams()
     //隐藏抽屉
     visibleDrawer.value = false
 
     //清空页面数据
-    surveyModel.value = {};
+    examModel.value = {};
 }
 
-//删除问卷
-const delsurvey = (row) => {
+//删除试卷
+const delexam = (row) => {
     ElMessageBox.confirm(
-        '你确认删除该问卷吗？',
+        '你确认删除该试卷吗？',
         '温馨提示',
         {
             confirmButtonText: '确认',
@@ -215,13 +216,13 @@ const delsurvey = (row) => {
     )
         .then(async () => {
             //用户点击了确认
-            let result = await surveyDelService(row.surveyId)
+            let result = await examDelService(row.id)
             ElMessage({
                 type: 'success',
                 message: '删除成功',
             })
-            //再次调用再次调用getSurveys，获取问卷
-            getSurveys()
+            //再次调用再次调用getExams，获取试卷
+            getExams()
         })
         .catch(() => {
             //用户点击了取消
@@ -231,44 +232,44 @@ const delsurvey = (row) => {
             })
         })
 }
-//分配问卷回显
-const assignSurveyEcho = (row) => {
+//分配试卷回显
+const assignExamEcho = (row) => {
     //操作改为编辑
     dialogFormVisible.value = true
     assignForm.value = row;
 }
 
-const assignSurvey = async () => {
+const assignExam = async () => {
     
-    let result = await assignSurveyToDepartment(assignForm.value.departmentId,assignForm.value.surveyId)
+    let result = await assignExamToDepartment(assignForm.value.departmentId,assignForm.value.id)
 
     ElMessage.success(result.message? result.message : '分配成功') 
     dialogFormVisible.value = false
     assignForm.value = {};
 }
 
-//修改问卷回显
-const editSurveyEcho = (row) => {
+//修改试卷回显
+const editExamEcho = (row) => {
     //操作改为编辑
-    addSurveyFlag.value = false;
+    addExamFlag.value = false;
     //显示抽屉
     visibleDrawer.value = true
-    surveyModel.value = row;
-    // console.log('surveyModel: '+surveyModel.value.description)
+    examModel.value = row;
+    // console.log('examModel: '+examModel.value.description)
 }
 
-//修改问卷
-const editSurvey = async () => {
-    surveyModel.value.userId = userInfoStore.info.id
-    let result = await surveyUpdateService(surveyModel.value);
+//修改试卷
+const editExam = async () => {
+    examModel.value.userId = userInfoStore.info.id
+    let result = await examUpdateService(examModel.value);
     ElMessage.success(result.message ? result.message : '修改成功')
-    //再次调用getSurveys,获取问卷
-    getSurveys()
+    //再次调用getExams,获取试卷
+    getExams()
     //隐藏抽屉
     visibleDrawer.value = false
 
     //清空页面数据
-    surveyModel.value = {};
+    examModel.value = {};
 }
 
 const options = [
@@ -285,7 +286,7 @@ import { debounce } from 'lodash';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
-    getSurveys()
+    getExams()
     }, 500);  // 延时 500ms
 
 const getPlainText = (htmlContent)=> {
@@ -297,13 +298,13 @@ const getPlainText = (htmlContent)=> {
 
 // 预览对话框控制
 const previewVisible = ref(false)
-const currentSurveyId = ref(null)
+const currentExamId = ref(null)
 
 // 打开预览
 const openPreview = (row) => {
-    currentSurveyId.value = null // 先清空当前ID
+    currentExamId.value = null // 先清空当前ID
     nextTick(() => {
-        currentSurveyId.value = row.surveyId // 在下一个tick中设置新ID
+        currentExamId.value = row.id // 在下一个tick中设置新ID
         previewVisible.value = true
     })
 }
@@ -312,8 +313,8 @@ const openQuestions = (row) => {
     router.push({
         name: 'Question',
         params: {
-            surveyId: row.surveyId,
-            surveyName: row.name
+            examId: row.id,
+            examName: row.name
         }
     })
 }
@@ -322,10 +323,12 @@ const checkResponse = (row) => {
     router.push({
         name: 'Response',
         params: {
-            surveyId: row.surveyId,
-            surveyName: row.name
+            examId: row.id,
+            examName: row.name
         }
     })
+    // console.log('examId',row.id)
+    // console.log('examName',row.name)
 }
 
 
@@ -347,12 +350,12 @@ onMounted(() => {
     });
 });
 
-// 添加构建问卷方法
-const buildSurvey = (row) => {
+// 添加构建试卷方法
+const buildExam = (row) => {
     router.push({
-        name: 'SurveyBuilder',
+        name: 'ExamBuilder',
         params: {
-            surveyId: row.surveyId
+            examId: row.id
         }
     })
 }
@@ -362,17 +365,17 @@ const buildSurvey = (row) => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>问卷管理</span>
+                    <span>试卷管理</span>
                     <div class="extra">
-                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入问卷名称或描述" />
-                        <el-button type="primary" v-permission="'survey:create'" @click="openAddDialog()" class="hide-on-mobile">添加问卷</el-button>
+                        <el-input v-model="keyword"  @input="handleInputChange" placeholder="请输入试卷名称或描述" />
+                        <el-button type="primary" v-permission="'exam:create'" @click="openAddDialog()" class="hide-on-mobile">添加试卷</el-button>
                     </div>
                 </div>
             </template>
             <!-- 桌面端表格视图 -->
-            <el-table :data="surveys" style="width: 100%" class="desktop-table">
+            <el-table :data="exams" style="width: 100%" class="desktop-table">
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
+                <el-table-column label="试卷名称" style="text-align: center;" align="center" prop="name"></el-table-column>
                 <el-table-column label="创建人" style="text-align: center;" align="center" prop="createdByName" class-name="hide-on-mobile"> </el-table-column>
                 <el-table-column label="状态" style="text-align: center;" align="center" prop="status" class-name="hide-on-mobile"></el-table-column>
                 <el-table-column label="答后允许查看" style="text-align: center;" align="center" prop="allowView" class-name="hide-on-mobile">
@@ -389,19 +392,19 @@ const buildSurvey = (row) => {
                                 <el-button :icon="Connection" circle plain type="primary" @click="openQuestions(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="发布" placement="top">
-                                <el-button :icon="Pointer" circle plain type="primary" @click="assignSurveyEcho(row)"></el-button>
+                                <el-button :icon="Pointer" circle plain type="primary" @click="assignExamEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="查看答题情况" placement="top">
-                                <el-button :icon="DataLine" v-permission="'survey:edit'" circle plain type="primary" @click="checkResponse(row)"></el-button>
+                                <el-button :icon="DataLine" v-permission="'exam:view'" circle plain type="primary" @click="checkResponse(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="编辑" placement="top">
-                                <el-button :icon="Edit" v-permission="'survey:edit'" circle plain type="primary" @click="editSurveyEcho(row)"></el-button>
+                                <el-button :icon="Edit" v-permission="'exam:edit'" circle plain type="primary" @click="editExamEcho(row)"></el-button>
                             </el-tooltip>
                             <el-tooltip content="构建" placement="top">
-                                <el-button :icon="Tools" circle plain type="primary" @click="buildSurvey(row)" :disabled="row.status === '已发布'"></el-button>
+                                <el-button :icon="Tools" circle plain type="primary" @click="buildExam(row)" :disabled="row.status === '已发布'"></el-button>
                             </el-tooltip>
                             <el-tooltip content="删除" placement="top" class-name="hide-on-mobile">
-                                <el-button :icon="Delete" circle plain type="danger" @click="delsurvey(row)"></el-button>
+                                <el-button :icon="Delete" circle plain type="danger" @click="delexam(row)"></el-button>
                             </el-tooltip>
                         </div>
                     </template>
@@ -414,9 +417,9 @@ const buildSurvey = (row) => {
 
             <!-- 移动端卡片视图 -->
             <div class="mobile-cards">
-                <el-card v-for="(row, index) in surveys" :key="row.surveyId" class="survey-card">
+                <el-card v-for="(row, index) in exams" :key="row.id" class="exam-card">
                     <div class="card-header">
-                        <span class="survey-name">{{ row.name }}</span>
+                        <span class="exam-name">{{ row.name }}</span>
                         <el-tag size="small" :type="row.status === '草稿' ? 'info' : 'success'">{{ row.status }}</el-tag>
                     </div>
                     <div class="card-description" v-if="row.description">
@@ -424,9 +427,9 @@ const buildSurvey = (row) => {
                     </div>
                     <div class="card-actions">
                         <el-button type="primary" size="small" @click="openPreview(row)">预览</el-button>
-                        <el-button type="primary" size="small" @click="assignSurveyEcho(row)">发布</el-button>
+                        <el-button type="primary" size="small" @click="assignExamEcho(row)">发布</el-button>
                         <el-button type="primary" size="small" @click="checkResponse(row)">查看答题</el-button>
-                        <el-button type="primary" size="small" @click="editSurveyEcho(row)">编辑</el-button>
+                        <el-button type="primary" size="small" @click="editExamEcho(row)">编辑</el-button>
                     </div>
                 </el-card>
             </div>
@@ -444,15 +447,15 @@ const buildSurvey = (row) => {
                 class="pagination-container" />
         </el-card>
     </LoadingWrapper>
-    <!-- 分配问卷对话框 -->
+    <!-- 分配试卷对话框 -->
     <el-dialog 
         class="custom-dialog" 
         v-model="dialogFormVisible" 
-        title="分发问卷" 
+        title="分发试卷" 
         :width="isMobile ? '300px' : '500px'"
         :style="{ '--el-dialog-width': isMobile ? '300px' : '500px' }">
         <el-form :model="assignForm">
-            <el-form-item label="问卷名称" :label-width="formLabelWidth">
+            <el-form-item label="试卷名称" :label-width="formLabelWidth">
                 <el-input v-model="assignForm.name" aria-disabled="true" autocomplete="off" />
             </el-form-item>
             <el-form-item label="分发部门" :label-width="formLabelWidth">
@@ -464,39 +467,39 @@ const buildSurvey = (row) => {
         <template #footer>
             <div class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取消</el-button>
-                <el-button type="primary" @click="assignSurvey()">确认发布</el-button>
+                <el-button type="primary" @click="assignExam()">确认发布</el-button>
             </div>
         </template>
     </el-dialog>
     
 
     <!-- 抽屉 -->
-    <el-drawer v-model="visibleDrawer" :title="addSurveyFlag ? '添加问卷' : '编辑问卷'" direction="rtl" size="50%">
-        <!-- 添加问卷表单 -->
-        <el-form :model="surveyModel" label-width="100px">
-            <el-form-item label="问卷名称">
-                <el-input v-model="surveyModel.name" placeholder="请输入问卷名称"></el-input>
+    <el-drawer v-model="visibleDrawer" :title="addExamFlag ? '添加试卷' : '编辑试卷'" direction="rtl" size="50%">
+        <!-- 添加试卷表单 -->
+        <el-form :model="examModel" label-width="100px">
+            <el-form-item label="试卷名称">
+                <el-input v-model="examModel.name" placeholder="请输入试卷名称"></el-input>
             </el-form-item>
-            <el-form-item label="问卷描述">
+            <el-form-item label="试卷描述">
                 <div class="editor">
-                    <quill-editor theme="snow" v-model:content="surveyModel.description" contentType="html">
+                    <quill-editor theme="snow" v-model:content="examModel.description" contentType="html">
                     </quill-editor>
                 </div>
             </el-form-item>
             <el-form-item label="答完再次查看">
-                <el-select v-model="surveyModel.allowView" clearable placeholder="答完是否可再次查看">
+                <el-select v-model="examModel.allowView" clearable placeholder="答完是否可再次查看">
                     <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value"/>
                 </el-select>
             </el-form-item>
 
             <el-form-item label="按分类展示">
-                <el-select v-model="surveyModel.isCategory" clearable placeholder="问卷内问题是否按分类展示">
+                <el-select v-model="examModel.isCategory" clearable placeholder="试卷内问题是否按分类展示">
                     <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value"/>
                 </el-select>
             </el-form-item>
             
             <el-form-item>
-                <el-button type="primary" @click="addSurveyFlag ? addSurvey() : editSurvey()">{{ addSurveyFlag ?
+                <el-button type="primary" @click="addExamFlag ? addExam() : editExam()">{{ addExamFlag ?
                         "添加" :
                         "修改" }}</el-button>
                 <el-button type="info" @click="visibleDrawer = false">取消</el-button>
@@ -507,13 +510,13 @@ const buildSurvey = (row) => {
     <!-- 预览对话框 -->
     <el-dialog
         v-model="previewVisible"
-        title="问卷预览"
+        title="试卷预览"
         width="80%"
         :close-on-click-modal="false"
         :close-on-press-escape="false"
         :show-close="true"
-        @closed="currentSurveyId = null">
-        <SurveyPreview v-if="currentSurveyId" :surveyId="currentSurveyId" />
+        @closed="currentExamId = null">
+        <ExamPreview v-if="currentExamId" :examId="currentExamId" />
     </el-dialog>
 </template>
 <style lang="scss" scoped>
@@ -709,7 +712,7 @@ const buildSurvey = (row) => {
         display: block;
         padding: 10px;
         
-        .survey-card {
+        .exam-card {
             margin-bottom: 15px;
             
             .card-header {
@@ -720,7 +723,7 @@ const buildSurvey = (row) => {
                 padding-bottom: 8px;
                 border-bottom: 1px solid #ebeef5;
                 
-                .survey-name {
+                .exam-name {
                     font-size: 16px;
                     font-weight: 500;
                     color: #303133;

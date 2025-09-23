@@ -12,9 +12,10 @@ export const getAllQuestionsService = (userId) => {
   return request.get('/question/getAll?userId='+userId)
 }
 
+
 //问题列表查询
-export const getAllQuestionsBySurveyIdService = (surveyId,userId) => {
-  return request.get('/question/getAll?surveyId='+surveyId+'&userId='+userId)
+export const getAllQuestionsByExamIdService = (examId,userId) => {
+  return request.get('/question/getAll?examId='+examId+'&userId='+userId)
 }
 
 

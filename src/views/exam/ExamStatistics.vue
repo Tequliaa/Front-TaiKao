@@ -7,7 +7,7 @@ import * as echarts from 'echarts'
 import AIAnalysisReport from '@/components/AIAnalysisReport.vue'
 // 问卷ID
 const props = defineProps({
-    surveyId: {
+    examId: {
         type: [String, Number],
         required: true
     },
@@ -27,7 +27,7 @@ const router = useRouter()
 const questions = ref([])
 const unfinishedTotalRecords = ref(0)
 // 问卷信息
-const surveyInfo = ref({
+const examInfo = ref({
     name: '',
     description: ''
 })
@@ -386,12 +386,12 @@ const initChart = (questionId, type, options) => {
 const getStatistics = async () => {
     loading.value = true
     try {
-        const response = await getStatisticsService(props.surveyId,props.departmentId)
+        const response = await getStatisticsService(props.examId,props.departmentId)
         if (response.code === 200) {
             // 直接使用返回的 questions 数组
             questions.value = response.data.questions
             unfinishedTotalRecords.value = response.data.unfinishedTotalRecords
-            surveyInfo.value = response.data.survey
+            examInfo.value = response.data.exam
             // 设置矩阵单元格数据
             matrixCellData.value = response.data.matrixCellData || {}
             // console.log('获取到的矩阵单元格数据:', matrixCellData.value)
@@ -454,9 +454,9 @@ const goToUnfinishedList = () => {
     router.push({
         name: 'UnfinishedList',
         params: {
-            surveyId: props.surveyId,
+            examId: props.examId,
             departmentId: props.departmentId,
-            surveyName: surveyInfo.value.name,
+            examName: examInfo.value.name,
             departmentName: props.departmentName
         }
     })
@@ -551,7 +551,7 @@ const groupedQuestions = computed(() => {
 // }
 const getQuestionIndex = (questionId) => {
     // 如果是分类模式，需要按照分类内顺序重新编号
-    if (surveyInfo.value.isCategory === 1) {
+    if (examInfo.value.isCategory === 1) {
         // 找到问题所属的分类
         let categoryId = null;
         let questionInCategory = null;
@@ -610,8 +610,8 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 </script>
 
 <template>
-    <div class="survey-statistics">
-        <div class="survey-container">
+    <div class="exam-statistics">
+        <div class="exam-container">
             <!-- 添加调试按钮 -->
             <!-- <el-button type="primary" @click="debugMatrixData" style="margin-bottom: 20px;">调试矩阵数据</el-button> -->
             
@@ -619,8 +619,8 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
                     <!-- 问卷标题和描述 -->
-                    <div class="survey-header">
-                        <h1 class="survey-title">{{ surveyInfo.name }}</h1>
+                    <div class="exam-header">
+                        <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <div class="unfinished-info">
                             <h4>{{props.departmentName}}——未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span></h4>
                         </div>
@@ -630,7 +630,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                             <el-button type="primary" @click="openAIAnalysisReport">查看AI答卷分析报告</el-button>
                         </div>
                          
-                        <!-- <h6 class="survey-description">{{ getPlainText(surveyInfo.description) }}</h6> -->
+                        <!-- <h6 class="exam-description">{{ getPlainText(examInfo.description) }}</h6> -->
                     </div>
                     
                     <!-- AI分析报告对话框 -->
@@ -643,14 +643,14 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                       destroy-on-close
                     >
                       <AIAnalysisReport 
-                        :surveyId="props.surveyId" 
+                        :examId="props.examId" 
                         :departmentId="props.departmentId"
                       />
                     </el-dialog>
 
                     <!-- 问题列表 -->
                     <div class="questions-list">
-                        <template v-if="surveyInfo.isCategory === 1">
+                        <template v-if="examInfo.isCategory === 1">
                             <div v-for="(group, groupIndex) in groupedQuestions" :key="group.categoryId" class="category-group">
                                 <div class="category-header">
                                     <div class="category-title">{{ group.categoryName }}</div>
@@ -1278,7 +1278,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 </template>
 
 <style lang="scss" scoped>
-.survey-header {
+.exam-header {
     min-height: 100%;
     box-sizing: border-box;
 
@@ -1323,7 +1323,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
         }
     }
 }
-.survey-statistics {
+.exam-statistics {
     background-color: #f8f9fa;
     min-height: 100vh;
     padding: 20px 0;
@@ -1334,31 +1334,31 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 
-    .survey-container {
+    .exam-container {
         max-width: 800px;
         margin: 0 auto;
         padding: 0 20px;
     }
 
-    .survey-header {
+    .exam-header {
         margin-bottom: 30px;
         text-align: center;
 
-        .survey-title {
+        .exam-title {
             font-size: 24px;
             font-weight: 600;
             color: #303133;
             margin-bottom: 10px;
         }
 
-        .survey-description {
+        .exam-description {
             font-size: 16px;
             color: #606266;
             line-height: 1.6;
             margin-bottom: 10px;
         }
 
-        .survey-user {
+        .exam-user {
             font-size: 14px;
             color: #909399;
             margin-top: 8px;
@@ -1657,8 +1657,8 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 
 // 添加响应式样式
 @media (max-width: 768px) {
-    .survey-statistics {
-        .survey-container {
+    .exam-statistics {
+        .exam-container {
             padding: 0 10px;
         }
         
@@ -2042,13 +2042,13 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 }
 
 /* 调整问卷标题区域布局 */
-.survey-header {
+.exam-header {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.survey-title {
+.exam-title {
   margin: 0;
 }
 

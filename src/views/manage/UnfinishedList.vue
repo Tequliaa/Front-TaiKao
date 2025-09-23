@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, computed} from 'vue'
-import { unfinishedListService, exportUnfinishedListService } from '@/api/userSurvey'
+import { unfinishedListService, exportUnfinishedListService } from '@/api/userExam'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import axios from 'axios'
@@ -11,7 +11,7 @@ import { useUserInfoStore } from '@/stores/user.js'
 
 // 定义props
 const props = defineProps({
-    surveyId: {
+    examId: {
         type: [String, Number],
         required: true
     },
@@ -19,7 +19,7 @@ const props = defineProps({
         type: [String, Number],
         required: true
     },
-    surveyName: {
+    examName: {
         type: String,
         required: true
     },
@@ -32,7 +32,7 @@ const props = defineProps({
 const userInfoStore = useUserInfoStore();
 
 // 数据列表
-const userSurveys = ref([])
+const userExams = ref([])
 const total = ref(0)
 const loading = ref(true)
 const pageNum = ref(1)//当前页
@@ -44,12 +44,12 @@ const getUnfinishedList = async () => {
         let params = {
             pageNum: pageNum.value,
             pageSize: pageSize.value,
-            surveyId: props.surveyId,
+            examId: props.examId,
             departmentId: props.departmentId
         }
         const response = await unfinishedListService(params)
         if (response.code === 200) {
-            userSurveys.value = response.data.userSurveys
+            userExams.value = response.data.userExams
             total.value = response.data.total
         } else {
             ElMessage.error('获取未完成列表失败')
@@ -89,11 +89,11 @@ onMounted(() => {
 // 导出未完成列表
 const exportUnfinishedList = async () => {
     try {
-        const response = await exportUnfinishedListService(props.surveyId, props.departmentId)
+        const response = await exportUnfinishedListService(props.examId, props.departmentId)
 
         // 获取文件名
         const contentDisposition = response.headers['content-disposition']
-        let fileName = `${props.surveyName}-未完成名单-${new Date().toLocaleDateString()}.xlsx`
+        let fileName = `${props.examName}-未完成名单-${new Date().toLocaleDateString()}.xlsx`
         if (contentDisposition) {
             const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
             if (fileNameMatch && fileNameMatch[1]) {
@@ -147,7 +147,7 @@ const initWebSocket = () => {
     // 临时修改为固定协议（后端未启用HTTPS时）
     const wsProtocol = 'ws:'; // 不使用window.location.protocol自动判断
     const wsHost = '127.0.0.1:8082';
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`;
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/exam/${props.examId}`;
     console.log('UnfinishedList WebSocket URL:', wsUrl)
     
     // 连接WebSocket
@@ -158,7 +158,7 @@ const initWebSocket = () => {
         console.log('UnfinishedList WebSocket连接成功，开始接收实时更新', data)
         // 发送订阅消息
         wsService.send('subscribe', {
-            surveyId: props.surveyId,
+            examId: props.examId,
             departmentId: props.departmentId,
             userId: userInfoStore.info?.userId || '',
             type: 'response_update'
@@ -222,7 +222,7 @@ const refreshUnfinishedData = async () => {
                 <template #default>
                     <!-- 标题和总数 -->
                     <div class="list-header">
-                        <h2>{{ props.surveyName }}问卷</h2>
+                        <h2>{{ props.examName }}问卷</h2>
                         <div class="info-row">
                             <div class="total-count">未完成人数：{{ total }}</div>
                             <el-button 
@@ -237,7 +237,7 @@ const refreshUnfinishedData = async () => {
 
                     <!-- 用户列表 -->
                     <el-table 
-                        :data="userSurveys" 
+                        :data="userExams" 
                         style="width: 100%"
                         border>
                         <el-table-column 

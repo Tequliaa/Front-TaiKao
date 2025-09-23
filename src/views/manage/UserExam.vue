@@ -8,7 +8,7 @@ import {
 import {nextTick, ref,reactive, computed,onMounted } from 'vue'
 import dayjs from 'dayjs'
 //问卷列表查询
-import {userSurveyListService} from '@/api/userSurvey.js'
+import {userExamListService} from '@/api/userExam.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -51,7 +51,7 @@ const initData = async () => {
         }
         
         // 获取问卷列表
-        await getUserSurveys();
+        await getUserExams();
     } catch (error) {
         console.error('初始化数据失败:', error);
         // 不再显示错误消息，直接重定向到登录页面
@@ -73,16 +73,16 @@ const props =defineProps({
     }
 })
 //问卷数据模型
-const userSurveys = ref([
+const userExams = ref([
     {
         "id": 1,
         "userId": "1",
-        "surveyId": "张三",
+        "examId": "张三",
         "departmentId": "1",
         "username": "张三",
         "departmentName": "部门1",
-        "surveyName": "早餐调查问卷",
-        "surveyDescription": "这是一份关于早餐的调查问卷。",
+        "examName": "早餐调查问卷",
+        "examDescription": "这是一份关于早餐的调查问卷。",
         "status": "已完成",
         "allowView": "1",
         "assignedAt": "2024-05-01 10:00:00",
@@ -95,7 +95,7 @@ const pageNum = ref(1)//当前页
 const total = ref(20)//总条数
 const pageSize = ref(8)//每页条数
 const keyword = ref('')
-const getUserSurveys = async () => {
+const getUserExams = async () => {
     try {
         let params = {
             keyword: keyword.value,
@@ -104,11 +104,11 @@ const getUserSurveys = async () => {
             userId:props.userId||userInfoStore.info.id,
             keyword: keyword.value
         }
-        let result = await userSurveyListService(params);
+        let result = await userExamListService(params);
         //渲染总条数
         total.value = result.data.totalCount
         //渲染列表数据
-        userSurveys.value = result.data.userSurveys
+        userExams.value = result.data.userExams
     } catch (error) {
         ElMessage.error('获取问卷列表失败')
         throw error;
@@ -118,30 +118,20 @@ const getUserSurveys = async () => {
 //当每页条数发生了变化，调用此函数
 const onSizeChange = (size) => {
     pageSize.value = size;
-    getUserSurveys();
+    getUserExams();
 }
 
 //当前页码发生了变化，调用此函数
 const onCurrentChange = (num) => {
     pageNum.value = num;
-    getUserSurveys()
+    getUserExams()
 }
 
-const options = [
-  {
-    value: 1,
-    label: '是',
-  },
-  {
-    value: 0,
-    label: '否',
-  }
-]
 import { debounce } from 'lodash';
 
 const handleInputChange = debounce(() => {
     console.log("触发函数了")
-    getUserSurveys()
+    getUserExams()
     }, 500);  // 延时 500ms
 
 
@@ -153,11 +143,11 @@ const getPlainText = (htmlContent)=> {
 }
 import { useRouter } from 'vue-router'
 const router = useRouter()
-const fillOutSurvey = (row) => {
+const fillOutExam = (row) => {
     router.push({
-        name: 'SurveyWrite',
+        name: 'ExamWrite',
         params: {
-            surveyId: row.surveyId
+            examId: row.examId
         }
     })
 }
@@ -165,9 +155,9 @@ const fillOutSurvey = (row) => {
 // 添加查看答题情况的方法
 const viewResponse = (row) => {
     router.push({
-        name: 'SurveyView',
+        name: 'ExamView',
         params: {
-            surveyId: row.surveyId,
+            examId: row.examId,
         }
     })
 }
@@ -210,18 +200,18 @@ onMounted(() => {
             <template v-if="!isMobile">
                 <el-table 
                     v-loading="loading"
-                    :data="userSurveys" 
+                    :data="userExams" 
                     style="width: 100%">
                     <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                    <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+                    <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="examName"></el-table-column>
                     <el-table-column label="问卷描述" style="text-align: center;" align="center">
                         <template #default="scope">
                             <el-tooltip 
-                                :content="getPlainText(scope.row.surveyDescription)" 
+                                :content="getPlainText(scope.row.examDescription)" 
                                 placement="top" 
                                 :show-after="500"
                                 popper-class="description-tooltip">
-                                <span class="description-text">{{ getPlainText(scope.row.surveyDescription) }}</span>
+                                <span class="description-text">{{ getPlainText(scope.row.examDescription) }}</span>
                             </el-tooltip>
                         </template>
                     </el-table-column>
@@ -232,7 +222,7 @@ onMounted(() => {
                         <template #default="{ row }">
                             <!-- 未完成状态显示答题按钮 -->
                             <el-tooltip v-if="row.status !== '已完成'" content="答题" placement="top">
-                                <el-button :icon="View" circle plain type="primary" @click="fillOutSurvey(row)"></el-button>
+                                <el-button :icon="View" circle plain type="primary" @click="fillOutExam(row)"></el-button>
                             </el-tooltip>
                             <!-- 已完成状态显示查看按钮 -->
                             <el-tooltip :content="row.allowView === 1 ? '查看答题情况' : '暂无查看权限'" placement="top">
@@ -258,22 +248,22 @@ onMounted(() => {
             <!-- 移动端卡片视图 -->
             <template v-else>
                 <div class="mobile-cards">
-                    <el-card v-for="(row, index) in userSurveys" :key="index" class="survey-card">
+                    <el-card v-for="(row, index) in userExams" :key="index" class="exam-card">
                         <div class="card-content">
-                            <h3 class="survey-name">{{ row.surveyName }}</h3>
-                            <p class="survey-time">发布于: {{ dayjs(row.assignedAt).format('YYYY-MM-DD HH:mm') }}</p>
+                            <h3 class="exam-name">{{ row.examName }}</h3>
+                            <p class="exam-time">发布于: {{ dayjs(row.assignedAt).format('YYYY-MM-DD HH:mm') }}</p>
                             <div class="card-actions">
                                 <!-- 未完成状态显示答题按钮 -->
                                 <el-button 
                                     v-if="row.status === '未完成'"
                                     type="primary" 
-                                    @click="fillOutSurvey(row)">
+                                    @click="fillOutExam(row)">
                                     开始答题
                                 </el-button>
                                 <el-button 
                                     v-if="row.status === '保存未提交'"
                                     type="primary" 
-                                    @click="fillOutSurvey(row)">
+                                    @click="fillOutExam(row)">
                                     继续答题
                                 </el-button>
                                 <!-- 已完成状态显示查看按钮 -->
@@ -287,7 +277,7 @@ onMounted(() => {
                             </div>
                         </div>
                     </el-card>
-                    <el-empty v-if="userSurveys.length === 0" description="没有数据" />
+                    <el-empty v-if="userExams.length === 0" description="没有数据" />
                 </div>
             </template>
 
@@ -443,7 +433,7 @@ onMounted(() => {
     gap: 16px;
     padding: 16px;
     
-    .survey-card {
+    .exam-card {
         width: 100%;
         
         .card-content {
@@ -451,7 +441,7 @@ onMounted(() => {
             flex-direction: column;
             gap: 8px;
             
-            .survey-name {
+            .exam-name {
                 // text-align: center;
                 font-size: 16px;
                 font-weight: 500;
@@ -459,7 +449,7 @@ onMounted(() => {
                 color: #303133;
             }
             
-            .survey-time {
+            .exam-time {
                 font-size: 14px;
                 color: #909399;
                 margin: 0;

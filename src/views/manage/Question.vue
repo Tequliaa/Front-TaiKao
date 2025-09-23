@@ -12,7 +12,7 @@ import { useRouter, useRoute } from 'vue-router'
 //问题列表查询
 import { questionListService, questionAddService, questionDelService, questionUpdateService } from '@/api/question.js'
 import { getAllCategoriesService } from '@/api/category.js'
-import { getAllSurveysService } from '@/api/survey.js'
+import { getAllExamsService } from '@/api/exam.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 //导入pinia
@@ -48,8 +48,8 @@ const questions = ref([
         "description": "123",
         "categoryId": "早餐调查问题",
         "categoryName": "张三",
-        "surveyId": "草稿",
-        "surveyName": 1,
+        "examId": "草稿",
+        "examName": 1,
         "type":"单选",
         "isRequired": 1,
         "isOpen": 1,
@@ -59,10 +59,10 @@ const questions = ref([
 ])
 
 const props =defineProps({
-    surveyId:{
+    examId:{
         type:Number
     },
-    surveyName:{
+    examName:{
         type:String
     }
 })
@@ -80,7 +80,7 @@ const loading = ref(true)
 const getQuestions = async () => {
     try {
         let params = {
-            surveyId:props.surveyId,
+            examId:props.examId,
             userId: userInfoStore.info.id,
             keyword: keyword.value,
             pageNum: pageNum.value,
@@ -121,7 +121,7 @@ onMounted(() => {
 })
 
 // 监听路由参数变化
-watch(() => route.query.surveyId, (newVal) => {
+watch(() => route.query.examId, (newVal) => {
     if (newVal) {
         getQuestions()
     }
@@ -151,8 +151,8 @@ const questionModel = ref({
     description: '',
     categoryId:'',
     categoryName: '',
-    surveyId: '',
-    surveyName: '',
+    examId: '',
+    examName: '',
     type: '',
     isRequired: '',
     isOpen: '',
@@ -174,19 +174,19 @@ const openAddDialog = () => {
         sortType: '拖拽排序',
         sortKey:'1',
         categoryId: '',
-        surveyId: props.surveyId || ''
+        examId: props.examId || ''
     };
     
-    // 如果有surveyId，设置对应的surveyName
-    if (props.surveyId) {
-        // 优先使用props.surveyName
-        if (props.surveyName) {
-            questionModel.value.surveyName = props.surveyName;
+    // 如果有examId，设置对应的examName
+    if (props.examId) {
+        // 优先使用props.examName
+        if (props.examName) {
+            questionModel.value.examName = props.examName;
         } else {
-            // 如果没有props.surveyName，则从allSurveys中查找
-            const survey = allSurveys.value.find(s => s.surveyId === props.surveyId);
-            if (survey) {
-                questionModel.value.surveyName = survey.name;
+            // 如果没有props.examName，则从allExams中查找
+            const exam = allExams.value.find(s => s.examId === props.examId);
+            if (exam) {
+                questionModel.value.examName = exam.name;
             }
         }
     }
@@ -370,14 +370,14 @@ const getCategories = async () => {
 }
 getCategories()
 
-const allSurveys = ref({
+const allExams = ref({
 })
 
-const getAllSurveys = async () => {
-    let result = await getAllSurveysService(userInfoStore.info.id);
-    allSurveys.value = result.data;
+const getAllExams = async () => {
+    let result = await getAllExamsService(userInfoStore.info.id);
+    allExams.value = result.data;
 }
-getAllSurveys()
+getAllExams()
 
 
 import { debounce } from 'lodash';
@@ -387,12 +387,6 @@ const handleInputChange = debounce(() => {
     getQuestions()
     }, 500);  // 延时 500ms
 
-const getPlainText = (htmlContent)=> {
-      // 使用正则去掉 HTML 标签，获取纯文本
-      const div = document.createElement('div');
-      div.innerHTML = htmlContent;
-      return div.textContent || div.innerText || '';
-}
 const openOptions = (row) => {
     router.push({
         name: 'Option',
@@ -416,10 +410,10 @@ window.addEventListener('resize', () => {
     });
 })
 
-const handleSurveyChange = (value) => {
-    const survey = allSurveys.value.find(s => s.surveyId === value);
-    if (survey) {
-        questionModel.value.surveyName = survey.name;
+const handleExamChange = (value) => {
+    const exam = allExams.value.find(s => s.examId === value);
+    if (exam) {
+        questionModel.value.examName = exam.name;
     }
 }
 </script>
@@ -428,7 +422,7 @@ const handleSurveyChange = (value) => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>问题管理 - {{ props.surveyName || '所有问卷' }}</span>
+                    <span>问题管理 - {{ props.examName || '所有问卷' }}</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问题描述" />
                         <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加问题</el-button>
@@ -443,7 +437,7 @@ const handleSurveyChange = (value) => {
                 <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description"></el-table-column>
                 <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type" > </el-table-column>
                 <!-- <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column> -->
-                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="surveyName"></el-table-column>
+                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="examName"></el-table-column>
                 <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired">
                     <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
                     </template>
@@ -536,11 +530,11 @@ const handleSurveyChange = (value) => {
             </el-form-item>
 
             <el-form-item label="所属问卷">
-                <el-select v-model="questionModel.surveyId" clearable placeholder="所属问卷" @change="handleSurveyChange">
-                    <el-option v-for="item in allSurveys" :key="item.surveyId" :label="item.name" :value="item.surveyId"/>
+                <el-select v-model="questionModel.examId" clearable placeholder="所属问卷" @change="handleExamChange">
+                    <el-option v-for="item in allExams" :key="item.examId" :label="item.name" :value="item.examId"/>
                 </el-select>
-                <div v-if="questionModel.surveyName" class="survey-name-display">
-                    当前选择: {{ questionModel.surveyName }}
+                <div v-if="questionModel.examName" class="exam-name-display">
+                    当前选择: {{ questionModel.examName }}
                 </div>
             </el-form-item>
 
@@ -673,7 +667,7 @@ const handleSurveyChange = (value) => {
     }
 }
 
-.survey-name-display {
+.exam-name-display {
     margin-top: 8px;
     font-size: 14px;
     color: #606266;

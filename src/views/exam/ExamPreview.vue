@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { getAllQuestionsBySurveyIdService } from '@/api/question'
+import { getAllQuestionsByExamIdService } from '@/api/question'
 import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/user'
+import { Rank } from '@element-plus/icons-vue'
 
 // 问卷ID
 const props = defineProps({
-    surveyId: {
+    examId: {
         type: [String, Number],
         required: true
     }
@@ -15,7 +16,7 @@ const props = defineProps({
 // 问题列表
 const questions = ref([])
 // 问卷信息
-const surveyInfo = ref({
+const examInfo = ref({
     name: '',
     description: '',
     isCategory: 0
@@ -23,8 +24,8 @@ const surveyInfo = ref({
 
 // 添加分类展示相关的计算属性
 const groupedQuestions = computed(() => {
-    // 只有当surveyInfo.isCategory为1时才进行分组
-    if (surveyInfo.value.isCategory !== 1) {
+    // 只有当examInfo.isCategory为1时才进行分组
+    if (examInfo.value.isCategory !== 1) {
         // 如果不按分类显示，则返回一个默认分组
         return [{
             categoryId: 'default',
@@ -70,12 +71,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 }
 const userInfoStore = useUserInfoStore()
 // 获取问卷的所有问题
-const getSurveyData = async () => {
+const getExamData = async () => {
     try {
         // 获取问题列表（包含选项）
-        console.log(props.surveyId)
-        const questionsResult = await getAllQuestionsBySurveyIdService(props.surveyId,userInfoStore.info.id)
-        const {survey,questions:questionsData} = questionsResult.data
+        console.log(props.examId)
+        const questionsResult = await getAllQuestionsByExamIdService(props.examId,userInfoStore.info.id)
+        const {exam,questions:questionsData} = questionsResult.data
         // 处理每个问题，添加必要的响应式数据
         questions.value = questionsData.map(question => {
             // 根据问题类型初始化不同的数据
@@ -100,10 +101,10 @@ const getSurveyData = async () => {
         })
         // 设置问卷信息
         if (questionsData.length > 0) {
-            surveyInfo.value = {
-                name: survey.name,
-                description: survey.description,
-                isCategory: survey.isCategory
+            examInfo.value = {
+                name: exam.name,
+                description: exam.description,
+                isCategory: exam.isCategory
             }
         }
     } catch (error) {
@@ -179,7 +180,7 @@ const handleOptionSelect = (questionId, optionId) => {
 
 const getQuestionIndex = (questionId) => {
     // 如果是分类模式，需要按照分类内顺序重新编号
-    if (surveyInfo.value.isCategory === 1) {
+    if (examInfo.value.isCategory === 1) {
         // 找到问题所属的分类
         let categoryId = null;
         let questionInCategory = null;
@@ -244,25 +245,25 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 }
 
 onMounted(() => {
-    if(props.surveyId){
-        getSurveyData()
+    if(props.examId){
+        getExamData()
     }
 })
 </script>
 
 <template>
-        <div class="survey-preview">
-            <div class="survey-container">
+        <div class="exam-preview">
+            <div class="exam-container">
                 <!-- 问卷标题和描述 -->
-                <div class="survey-header">
-                    <h1 class="survey-title">{{ surveyInfo.name }}</h1>
-                    <h6 class="survey-description">{{ surveyInfo.description }}</h6>
+                <div class="exam-header">
+                    <h1 class="exam-title">{{ examInfo.name }}</h1>
+                    <h6 class="exam-description">{{ examInfo.description }}</h6>
                 </div>
 
                 <!-- 问题列表 -->
                 <div class="questions-list" v-if="questions && questions.length">
                     <!-- 按分类显示问题 -->
-                    <template v-if="surveyInfo.isCategory === 1">
+                    <template v-if="examInfo.isCategory === 1">
                         <div v-for="(group, groupIndex) in groupedQuestions" :key="group.categoryId" class="category-group">
                             <div class="category-header">
                                 <div class="category-title">{{ group.categoryName }}</div>
@@ -897,29 +898,29 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.survey-preview {
+.exam-preview {
     background-color: #f8f9fa;
     min-height: 100vh;
     padding: 20px 0;
 
-    .survey-container {
+    .exam-container {
         max-width: 800px;
         margin: 0 auto;
         padding: 0 20px;
     }
 
-    .survey-header {
+    .exam-header {
         margin-bottom: 30px;
         text-align: center;
 
-        .survey-title {
+        .exam-title {
             font-size: 24px;
             font-weight: 600;
             color: #303133;
             margin-bottom: 10px;
         }
 
-        .survey-description {
+        .exam-description {
             font-size: 16px;
             color: #606266;
             line-height: 1.6;
@@ -1320,8 +1321,8 @@ onMounted(() => {
 }
 // 添加响应式样式
 @media (max-width: 768px) {
-    .survey-preview {
-        .survey-container {
+    .exam-preview {
+        .exam-container {
             padding: 0 10px;
         }
         
@@ -1416,4 +1417,4 @@ onMounted(() => {
         padding: 0 20px;
     }
 }
-</style> 
+</style>

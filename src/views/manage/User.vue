@@ -61,6 +61,20 @@ const getUsers = async () => {
         total.value = result.data.totalCount
         //渲染列表数据
         users.value = result.data.users
+        // 添加调试日志，查看用户数据结构
+        // console.log('用户列表数据结构:', result.data.users)
+        // if(users.value.length > 0) {
+            // console.log('第一个用户的完整结构:', users.value[0])
+            // 打印所有包含'role'的字段名（不区分大小写）
+            // console.log('用户数据中的角色字段:', Object.keys(users.value[0]).filter(key => key.toLowerCase().includes('role')))
+            // 打印角色相关字段的具体值
+            // console.log('角色相关字段详细值:')
+            // Object.keys(users.value[0]).forEach(key => {
+            //     if (key.toLowerCase().includes('role')) {
+            //         console.log(`${key}:`, users.value[0][key])
+            //     }
+            // })
+        // }
     } catch (error) {
         ElMessage.error('获取用户列表失败')
     }
@@ -179,8 +193,26 @@ const updateUserEcho = (row) => {
     dialogVisible.value = true
     //将row中的数据赋值给userModel
     userModel.value.name = row.name
-    // 根据后端返回的数据结构，使用roleId或role作为角色ID
-    userModel.value.role = row.roleId || row.role
+    
+    // 打印用户数据的完整结构进行调试
+    console.log('用户数据结构:', row)
+    console.log('用户角色名称:', row.roleName)
+    
+    // 首先尝试直接获取角色ID字段
+    let roleId = row.roleId || row.role || row.roleIdValue || null
+    
+    // 如果没有直接的角色ID字段，但有角色名称，则根据角色名称查找对应的ID
+    if (!roleId && row.roleName && roles.value.length > 0) {
+        const role = roles.value.find(r => r.label === row.roleName)
+        if (role) {
+            roleId = role.value
+            console.log('通过角色名称找到的角色ID:', roleId)
+        }
+    }
+    
+    userModel.value.role = roleId
+    console.log('最终设置的角色ID:', userModel.value.role)
+    
     userModel.value.departmentId = row.departmentId
     //修改的时候必须传递用户的id，所以扩展一个id属性
     userModel.value.id = row.id

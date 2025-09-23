@@ -129,12 +129,12 @@ onUnmounted(() => {
 
 // 权限状态
 const permissionState = reactive({
-    canManageSurvey: false,
-    canCreateSurvey: false,
-    canEditSurvey: false,
-    canDeleteSurvey: false,
-    canPublishSurvey: false,
-    canViewSurveyStats: false,
+    canManageExam: false,
+    canCreateExam: false,
+    canEditExam: false,
+    canDeleteExam: false,
+    canPublishExam: false,
+    canViewExamStats: false,
     
     canManageUser: false,
     canCreateUser: false,
@@ -172,12 +172,12 @@ const checkPermissions = async () => {
         const { hasPermission } = usePermission()
         
         // 检查问卷管理权限
-        permissionState.canManageSurvey = await hasPermission(PERMISSIONS.SURVEY_VIEW)
-        permissionState.canCreateSurvey = await hasPermission(PERMISSIONS.SURVEY_CREATE)
-        permissionState.canEditSurvey = await hasPermission(PERMISSIONS.SURVEY_EDIT)
-        permissionState.canDeleteSurvey = await hasPermission(PERMISSIONS.SURVEY_DELETE)
-        permissionState.canPublishSurvey = await hasPermission(PERMISSIONS.SURVEY_PUBLISH)
-        permissionState.canViewSurveyStats = await hasPermission(PERMISSIONS.SURVEY_STATISTICS)
+        permissionState.canManageExam = await hasPermission(PERMISSIONS.Exam_VIEW)
+        permissionState.canCreateExam = await hasPermission(PERMISSIONS.Exam_CREATE)
+        permissionState.canEditExam = await hasPermission(PERMISSIONS.Exam_EDIT)
+        permissionState.canDeleteExam = await hasPermission(PERMISSIONS.Exam_DELETE)
+        permissionState.canPublishExam = await hasPermission(PERMISSIONS.Exam_PUBLISH)
+        permissionState.canViewExamStats = await hasPermission(PERMISSIONS.Exam_STATISTICS)
         
         // 检查用户管理权限
         permissionState.canManageUser = await hasPermission(PERMISSIONS.USER_VIEW)
@@ -249,23 +249,23 @@ const refreshPermissions = async () => {
                     router
                     mode="horizontal"
                     class="mobile-menu-container">
-                    <el-menu-item index="/manage/userSurvey" class="mobile-menu-item">
+                    <el-menu-item index="/manage/userExam" class="mobile-menu-item">
                         <el-icon><Avatar /></el-icon>
                         <span>我的问卷</span>
                     </el-menu-item>
 
                     <!-- 管理员菜单 -->
-                    <template v-if="permissionState.canManageSurvey || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
-                        <el-sub-menu v-if="permissionState.canManageSurvey || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="mobile-submenu">
+                    <template v-if="permissionState.canManageExam || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
+                        <el-sub-menu v-if="permissionState.canManageExam || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="mobile-submenu">
                             <template #title>
                                 <el-icon><Menu /></el-icon>
                                 <span>问卷管理</span>
                             </template>
-                            <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/survey" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageExam" index="/exam/exam" class="mobile-submenu-item">
                                 <el-icon><User /></el-icon>
                                 <span>问卷管理</span>
                             </el-menu-item>
-                            <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/builder" class="mobile-submenu-item">
+                            <el-menu-item v-if="permissionState.canManageExam" index="/exam/builder" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
                                 <span>问卷构建器</span>
                             </el-menu-item>
@@ -344,24 +344,24 @@ const refreshPermissions = async () => {
                 :collapse-transition="false"
                 class="sidebar-menu">
                 
-                <el-menu-item index="/manage/userSurvey" class="menu-item">
+                <el-menu-item index="/manage/userExam" class="menu-item">
                     <el-icon><Avatar /></el-icon>
                     <template #title>我的问卷</template>
                 </el-menu-item>
-                <el-menu-item index="/survey/builder" class="submenu-item">
+                <el-menu-item index="/exam/builder" class="submenu-item">
                             <el-icon><EditPen /></el-icon>
                             <template #title>问卷构建器</template>
-                        </el-menu-item>
+                </el-menu-item>
                 <!-- 管理员菜单 -->
-                <template v-if="permissionState.canManageSurvey || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
-                    <el-sub-menu v-if="permissionState.canManageSurvey || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="submenu">
+                <template v-if="permissionState.canManageExam || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
+                    <el-sub-menu v-if="permissionState.canManageExam || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="submenu">
                         <template #title>
                             <el-icon><Menu /></el-icon>
-                            <span>问卷管理</span>
+                            <span>考试管理</span>
                         </template>
-                        <el-menu-item v-if="permissionState.canManageSurvey" index="/survey/survey" class="submenu-item">
+                        <el-menu-item v-if="permissionState.canManageExam" index="/exam/exam" class="submenu-item">
                             <el-icon><User /></el-icon>
-                            <template #title>问卷管理</template>
+                            <template #title>试卷管理</template>
                         </el-menu-item>
 
                         <el-menu-item v-if="permissionState.canManageCategory" index="/manage/category" class="submenu-item">

@@ -40,7 +40,7 @@ getUserInf()
 const responses = ref([
     {
         "responseId":1,
-        "surveyId":1,
+        "examId":1,
         "questionId":1,
         "optionId":1,
         "rowId":1,
@@ -58,10 +58,10 @@ const responses = ref([
 ])
 
 const props =defineProps({
-    surveyId:{
+    examId:{
         type:Number
     },
-    surveyName:{
+    examName:{
         type:String
     }
 })
@@ -80,15 +80,16 @@ const getResponseList = async () => {
         let params = {
             pageNum: pageNum.value,
             pageSize: pageSize.value,
-            surveyId: props.surveyId
+            examId: props.examId
         }
+        console.log('examId',props.examId)
         let result = await getResponseListService(params);
         //渲染总条数
         total.value = result.data.totalCount
         //渲染列表数据
         responses.value = result.data.responses
         unfinishedTotalRecords.value = result.data.unfinishedTotalRecords
-        userSurveys.value = result.data.userSurveys
+        userExams.value = result.data.userExams
     } catch (error) {
         ElMessage.error('获取答题列表失败')
     }
@@ -138,11 +139,11 @@ const initWebSocket = () => {
     // 获取当前环境的WebSocket地址（根据实际后端配置修改）
     // const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     // const wsHost = '127.0.0.1:8082'
-    // const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`
+    // const wsUrl = `${wsProtocol}//${wsHost}/ws/exam/${props.examId}`
     // 临时修改为固定协议（后端未启用HTTPS时）
     const wsProtocol = 'ws:'; // 不使用window.location.protocol自动判断
     const wsHost = '127.0.0.1:8082';
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/survey/${props.surveyId}`;
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/exam/${props.examId}`;
     console.log('wsUrl:', wsUrl)
     
     // 连接WebSocket
@@ -153,7 +154,7 @@ const initWebSocket = () => {
         console.log('WebSocket连接成功，开始接收实时更新', data)
         // 可以在这里发送一些初始化消息，比如订阅特定的更新
         wsService.send('subscribe', {
-            surveyId: props.surveyId,
+            examId: props.examId,
             userId: userInfoStore.info?.userId || '',
             type: 'response_update'
         })
@@ -223,9 +224,9 @@ const onCurrentChange = (num) => {
 // 添加查看答题情况的方法
 const viewResponse = (row) => {
     router.push({
-        name: 'SurveyView',
+        name: 'ExamView',
         params: {
-            surveyId: props.surveyId,
+            examId: props.examId,
             userId:row.userId,
             userName:row.userName
         }
@@ -235,16 +236,16 @@ const viewResponse = (row) => {
 // 添加查看统计数据的方法
 const OverallResponse = (departmentId,departmentName) => {
     router.push({
-        name: 'SurveyStatistics',
+        name: 'ExamStatistics',
         params: {
-            surveyId: props.surveyId,
+            examId: props.examId,
             departmentId: departmentId,
             departmentName: departmentName
         }
     })
 }
 const unfinishedTotalRecords = ref(0)
-const userSurveys = ref([])
+const userExams = ref([])
 
 
 // 跳转到未完成列表
@@ -252,9 +253,9 @@ const goToUnfinishedList = () => {
     router.push({
         name: 'UnfinishedList',
         params: {
-            surveyId: props.surveyId,
+            examId: props.examId,
             departmentId: 0,
-            surveyName: props.surveyName
+            examName: props.examName
         }
     })
 }
@@ -264,11 +265,11 @@ const goToUnfinishedList = () => {
         <el-card class="page-container">
             <template #header>
                 <div class="header-container">
-                    <h2 class="survey-title">{{ props.surveyName }}-答题情况（未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span>）</h2>
+                    <h2 class="exam-title">{{ props.examName }}-答题情况（未完成人数：<span class="unfinished-count" @click="goToUnfinishedList">{{ unfinishedTotalRecords }}</span>）</h2>
                     <div class="header">
                         <el-button type="primary" size="large" @click="OverallResponse(0)">总体答题情况</el-button>
-                        <template v-for="(userSurvey, index) in userSurveys" :key="index">
-                            <h4 class="unfinished-count" @click="OverallResponse(userSurvey.departmentId,userSurvey.departmentName)">{{ userSurvey.departmentName }}</h4>
+                        <template v-for="(userExam, index) in userExams" :key="index">
+                            <h4 class="unfinished-count" @click="OverallResponse(userExam.departmentId,userExam.departmentName)">{{ userExam.departmentName }}</h4>
                         </template>
                     </div>
                 </div>
@@ -356,7 +357,7 @@ const goToUnfinishedList = () => {
         margin-bottom: 16px;
         padding: 0 20px;
 
-        .survey-title {
+        .exam-title {
             font-size: 22px;
             color: #2c3e50;
             margin-bottom: 16px;
@@ -564,7 +565,7 @@ const goToUnfinishedList = () => {
         .header-container {
             padding: 0 12px;
 
-            .survey-title {
+            .exam-title {
                 font-size: 18px;
                 margin-bottom: 12px;
             }
