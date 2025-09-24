@@ -176,19 +176,19 @@ const handleCaptchaEnter = () => {
             <div class="login-left">
                 <div class="login-banner">
                     <h1 class="banner-title">钛考-在线考试平台</h1>
-                    <p class="banner-subtitle">专业的考试设计与数据分析工具</p>
+                    <p class="banner-subtitle">让考试更加简单高效，公平透明</p>
                     <div class="banner-features">
                         <div class="feature-item">
                             <i class="el-icon-document"></i>
-                            <span>多样化考试模板</span>
+                            <span>专业的题库管理与考试设计</span>
                         </div>
                         <div class="feature-item">
                             <i class="el-icon-data-analysis"></i>
-                            <span>智能数据分析</span>
+                            <span>智能成绩分析与数据统计</span>
                         </div>
                         <div class="feature-item">
                             <i class="el-icon-share"></i>
-                            <span>便捷分享与协作</span>
+                            <span>灵活的班级与学生管理</span>
                         </div>
                     </div>
                 </div>

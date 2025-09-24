@@ -7,7 +7,7 @@ import { useUserInfoStore } from '@/stores/user'
 import request from '@/utils/request.js'
 import Sortable from 'sortablejs'
 import { Rank } from '@element-plus/icons-vue'
-// 考试ID
+// 问卷ID
 const props = defineProps({
     examId: {
         type: [String, Number],
@@ -17,7 +17,7 @@ const props = defineProps({
 
 // 问题列表
 const questions = ref([])
-// 考试信息
+// 问卷信息
 const examInfo = ref({
     name: '',
     description: ''
@@ -74,7 +74,7 @@ const handleOptionChange = (question, optionId, checked) => {
 
     if (checked) {
         // 找到选中的选项
-        const selectedOption = question.options.find(opt => opt.optionId === optionId)
+        const selectedOption = question.options.find(opt => opt.id === optionId)
         
         // 初始化当前问题的隐藏状态
         if (!questionVisibility.value[question.questionId]) {
@@ -119,8 +119,8 @@ const handleOptionChange = (question, optionId, checked) => {
         // 取消选择时，检查当前问题的其他选项是否有跳转
         const otherSelectedSkipOption = question.options.find(opt => 
             opt.isSkip && 
-            opt.optionId !== optionId && 
-            question.selectedOption === opt.optionId
+            opt.id !== optionId && 
+            question.selectedOption === opt.id
         )
         
         if (!otherSelectedSkipOption) {
@@ -159,7 +159,7 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
         // 检查当前问题是否有选中的跳转选项
         const hasSelectedSkipOption = currentQuestion.options.some(opt => 
             opt.isSkip && 
-            currentQuestion.selectedOption === opt.optionId
+            currentQuestion.selectedOption === opt.id
         );
         
         if (hasSelectedSkipOption) {
@@ -169,7 +169,7 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
     }
 }
 
-// 修改获取考试数据的方法
+// 修改获取问卷数据的方法
 const getExamData = async () => {
     loading.value = true
     try {
@@ -203,9 +203,9 @@ const getExamData = async () => {
                         .filter(opt => opt.type === '行选项')
                         .forEach(row => {
                             if (question.type === '矩阵单选') {
-                                question.matrixAnswers[row.optionId] = ''  // 初始化为空字符串
+                                question.matrixAnswers[row.id] = ''  // 初始化为空字符串
                             } else {
-                                question.matrixAnswers[row.optionId] = []  // 初始化为空数组
+                                question.matrixAnswers[row.id] = []  // 初始化为空数组
                             }
                         })
                 } else if (question.type === '排序') {
@@ -227,7 +227,7 @@ const getExamData = async () => {
                             if (selectedResponse) {
                                 question.selectedOption = selectedResponse.optionId
                                 // 处理跳转逻辑
-                                const selectedOption = question.options.find(opt => opt.optionId === selectedResponse.optionId)
+                                const selectedOption = question.options.find(opt => opt.id === selectedResponse.optionId)
                                 if (selectedOption?.isSkip) {
                                     // 获取当前问题索引
                                     const currentIndex = questionsData.findIndex(q => q.questionId === question.questionId)
@@ -244,7 +244,7 @@ const getExamData = async () => {
                                     }
                                 }
                                 // 处理开放题答案
-                                const option = question.options.find(opt => opt.optionId === selectedResponse.optionId)
+                                const option = question.options.find(opt => opt.id === selectedResponse.optionId)
                                 if (option && option.isOpenOption && selectedResponse.responseData) {
                                     option.openAnswer = selectedResponse.responseData
                                 }
@@ -259,7 +259,7 @@ const getExamData = async () => {
                             questionResponses
                                 .filter(r => r.isValid === 1)
                                 .forEach(response => {
-                                    const option = question.options.find(opt => opt.optionId === response.optionId)
+                                    const option = question.options.find(opt => opt.id === response.optionId)
                                     if (option && option.isOpenOption && response.responseData) {
                                         option.openAnswer = response.responseData
                                     }
@@ -288,7 +288,7 @@ const getExamData = async () => {
                             // 处理评分题答案
                             questionResponses.forEach(response => {
                                 if (response.optionId && response.responseData && response.isValid === 1) {
-                                    const option = question.options.find(opt => opt.optionId === response.optionId)
+                                    const option = question.options.find(opt => opt.id === response.optionId)
                                     if (option) {
                                         option.rating = Number(response.responseData)
                                     }
@@ -328,14 +328,14 @@ const getExamData = async () => {
                             if (question.sortedOrder && question.sortedOrder.length > 0) {
                                 const sortedOptions = []
                                 question.sortedOrder.forEach(optionId => {
-                                    const option = question.options.find(opt => opt.optionId === optionId)
+                                    const option = question.options.find(opt => opt.id === optionId)
                                     if (option) {
                                         sortedOptions.push(option)
                                     }
                                 })
                                 // 将未排序的选项添加到末尾
                                 question.options.forEach(option => {
-                                    if (!sortedOptions.find(opt => opt.optionId === option.optionId)) {
+                                    if (!sortedOptions.find(opt => opt.id === option.id)) {
                                         sortedOptions.push(option)
                                     }
                                 })
@@ -348,21 +348,21 @@ const getExamData = async () => {
                 return question
             })
 
-            // 设置考试信息
+            // 设置问卷信息
             if (questionsData.length > 0) {
                 examInfo.value = {
                     name: exam.name,
                     description: exam.description,
                     isCategory: exam.isCategory
                 }
-                console.log('考试信息：', examInfo.value)
+                console.log('问卷信息：', examInfo.value)
             }
         } else {
-            ElMessage.error('获取考试数据失败')
+            ElMessage.error('获取问卷数据失败')
         }
     } catch (error) {
-        console.error('获取考试数据异常：', error)
-        ElMessage.error('获取考试数据失败：' + error.message)
+        console.error('获取问卷数据异常：', error)
+        ElMessage.error('获取问卷数据失败：' + error.message)
     } finally {
         loading.value = false
     }
@@ -442,7 +442,7 @@ const validateRequiredQuestions = () => {
                 isValid = !!question.selectedOption
                 // 检查开放选项
                 if (isValid) {
-                    const selectedOption = question.options.find(opt => opt.optionId === question.selectedOption)
+                    const selectedOption = question.options.find(opt => opt.id === question.selectedOption)
                     if (selectedOption?.isOpenOption && !selectedOption.openAnswer?.trim()) {
                         isValid = false
                     }
@@ -458,7 +458,7 @@ const validateRequiredQuestions = () => {
                 // 检查开放选项
                 if (isValid) {
                     const hasEmptyOpenAnswer = question.selectedOptions.some(optionId => {
-                        const option = question.options.find(opt => opt.optionId === optionId)
+                        const option = question.options.find(opt => opt.id === optionId)
                         return option?.isOpenOption && !option.openAnswer?.trim()
                     })
                     if (hasEmptyOpenAnswer) {
@@ -472,13 +472,13 @@ const validateRequiredQuestions = () => {
             case '矩阵单选':
                 // 检查每一行是否都选择了答案
                 const rowOptions = question.options.filter(opt => opt.type === '行选项')
-                isValid = rowOptions.every(row => !!question.matrixAnswers[row.optionId])
+                isValid = rowOptions.every(row => !!question.matrixAnswers[row.id])
                 break
             case '矩阵多选':
                 // 检查每一行是否都至少选择了一个答案
                 const matrixRowOptions = question.options.filter(opt => opt.type === '行选项')
                 isValid = matrixRowOptions.every(row => 
-                    question.matrixAnswers[row.optionId]?.length > 0
+                    question.matrixAnswers[row.id]?.length > 0
                 )
                 break
             case '评分题':
@@ -591,7 +591,7 @@ const submitExam = async (isSaveAction = false) => {
                 case '评分题':
                     question.options.forEach(option => {
                         if (option.rating) {  // 只提交有评分的答案
-                            formData.append(`rating_${question.questionId}_${option.optionId}`, option.rating)
+                            formData.append(`rating_${question.questionId}_${option.id}`, option.rating)
                         }
                     })
                     break
@@ -633,7 +633,7 @@ const submitExam = async (isSaveAction = false) => {
             if (question.options) {
                 question.options.forEach(option => {
                     if (option.isOpenOption && option.openAnswer) {
-                        formData.append(`open_answer_${option.optionId}`, option.openAnswer)
+                        formData.append(`open_answer_${option.id}`, option.openAnswer)
                     }
                 })
             }
@@ -665,7 +665,7 @@ const submitExam = async (isSaveAction = false) => {
 // 添加确认提交方法
 const confirmSubmit = () => {
     ElMessageBox.confirm(
-        '确定要提交考试吗？提交后将无法修改。',
+        '确定要提交问卷吗？提交后将无法修改。',
         '提示',
         {
             confirmButtonText: '确定',
@@ -833,7 +833,7 @@ const initSortable = (question) => {
                     options.splice(newIndex, 0, movedItem)
                     question.options = options
                     // 更新排序结果
-                    question.sortedOrder = options.map(opt => opt.optionId)
+                    question.sortedOrder = options.map(opt => opt.id)
                 }
             })
             console.log('Sortable 实例:', sortable)
@@ -846,7 +846,7 @@ const getOptionIndex = (question, optionId) => {
         const index = question.sortedOrder.indexOf(optionId)
         return index !== -1 ? index + 1 : question.options.length
     }
-    return question.options.findIndex(opt => opt.optionId === optionId) + 1
+    return question.options.findIndex(opt => opt.id === optionId) + 1
 }
 
 // 添加选择排序的处理方法
@@ -890,7 +890,7 @@ const getPlainText = (htmlContent)=> {
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
-                    <!-- 考试标题和描述 -->
+                    <!-- 问卷标题和描述 -->
                     <div class="exam-header">
                         <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <h3 class="exam-description">{{ getPlainText(examInfo.description) }}</h3>
@@ -926,18 +926,18 @@ const getPlainText = (htmlContent)=> {
                                             <template v-if="question.type === '单选'">
                                                 <div class="form-check">
                                                     <div v-for="(option, optIndex) in question.options" 
-                                                        :key="option.optionId" 
+                                                        :key="option.id" 
                                                         class="form-check-option">
                                                         <el-radio 
                                                             v-model="question.selectedOption" 
-                                                            :label="option.optionId"
+                                                            :label="option.id"
                                                             :required="question.isRequired"
                                                             @change="(val) => {
-                                                                handleOptionChange(question, option.optionId, val === option.optionId);
+                                                                handleOptionChange(question, option.id, val === option.id);
                                                                 // 处理其他问题的选项变化
                                                                 questions.forEach(q => {
                                                                     if (q.questionId !== question.questionId) {
-                                                                        handleOtherQuestionChange(q, option.optionId, val === option.optionId);
+                                                                        handleOtherQuestionChange(q, option.id, val === option.id);
                                                                     }
                                                                 });
                                                             }">
@@ -945,7 +945,7 @@ const getPlainText = (htmlContent)=> {
                                                                 {{ String.fromCharCode(65 + optIndex) }}.
                                                                 <template v-if="option.isOpenOption">
                                                                     <el-input
-                                                                    v-if="question.selectedOption==option.optionId"
+                                                                    v-if="question.selectedOption==option.id"
                                                                         v-model="option.openAnswer" 
                                                                         :placeholder="option.description"
                                                                         class="open-answer-input" />
@@ -981,12 +981,12 @@ const getPlainText = (htmlContent)=> {
                                                         </span>
                                                     </div>
                                                     <div v-for="(option, optIndex) in question.options" 
-                                                        :key="option.optionId" 
+                                                        :key="option.id" 
                                                         class="form-check-option more-option">
                                                         <el-checkbox 
                                                             v-model="question.selectedOptions" 
-                                                            :label="option.optionId"
-                                                            :disabled="!question.selectedOptions.includes(option.optionId) && 
+                                                            :label="option.id"
+                                                            :disabled="!question.selectedOptions.includes(option.id) && 
                                                                       question.maxSelections && 
                                                                       question.maxSelections < question.options.length &&
                                                                       question.selectedOptions.length >= question.maxSelections"
@@ -995,7 +995,7 @@ const getPlainText = (htmlContent)=> {
                                                                 {{ String.fromCharCode(65 + optIndex) }}.
                                                                 <template v-if="option.isOpenOption">
                                                                     <el-input 
-                                                                        v-if="question.selectedOptions.includes(option.optionId)"
+                                                                        v-if="question.selectedOptions.includes(option.id)"
                                                                         v-model="option.openAnswer" 
                                                                         :placeholder="option.description"
                                                                         class="open-answer-input" />
@@ -1031,7 +1031,7 @@ const getPlainText = (htmlContent)=> {
                                                             <tr>
                                                                 <th class="text-center">行/列</th>
                                                                 <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                    :key="col.optionId" 
+                                                                    :key="col.id" 
                                                                     class="text-center">
                                                                     {{ col.description }}
                                                                 </th>
@@ -1039,15 +1039,15 @@ const getPlainText = (htmlContent)=> {
                                                         </thead>
                                                         <tbody>
                                                             <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                                :key="row.optionId">
+                                                                :key="row.id">
                                                                 <td class="text-center">{{ row.description }}</td>
                                                                 <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                    :key="col.optionId" 
+                                                                    :key="col.id" 
                                                                     class="text-center">
                                                                     <el-radio 
-                                                                        v-model="question.matrixAnswers[row.optionId]" 
-                                                                        :label="col.optionId"
-                                                                        @change="(val) => handleMatrixRadioChange(question, row.optionId, col.optionId, val)" />
+                                                                        v-model="question.matrixAnswers[row.id]" 
+                                                                        :label="col.id"
+                                                                        @change="(val) => handleMatrixRadioChange(question, row.id, col.id, val)" />
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -1063,7 +1063,7 @@ const getPlainText = (htmlContent)=> {
                                                             <tr>
                                                                 <th class="text-center">行/列</th>
                                                                 <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                    :key="col.optionId" 
+                                                                    :key="col.id" 
                                                                     class="text-center">
                                                                     {{ col.description }}
                                                                 </th>
@@ -1071,14 +1071,14 @@ const getPlainText = (htmlContent)=> {
                                                         </thead>
                                                         <tbody>
                                                             <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                                :key="row.optionId">
+                                                                :key="row.id">
                                                                 <td class="text-center">{{ row.description }}</td>
                                                                 <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                    :key="col.optionId" 
+                                                                    :key="col.id" 
                                                                     class="text-center">
                                                                     <el-checkbox 
-                                                                        :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                                        @update:model-value="(val) => handleMatrixCheckboxChange(question, row.optionId, col.optionId, val)" />
+                                                                        :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
+                                                                        @update:model-value="(val) => handleMatrixCheckboxChange(question, row.id, col.id, val)" />
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -1099,14 +1099,14 @@ const getPlainText = (htmlContent)=> {
                                                         <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                                         <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                             <div v-for="option in question.options" 
-                                                                :key="option.optionId" 
+                                                                :key="option.id" 
                                                                 class="sortable-item"
-                                                                :data-id="option.optionId">
+                                                                :data-id="option.id">
                                                                 <div class="sortable-handle">
                                                                     <el-icon><Rank /></el-icon>
                                                                 </div>
                                                                 <div class="sortable-content">
-                                                                    <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                                    <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                                     <span class="sortable-text">{{ option.description }}</span>
                                                                 </div>
                                                             </div>
@@ -1125,7 +1125,7 @@ const getPlainText = (htmlContent)=> {
                                                                         class="select-sort-item">
                                                                         <span class="select-sort-index">{{ index + 1 }}</span>
                                                                         <span class="select-sort-text">
-                                                                            {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                            {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                                         </span>
                                                                     </div>
                                                                 </template>
@@ -1136,10 +1136,10 @@ const getPlainText = (htmlContent)=> {
                                                             <!-- 待选择的选项列表 -->
                                                             <div class="select-sort-options">
                                                                 <div v-for="option in question.options" 
-                                                                    :key="option.optionId" 
+                                                                    :key="option.id" 
                                                                     class="select-sort-option"
-                                                                    :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                                    @click="selectSortOption(question, option.optionId)">
+                                                                    :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                                    @click="selectSortOption(question, option.id)">
                                                                     {{ option.description }}
                                                                 </div>
                                                             </div>
@@ -1156,7 +1156,7 @@ const getPlainText = (htmlContent)=> {
                                                         {{ question.instructions }}
                                                     </div>
                                                     <div class="rating-rule">评分规则：1-5分</div>
-                                                    <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                                    <div v-for="option in question.options" :key="option.id" class="rating-item">
                                                         <label class="rating-label">{{ option.description }}:</label>
                                                         <div class="rating-display">
                                                             <!-- 五角星显示 -->
@@ -1262,18 +1262,18 @@ const getPlainText = (htmlContent)=> {
                                     <template v-if="question.type === '单选'">
                                         <div class="form-check">
                                             <div v-for="(option, optIndex) in question.options" 
-                                                :key="option.optionId" 
+                                                :key="option.id" 
                                                 class="form-check-option">
                                                 <el-radio 
                                                     v-model="question.selectedOption" 
-                                                    :label="option.optionId"
+                                                    :label="option.id"
                                                     :required="question.isRequired"
                                                     @change="(val) => {
-                                                        handleOptionChange(question, option.optionId, val === option.optionId);
+                                                        handleOptionChange(question, option.id, val === option.id);
                                                         // 处理其他问题的选项变化
                                                         questions.forEach(q => {
                                                             if (q.questionId !== question.questionId) {
-                                                                handleOtherQuestionChange(q, option.optionId, val === option.optionId);
+                                                                handleOtherQuestionChange(q, option.id, val === option.id);
                                                             }
                                                         });
                                                     }">
@@ -1281,7 +1281,7 @@ const getPlainText = (htmlContent)=> {
                                                         {{ String.fromCharCode(65 + optIndex) }}.
                                                         <template v-if="option.isOpenOption">
                                                             <el-input
-                                                            v-if="question.selectedOption==option.optionId"
+                                                            v-if="question.selectedOption==option.id"
                                                                 v-model="option.openAnswer" 
                                                                 :placeholder="option.description"
                                                                 class="open-answer-input" />
@@ -1317,12 +1317,12 @@ const getPlainText = (htmlContent)=> {
                                                 </span>
                                             </div>
                                             <div v-for="(option, optIndex) in question.options" 
-                                                :key="option.optionId" 
+                                                :key="option.id" 
                                                 class="form-check-option more-option">
                                                 <el-checkbox 
                                                     v-model="question.selectedOptions" 
-                                                    :label="option.optionId"
-                                                    :disabled="!question.selectedOptions.includes(option.optionId) && 
+                                                    :label="option.id"
+                                                    :disabled="!question.selectedOptions.includes(option.id) && 
                                                                       question.maxSelections && 
                                                                       question.maxSelections < question.options.length &&
                                                                       question.selectedOptions.length >= question.maxSelections"
@@ -1331,7 +1331,7 @@ const getPlainText = (htmlContent)=> {
                                                         {{ String.fromCharCode(65 + optIndex) }}.
                                                         <template v-if="option.isOpenOption">
                                                             <el-input 
-                                                                v-if="question.selectedOptions.includes(option.optionId)"
+                                                                v-if="question.selectedOptions.includes(option.id)"
                                                                 v-model="option.openAnswer" 
                                                                 :placeholder="option.description"
                                                                 class="open-answer-input" />
@@ -1367,7 +1367,7 @@ const getPlainText = (htmlContent)=> {
                                                     <tr>
                                                         <th class="text-center">行/列</th>
                                                         <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             {{ col.description }}
                                                         </th>
@@ -1375,15 +1375,15 @@ const getPlainText = (htmlContent)=> {
                                                 </thead>
                                                 <tbody>
                                                     <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                        :key="row.optionId">
+                                                        :key="row.id">
                                                         <td class="text-center">{{ row.description }}</td>
                                                         <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             <el-radio 
-                                                                v-model="question.matrixAnswers[row.optionId]" 
-                                                                :label="col.optionId"
-                                                                @change="(val) => handleMatrixRadioChange(question, row.optionId, col.optionId, val)" />
+                                                                v-model="question.matrixAnswers[row.id]" 
+                                                                :label="col.id"
+                                                                @change="(val) => handleMatrixRadioChange(question, row.id, col.id, val)" />
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -1399,7 +1399,7 @@ const getPlainText = (htmlContent)=> {
                                                     <tr>
                                                         <th class="text-center">行/列</th>
                                                         <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             {{ col.description }}
                                                         </th>
@@ -1407,14 +1407,14 @@ const getPlainText = (htmlContent)=> {
                                                 </thead>
                                                 <tbody>
                                                     <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                        :key="row.optionId">
+                                                        :key="row.id">
                                                         <td class="text-center">{{ row.description }}</td>
                                                         <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             <el-checkbox 
-                                                                :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                                @update:model-value="(val) => handleMatrixCheckboxChange(question, row.optionId, col.optionId, val)" />
+                                                                :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
+                                                                @update:model-value="(val) => handleMatrixCheckboxChange(question, row.id, col.id, val)" />
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -1435,14 +1435,14 @@ const getPlainText = (htmlContent)=> {
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                                 <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                     <div v-for="option in question.options" 
-                                                        :key="option.optionId" 
+                                                        :key="option.id" 
                                                         class="sortable-item"
-                                                        :data-id="option.optionId">
+                                                        :data-id="option.id">
                                                         <div class="sortable-handle">
                                                             <el-icon><Rank /></el-icon>
                                                         </div>
                                                         <div class="sortable-content">
-                                                            <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                            <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                             <span class="sortable-text">{{ option.description }}</span>
                                                         </div>
                                                     </div>
@@ -1461,7 +1461,7 @@ const getPlainText = (htmlContent)=> {
                                                                 class="select-sort-item">
                                                                 <span class="select-sort-index">{{ index + 1 }}</span>
                                                                 <span class="select-sort-text">
-                                                                    {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                    {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                                 </span>
                                                             </div>
                                                         </template>
@@ -1472,10 +1472,10 @@ const getPlainText = (htmlContent)=> {
                                                     <!-- 待选择的选项列表 -->
                                                     <div class="select-sort-options">
                                                         <div v-for="option in question.options" 
-                                                            :key="option.optionId" 
+                                                            :key="option.id" 
                                                             class="select-sort-option"
-                                                            :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                            @click="selectSortOption(question, option.optionId)">
+                                                            :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                            @click="selectSortOption(question, option.id)">
                                                             {{ option.description }}
                                                         </div>
                                                     </div>
@@ -1492,7 +1492,7 @@ const getPlainText = (htmlContent)=> {
                                                 {{ question.instructions }}
                                             </div>
                                             <div class="rating-rule">评分规则：1-5分</div>
-                                            <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                            <div v-for="option in question.options" :key="option.id" class="rating-item">
                                                 <label class="rating-label">{{ option.description }}:</label>
                                                 <div class="rating-display">
                                                     <!-- 五角星显示 -->

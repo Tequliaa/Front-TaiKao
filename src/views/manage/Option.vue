@@ -47,7 +47,7 @@ const props =defineProps({
 //选项数据模型
 const options = ref([
     {
-        "optionId": 1,
+        "id": 1,
         "questionId":1,
         "isOpenOption":0,
         "type":"单选",
@@ -131,7 +131,7 @@ const visibleDrawer = ref(false)
 
 //添加表单数据模型
 const optionModel = ref({
-    optionId: '',
+    id: '',
     examId:'',
     questionId:'',
     isOpenOption:'',
@@ -213,7 +213,7 @@ const deloption = (row) => {
     )
         .then(async () => {
             //用户点击了确认
-            let result = await optionDelService(row.optionId)
+            let result = await optionDelService(row.id)
             ElMessage({
                 type: 'success',
                 message: '删除成功',
@@ -452,7 +452,7 @@ const handleQuestionChange = (value) => {
 
             <!-- 选项列表 -->
             <el-table :data="options" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="optionId"></el-table-column> -->
+                <!-- <el-table-column label="序号" prop="id"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="所属问题名称" style="text-align: center;" align="center" prop="questionName"></el-table-column>
                 <el-table-column label="选项类型" style="text-align: center;" align="center" prop="type"> </el-table-column>

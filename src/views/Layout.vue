@@ -461,7 +461,7 @@ const refreshPermissions = async () => {
             <!-- 底部区域 -->
             <el-footer class="main-footer">
                 <div class="footer-content">
-                    <span>考试调查管理系统 ©2025 Created by 饭得标</span>
+                    <span>钛考-在线考试系统 ©2025</span>
                 </div>
             </el-footer>
         </el-container>

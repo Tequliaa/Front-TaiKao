@@ -212,7 +212,7 @@ const initChart = (questionId, type, options) => {
         rowOptions.forEach((row, rowIndex) => {
             colOptions.forEach((col, colIndex) => {
                 // 获取该单元格的选择人数
-                const key = `${row.optionId}-${col.optionId}`
+                const key = `${row.id}-${col.id}`
                 const checkCount = cellDataMap[key] || 0
                 data.push([colIndex, rowIndex, checkCount])
             })
@@ -406,9 +406,9 @@ const getStatistics = async () => {
                         .filter(opt => opt.type === '行选项')
                         .forEach(row => {
                             if (question.type === '矩阵单选') {
-                                question.matrixAnswers[row.optionId] = ''  // 初始化为空字符串
+                                question.matrixAnswers[row.id] = ''  // 初始化为空字符串
                             } else {
-                                question.matrixAnswers[row.optionId] = []  // 初始化为空数组
+                                question.matrixAnswers[row.id] = []  // 初始化为空数组
                             }
                         })
                 }
@@ -542,7 +542,7 @@ const groupedQuestions = computed(() => {
 //             // 检查每个单元格是否有数据
 //             rowOptions.forEach(row => {
 //                 colOptions.forEach(col => {
-//                     const key = `${row.optionId}-${col.optionId}`
+//                     const key = `${row.id}-${col.id}`
 //                     console.log(`单元格 (${row.description}, ${col.description}): ${cellDataMap[key] || 0}`)
 //                 })
 //             })
@@ -594,7 +594,7 @@ const getOptionIndex = (question, optionId) => {
         const index = question.sortedOrder.indexOf(optionId)
         return index !== -1 ? index + 1 : question.options.length
     }
-    return question.options.findIndex(opt => opt.optionId === optionId) + 1
+    return question.options.findIndex(opt => opt.id === optionId) + 1
 }
 
 const getGroupQuestionIndex = (groupIndex, questionIndex) => {
@@ -679,7 +679,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 <template v-if="question.type === '单选'">
                                                     <div class="form-check">
                                                         <div v-for="(option, optIndex) in question.options" 
-                                                            :key="option.optionId" 
+                                                            :key="option.id" 
                                                             class="form-check-option">
                                                             <span class="option-label">
                                                                 {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
@@ -707,12 +707,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                             </span>
                                                         </div>
                                                         <div v-for="(option, optIndex) in question.options" 
-                                                            :key="option.optionId" 
+                                                            :key="option.id" 
                                                             class="form-check-option more-option">
                                                             <el-checkbox 
                                                                 v-model="question.selectedOptions" 
-                                                                :label="option.optionId"
-                                                                :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.optionId)) && 
+                                                                :label="option.id"
+                                                                :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.id)) && 
                                                                           question.maxSelections && 
                                                                           question.maxSelections < question.options.length &&
                                                                           question.selectedOptions && question.selectedOptions.length >= question.maxSelections"
@@ -722,7 +722,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                     
                                                                     <template v-if="option.isOpenOption">
                                                                         <el-input 
-                                                                            v-if="question.selectedOptions && question.selectedOptions.includes(option.optionId)"
+                                                                            v-if="question.selectedOptions && question.selectedOptions.includes(option.id)"
                                                                             v-model="option.openAnswer" 
                                                                             :placeholder="option.description"
                                                                             class="open-answer-input" />
@@ -756,7 +756,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                 <tr>
                                                                     <th class="text-center">行/列</th>
                                                                     <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                        :key="col.optionId" 
+                                                                        :key="col.id" 
                                                                         class="text-center">
                                                                         {{ col.description }}
                                                                     </th>
@@ -764,14 +764,14 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                             </thead>
                                                             <tbody>
                                                                 <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                                    :key="row.optionId">
+                                                                    :key="row.id">
                                                                     <td>{{ row.description }}</td>
                                                                     <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                        :key="col.optionId" 
+                                                                        :key="col.id" 
                                                                         class="text-center">
                                                                         <el-radio 
-                                                                            v-model="question.matrixAnswers[row.optionId]" 
-                                                                            :label="col.optionId"
+                                                                            v-model="question.matrixAnswers[row.id]" 
+                                                                            :label="col.id"
                                                                             disabled />
                                                                     </td>
                                                                 </tr>
@@ -787,7 +787,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                 <tr>
                                                                     <th class="text-center">行/列</th>
                                                                     <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                        :key="col.optionId" 
+                                                                        :key="col.id" 
                                                                         class="text-center">
                                                                         {{ col.description }}
                                                                     </th>
@@ -795,13 +795,13 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                             </thead>
                                                             <tbody>
                                                                 <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                                    :key="row.optionId">
+                                                                    :key="row.id">
                                                                     <td>{{ row.description }}</td>
                                                                     <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                        :key="col.optionId" 
+                                                                        :key="col.id" 
                                                                         class="text-center">
                                                                         <el-checkbox 
-                                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
+                                                                            :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
                                                                             disabled />
                                                                     </td>
                                                                 </tr>
@@ -818,7 +818,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                             {{ question.instructions }}
                                                         </div>
                                                         <div class="rating-rule">评分规则：1-5分</div>
-                                                        <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                                        <div v-for="option in question.options" :key="option.id" class="rating-item">
                                                             <label class="rating-label">{{ option.description }}:</label>
                                                             <div class="rating-display">
                                                                 <!-- 五角星显示 -->
@@ -903,14 +903,14 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                             <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                                             <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                                 <div v-for="option in question.options" 
-                                                                    :key="option.optionId" 
+                                                                    :key="option.id" 
                                                                     class="sortable-item"
-                                                                    :data-id="option.optionId">
+                                                                    :data-id="option.id">
                                                                     <div class="sortable-handle">
                                                                         <el-icon><Rank /></el-icon>
                                                                     </div>
                                                                     <div class="sortable-content">
-                                                                        <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                                        <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                                         <span class="sortable-text">{{ option.description }}</span>
                                                                     </div>
                                                                 </div>
@@ -929,7 +929,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                             class="select-sort-item">
                                                                             <span class="select-sort-index">{{ index + 1 }}</span>
                                                                             <span class="select-sort-text">
-                                                                                {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                                {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                                             </span>
                                                                         </div>
                                                                     </template>
@@ -940,10 +940,10 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                 <!-- 待选择的选项列表 -->
                                                                 <div class="select-sort-options">
                                                                     <div v-for="option in question.options" 
-                                                                        :key="option.optionId" 
+                                                                        :key="option.id" 
                                                                         class="select-sort-option"
-                                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                                        @click="selectSortOption(question, option.optionId)">
+                                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                                        @click="selectSortOption(question, option.id)">
                                                                         {{ option.description }}
                                                                     </div>
                                                                 </div>
@@ -989,7 +989,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                     <template v-if="question.type === '单选'">
                                         <div class="form-check">
                                             <div v-for="(option, optIndex) in question.options" 
-                                                :key="option.optionId" 
+                                                :key="option.id" 
                                                 class="form-check-option">
                                                 <span class="option-label">
                                                     {{ String.fromCharCode(65 + optIndex) }}. {{ option.description }}
@@ -1017,12 +1017,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 </span>
                                             </div>
                                             <div v-for="(option, optIndex) in question.options" 
-                                                :key="option.optionId" 
+                                                :key="option.id" 
                                                 class="form-check-option more-option">
                                                 <el-checkbox 
                                                     v-model="question.selectedOptions" 
-                                                    :label="option.optionId"
-                                                    :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.optionId)) && 
+                                                    :label="option.id"
+                                                    :disabled="!(question.selectedOptions && question.selectedOptions.includes(option.id)) && 
                                                                 question.maxSelections && 
                                                                 question.maxSelections < question.options.length &&
                                                                 question.selectedOptions && question.selectedOptions.length >= question.maxSelections"
@@ -1031,7 +1031,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                         {{ String.fromCharCode(65 + optIndex) }}.
                                                         <template v-if="option.isOpenOption">
                                                             <el-input 
-                                                                v-if="question.selectedOptions && question.selectedOptions.includes(option.optionId)"
+                                                                v-if="question.selectedOptions && question.selectedOptions.includes(option.id)"
                                                                 v-model="option.openAnswer" 
                                                                 :placeholder="option.description"
                                                                 class="open-answer-input" />
@@ -1064,7 +1064,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                     <tr>
                                                         <th class="text-center">行/列</th>
                                                         <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             {{ col.description }}
                                                         </th>
@@ -1072,14 +1072,14 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 </thead>
                                                 <tbody>
                                                     <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                        :key="row.optionId">
+                                                        :key="row.id">
                                                         <td>{{ row.description }}</td>
                                                         <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                            :key="col.optionId" 
+                                                            :key="col.id" 
                                                             class="text-center">
                                                             <el-radio 
-                                                                v-model="question.matrixAnswers[row.optionId]" 
-                                                                :label="col.optionId"
+                                                                v-model="question.matrixAnswers[row.id]" 
+                                                                :label="col.id"
                                                                 disabled />
                                                         </td>
                                                     </tr>
@@ -1095,7 +1095,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 <tr>
                                                     <th class="text-center">行/列</th>
                                                     <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         {{ col.description }}
                                                     </th>
@@ -1103,13 +1103,13 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                             </thead>
                                             <tbody>
                                                 <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                    :key="row.optionId">
+                                                    :key="row.id">
                                                     <td>{{ row.description }}</td>
                                                     <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         <el-checkbox 
-                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
+                                                            :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
                                                             disabled />
                                                     </td>
                                                 </tr>
@@ -1126,7 +1126,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 {{ question.instructions }}
                                             </div>
                                             <div class="rating-rule">评分规则：1-5分</div>
-                                            <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                            <div v-for="option in question.options" :key="option.id" class="rating-item">
                                                 <label class="rating-label">{{ option.description }}:</label>
                                                 <div class="rating-display">
                                                     <!-- 五角星显示 -->
@@ -1211,14 +1211,14 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                                 <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                     <div v-for="option in question.options" 
-                                                        :key="option.optionId" 
+                                                        :key="option.id" 
                                                         class="sortable-item"
-                                                        :data-id="option.optionId">
+                                                        :data-id="option.id">
                                                         <div class="sortable-handle">
                                                             <el-icon><Rank /></el-icon>
                                                         </div>
                                                         <div class="sortable-content">
-                                                            <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                            <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                             <span class="sortable-text">{{ option.description }}</span>
                                                         </div>
                                                     </div>
@@ -1237,7 +1237,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                                 class="select-sort-item">
                                                                 <span class="select-sort-index">{{ index + 1 }}</span>
                                                                 <span class="select-sort-text">
-                                                                    {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                    {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                                 </span>
                                                             </div>
                                                         </template>
@@ -1248,10 +1248,10 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                     <!-- 待选择的选项列表 -->
                                                     <div class="select-sort-options">
                                                         <div v-for="option in question.options" 
-                                                            :key="option.optionId" 
+                                                            :key="option.id" 
                                                             class="select-sort-option"
-                                                            :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                            @click="selectSortOption(question, option.optionId)">
+                                                            :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                            @click="selectSortOption(question, option.id)">
                                                             {{ option.description }}
                                                         </div>
                                                     </div>

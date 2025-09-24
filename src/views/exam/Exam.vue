@@ -46,7 +46,7 @@ getUserInf()
 const exams = ref([
     {
         "id": 1,
-        "name": "早餐调查试卷",
+        "name": "早餐考试",
         "createdByName": "张三",
         "status": "草稿",
         "allowView": "1",

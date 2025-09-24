@@ -91,9 +91,9 @@ const getExamData = async () => {
                     .filter(opt => opt.type === '行选项')
                     .forEach(row => {
                         if (question.type === '矩阵单选') {
-                            question.matrixAnswers[row.optionId] = ''  // 初始化为空字符串
+                            question.matrixAnswers[row.id] = ''  // 初始化为空字符串
                         } else {
-                            question.matrixAnswers[row.optionId] = []  // 初始化为空数组
+                            question.matrixAnswers[row.id] = []  // 初始化为空数组
                         }
                     })
             }
@@ -158,14 +158,14 @@ const handleOptionSelect = (questionId, optionId) => {
             if (question.sortedOrder && question.sortedOrder.length > 0) {
                 const sortedOptions = []
                 question.sortedOrder.forEach(optionId => {
-                    const option = question.options.find(opt => opt.optionId === optionId)
+                    const option = question.options.find(opt => opt.id === optionId)
                     if (option) {
                         sortedOptions.push(option)
                     }
                 })
                 // 将未排序的选项添加到末尾
                 question.options.forEach(option => {
-                    if (!sortedOptions.find(opt => opt.optionId === option.optionId)) {
+                    if (!sortedOptions.find(opt => opt.id === option.id)) {
                         sortedOptions.push(option)
                     }
                 })
@@ -224,7 +224,7 @@ const getOptionIndex = (question, optionId) => {
         const index = question.sortedOrder.indexOf(optionId)
         return index !== -1 ? index + 1 : question.options.length
     }
-    return question.options.findIndex(opt => opt.optionId === optionId) + 1
+    return question.options.findIndex(opt => opt.id === optionId) + 1
 }
 
 const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
@@ -289,17 +289,17 @@ onMounted(() => {
                                         <template v-if="question.type === '单选'">
                                             <div class="form-check">
                                                 <div v-for="(option, optIndex) in question.options" 
-                                                    :key="option.optionId" 
+                                                    :key="option.id" 
                                                     class="form-check-option">
                                                     <el-radio 
                                                         v-model="question.selectedOption" 
-                                                        :label="option.optionId"
+                                                        :label="option.id"
                                                         :required="question.isRequired">
                                                         <span class="option-label">
                                                             {{ String.fromCharCode(65 + optIndex) }}.
                                                             <template v-if="option.isOpenOption">
                                                                 <el-input
-                                                                v-if="question.selectedOption==option.optionId"
+                                                                v-if="question.selectedOption==option.id"
                                                                     v-model="option.openAnswer" 
                                                                     :placeholder="option.description"
                                                                     class="open-answer-input" />
@@ -334,12 +334,12 @@ onMounted(() => {
                                                     </span>
                                                 </div>
                                                 <div v-for="(option, optIndex) in question.options" 
-                                                    :key="option.optionId" 
+                                                    :key="option.id" 
                                                     class="form-check-option more-option">
                                                     <el-checkbox 
                                                         v-model="question.selectedOptions" 
-                                                        :label="option.optionId"
-                                                        :disabled="!question.selectedOptions.includes(option.optionId) && 
+                                                        :label="option.id"
+                                                        :disabled="!question.selectedOptions.includes(option.id) && 
                                                                   question.maxSelections && 
                                                                   question.maxSelections < question.options.length &&
                                                                   question.selectedOptions.length >= question.maxSelections"
@@ -348,7 +348,7 @@ onMounted(() => {
                                                             {{ String.fromCharCode(65 + optIndex) }}.
                                                             <template v-if="option.isOpenOption">
                                                                 <el-input 
-                                                                    v-if="question.selectedOptions.includes(option.optionId)"
+                                                                    v-if="question.selectedOptions.includes(option.id)"
                                                                     v-model="option.openAnswer" 
                                                                     :placeholder="option.description"
                                                                     class="open-answer-input" />
@@ -384,7 +384,7 @@ onMounted(() => {
                                                         <tr>
                                                             <th class="text-center">行/列</th>
                                                             <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                :key="col.optionId" 
+                                                                :key="col.id" 
                                                                 class="text-center">
                                                                 {{ col.description }}
                                                             </th>
@@ -392,14 +392,14 @@ onMounted(() => {
                                                     </thead>
                                                     <tbody>
                                                         <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                            :key="row.optionId">
+                                                            :key="row.id">
                                                             <td class="text-center">{{ row.description }}</td>
                                                             <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                :key="col.optionId" 
+                                                                :key="col.id" 
                                                                 class="text-center">
                                                                 <el-radio 
-                                                                    v-model="question.matrixAnswers[row.optionId]" 
-                                                                    @change="handleOptionSelect(question.questionId, {rowId: row.optionId, colId: col.optionId})" />
+                                                                    v-model="question.matrixAnswers[row.id]" 
+                                                                    @change="handleOptionSelect(question.questionId, {rowId: row.id, colId: col.id})" />
                                                             </td>
                                                         </tr>
                                                     </tbody>
@@ -415,7 +415,7 @@ onMounted(() => {
                                                         <tr>
                                                             <th class="text-center">行/列</th>
                                                             <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                :key="col.optionId" 
+                                                                :key="col.id" 
                                                                 class="text-center">
                                                                 {{ col.description }}
                                                             </th>
@@ -423,14 +423,14 @@ onMounted(() => {
                                                     </thead>
                                                     <tbody>
                                                         <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                            :key="row.optionId">
+                                                            :key="row.id">
                                                             <td class="text-center">{{ row.description }}</td>
                                                             <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                                :key="col.optionId" 
+                                                                :key="col.id" 
                                                                 class="text-center">
                                                                 <el-checkbox 
-                                                                    :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                                    @update:model-value="(val) => handleMatrixCheckboxChange(question, row.optionId, col.optionId, val)" />
+                                                                    :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
+                                                                    @update:model-value="(val) => handleMatrixCheckboxChange(question, row.id, col.id, val)" />
                                                             </td>
                                                         </tr>
                                                     </tbody>
@@ -445,7 +445,7 @@ onMounted(() => {
                                                     {{ question.instructions }}
                                                 </div>
                                                 <div class="rating-rule">评分规则：1-5分</div>
-                                                <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                                <div v-for="option in question.options" :key="option.id" class="rating-item">
                                                     <label class="rating-label">{{ option.description }}:</label>
                                                     <div class="rating-display">
                                                         <!-- 五角星显示 -->
@@ -530,14 +530,14 @@ onMounted(() => {
                                                     <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                                     <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                         <div v-for="option in question.options" 
-                                                            :key="option.optionId" 
+                                                            :key="option.id" 
                                                             class="sortable-item"
-                                                            :data-id="option.optionId">
+                                                            :data-id="option.id">
                                                             <div class="sortable-handle">
                                                                 <el-icon><Rank /></el-icon>
                                                             </div>
                                                             <div class="sortable-content">
-                                                                <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                                <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                                 <span class="sortable-text">{{ option.description }}</span>
                                                             </div>
                                                         </div>
@@ -554,7 +554,7 @@ onMounted(() => {
                                                                     class="select-sort-item">
                                                                     <span class="select-sort-index">{{ index + 1 }}</span>
                                                                     <span class="select-sort-text">
-                                                                        {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                        {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                                     </span>
                                                                 </div>
                                                             </template>
@@ -564,10 +564,10 @@ onMounted(() => {
                                                         </div>
                                                         <div class="select-sort-options">
                                                             <div v-for="option in question.options" 
-                                                                :key="option.optionId" 
+                                                                :key="option.id" 
                                                                 class="select-sort-option"
-                                                                :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                                @click="selectSortOption(question, option.optionId)">
+                                                                :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                                @click="selectSortOption(question, option.id)">
                                                                 {{ option.description }}
                                                             </div>
                                                         </div>
@@ -603,17 +603,17 @@ onMounted(() => {
                                 <template v-if="question.type === '单选'">
                                     <div class="form-check">
                                         <div v-for="(option, optIndex) in question.options" 
-                                            :key="option.optionId" 
+                                            :key="option.id" 
                                             class="form-check-option">
                                             <el-radio 
                                                 v-model="question.selectedOption" 
-                                                :label="option.optionId"
+                                                :label="option.id"
                                                 :required="question.isRequired">
                                                 <span class="option-label">
                                                     {{ String.fromCharCode(65 + optIndex) }}.
                                                     <template v-if="option.isOpenOption">
                                                         <el-input
-                                                        v-if="question.selectedOption==option.optionId"
+                                                        v-if="question.selectedOption==option.id"
                                                             v-model="option.openAnswer" 
                                                             :placeholder="option.description"
                                                             class="open-answer-input" />
@@ -648,12 +648,12 @@ onMounted(() => {
                                             </span>
                                         </div>
                                         <div v-for="(option, optIndex) in question.options" 
-                                            :key="option.optionId" 
+                                            :key="option.id" 
                                             class="form-check-option more-option">
                                             <el-checkbox 
                                                 v-model="question.selectedOptions" 
-                                                :label="option.optionId"
-                                                :disabled="!question.selectedOptions.includes(option.optionId) && 
+                                                :label="option.id"
+                                                :disabled="!question.selectedOptions.includes(option.id) && 
                                                           question.maxSelections && 
                                                           question.maxSelections < question.options.length &&
                                                           question.selectedOptions.length >= question.maxSelections"
@@ -662,7 +662,7 @@ onMounted(() => {
                                                     {{ String.fromCharCode(65 + optIndex) }}.
                                                     <template v-if="option.isOpenOption">
                                                         <el-input 
-                                                            v-if="question.selectedOptions.includes(option.optionId)"
+                                                            v-if="question.selectedOptions.includes(option.id)"
                                                             v-model="option.openAnswer" 
                                                             :placeholder="option.description"
                                                             class="open-answer-input" />
@@ -698,7 +698,7 @@ onMounted(() => {
                                                 <tr>
                                                     <th class="text-center">行/列</th>
                                                     <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         {{ col.description }}
                                                     </th>
@@ -706,14 +706,14 @@ onMounted(() => {
                                             </thead>
                                             <tbody>
                                                 <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                    :key="row.optionId">
+                                                    :key="row.id">
                                                     <td class="text-center">{{ row.description }}</td>
                                                     <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         <el-radio 
-                                                            v-model="question.matrixAnswers[row.optionId]" 
-                                                            @change="handleOptionSelect(question.questionId, {rowId: row.optionId, colId: col.optionId})" />
+                                                            v-model="question.matrixAnswers[row.id]" 
+                                                            @change="handleOptionSelect(question.questionId, {rowId: row.id, colId: col.id})" />
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -729,7 +729,7 @@ onMounted(() => {
                                                 <tr>
                                                     <th class="text-center">行/列</th>
                                                     <th v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         {{ col.description }}
                                                     </th>
@@ -737,14 +737,14 @@ onMounted(() => {
                                             </thead>
                                             <tbody>
                                                 <tr v-for="row in question.options.filter(opt => opt.type === '行选项')" 
-                                                    :key="row.optionId">
+                                                    :key="row.id">
                                                     <td class="text-center">{{ row.description }}</td>
                                                     <td v-for="col in question.options.filter(opt => opt.type === '列选项')" 
-                                                        :key="col.optionId" 
+                                                        :key="col.id" 
                                                         class="text-center">
                                                         <el-checkbox 
-                                                            :model-value="question.matrixAnswers[row.optionId]?.includes(col.optionId)"
-                                                            @update:model-value="(val) => handleMatrixCheckboxChange(question, row.optionId, col.optionId, val)" />
+                                                            :model-value="question.matrixAnswers[row.id]?.includes(col.id)"
+                                                            @update:model-value="(val) => handleMatrixCheckboxChange(question, row.id, col.id, val)" />
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -759,7 +759,7 @@ onMounted(() => {
                                             {{ question.instructions }}
                                         </div>
                                         <div class="rating-rule">评分规则：1-5分</div>
-                                        <div v-for="option in question.options" :key="option.optionId" class="rating-item">
+                                        <div v-for="option in question.options" :key="option.id" class="rating-item">
                                             <label class="rating-label">{{ option.description }}:</label>
                                             <div class="rating-display">
                                                 <!-- 五角星显示 -->
@@ -844,14 +844,14 @@ onMounted(() => {
                                             <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
                                             <div :id="'sortable-' + question.questionId" class="sortable-list">
                                                 <div v-for="option in question.options" 
-                                                    :key="option.optionId" 
+                                                    :key="option.id" 
                                                     class="sortable-item"
-                                                    :data-id="option.optionId">
+                                                    :data-id="option.id">
                                                     <div class="sortable-handle">
                                                         <el-icon><Rank /></el-icon>
                                                     </div>
                                                     <div class="sortable-content">
-                                                        <span class="sortable-index">{{ getOptionIndex(question, option.optionId) }}</span>
+                                                        <span class="sortable-index">{{ getOptionIndex(question, option.id) }}</span>
                                                         <span class="sortable-text">{{ option.description }}</span>
                                                     </div>
                                                 </div>
@@ -868,7 +868,7 @@ onMounted(() => {
                                                             class="select-sort-item">
                                                             <span class="select-sort-index">{{ index + 1 }}</span>
                                                             <span class="select-sort-text">
-                                                                {{ question.options.find(opt => opt.optionId === optionId)?.description }}
+                                                                {{ question.options.find(opt => opt.id === optionId)?.description }}
                                                             </span>
                                                         </div>
                                                     </template>
@@ -878,10 +878,10 @@ onMounted(() => {
                                                 </div>
                                                 <div class="select-sort-options">
                                                     <div v-for="option in question.options" 
-                                                        :key="option.optionId" 
+                                                        :key="option.id" 
                                                         class="select-sort-option"
-                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.optionId) }"
-                                                        @click="selectSortOption(question, option.optionId)">
+                                                        :class="{ 'selected': question.sortedOrder && question.sortedOrder.includes(option.id) }"
+                                                        @click="selectSortOption(question, option.id)">
                                                         {{ option.description }}
                                                     </div>
                                                 </div>

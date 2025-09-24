@@ -37,7 +37,7 @@ getUserInf()
 //分类数据模型
 const categories = ref([
     {
-        "categoryId": 1,
+        "id": 1,
         "categoryName": "早餐调查分类",
         "parentCategoryName": "张三",
         "description": "这是什么相关的分类",
@@ -127,7 +127,7 @@ const visibleDrawer = ref(false)
 
 //添加表单数据模型
 const categoryModel = ref({
-    categoryId: '',
+    id: '',
     categoryName: '',
     categoryLevel: 1, // 设置默认层级为1
     parentCategoryId: '',
@@ -182,7 +182,7 @@ const delCategory = (row) => {
     )
         .then(async () => {
             //用户点击了确认
-            let result = await categoryDelService(row.categoryId)
+            let result = await categoryDelService(row.id)
             ElMessage({
                 type: 'success',
                 message: '删除成功',
@@ -277,7 +277,7 @@ window.addEventListener('resize', () => {
 
             <!-- 分类列表 -->
             <el-table :data="categories" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="categoryId"></el-table-column> -->
+                <!-- <el-table-column label="序号" prop="id"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="分类名称" style="text-align: center;" align="center" prop="categoryName"></el-table-column>
                 <el-table-column label="分类描述" style="text-align: center;" align="center">
@@ -292,9 +292,6 @@ window.addEventListener('resize', () => {
                 </el-table-column>
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">
-                        <el-tooltip content="查看" placement="top">
-                            <el-button :icon="Pointer" circle plain type="primary"></el-button>
-                        </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button :icon="Edit" circle plain type="primary" @click="editCategoryEcho(row)"></el-button>
                         </el-tooltip>
@@ -346,7 +343,7 @@ window.addEventListener('resize', () => {
             </el-form-item>
             <el-form-item label="上级分类" v-if="categoryModel.categoryLevel === 2">
                 <el-select v-model="categoryModel.parentCategoryId" clearable placeholder="请选择上级分类">
-                    <el-option v-for="item in parentCategories" :key="item.categoryId" :label="item.categoryName" :value="item.categoryId"/>
+                    <el-option v-for="item in parentCategories" :key="item.id" :label="item.categoryName" :value="item.id"/>
                 </el-select>
             </el-form-item>
 
