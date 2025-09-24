@@ -10,7 +10,7 @@
 
 系统中的权限分为以下几类：
 
-- **问卷管理权限**：控制问卷的查看、创建、编辑、删除、发布和统计等操作
+- **考试管理权限**：控制考试的查看、创建、编辑、删除、发布和统计等操作
 - **用户管理权限**：控制用户的查看、创建、编辑、删除、导入和导出等操作
 - **部门管理权限**：控制部门的查看、创建、编辑和删除等操作
 - **角色管理权限**：控制角色的查看、创建、编辑、删除和分配等操作
@@ -24,7 +24,7 @@
 ### 2.2 权限代码规范
 
 权限代码采用 `模块:操作` 的格式，例如：
-- `survey:view`：查看问卷权限
+- `exam:view`：查看考试权限
 - `user:create`：创建用户权限
 
 完整的权限列表请参考 `src/utils/permission.js` 文件中的 `PERMISSIONS` 常量定义。
@@ -40,13 +40,13 @@
 
 ### 3.2 普通管理员
 - **描述**：具有大部分管理权限的角色
-- **权限范围**：拥有除权限管理外的大部分权限，可以管理问卷、用户、部门、角色等
+- **权限范围**：拥有除权限管理外的大部分权限，可以管理考试、用户、部门、角色等
 - **适用场景**：业务管理员、部门主管
 
 ### 3.3 普通用户
 - **描述**：基础操作权限的角色
-- **权限范围**：拥有基础的问卷操作权限，可以查看、创建和编辑问卷
-- **适用场景**：一般工作人员、问卷填写者
+- **权限范围**：拥有基础的考试操作权限，可以查看、创建和编辑考试
+- **适用场景**：一般工作人员、考试填写者
 
 ### 3.4 只读用户
 - **描述**：只能查看数据的角色
@@ -77,13 +77,13 @@
 
 ```html
 <!-- 检查单个权限 -->
-<el-button v-permission="'survey:create'" type="primary">创建问卷</el-button>
+<el-button v-permission="'exam:create'" type="primary">创建考试</el-button>
 
 <!-- 检查多个权限（需要所有权限） -->
-<el-button v-permission="['survey:edit', 'survey:delete']" type="danger">批量删除</el-button>
+<el-button v-permission="['exam:edit', 'exam:delete']" type="danger">批量删除</el-button>
 
 <!-- 检查多个权限（任一权限即可） -->
-<el-button v-permission:any="['survey:edit', 'survey:delete']" type="warning">编辑/删除</el-button>
+<el-button v-permission:any="['exam:edit', 'exam:delete']" type="warning">编辑/删除</el-button>
 ```
 
 ### 4.3 角色指令
@@ -136,7 +136,7 @@ import { usePermission, PERMISSIONS } from '@/utils/permission.js'
 
 // 在组件中使用
 const { hasPermission } = usePermission()
-const canCreateSurvey = await hasPermission(PERMISSIONS.SURVEY_CREATE)
+const canCreateExam = await hasPermission(PERMISSIONS.Exam_CREATE)
 ```
 
 ### 6.2 后端集成

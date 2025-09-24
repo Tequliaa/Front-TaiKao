@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/user'
 import { Rank } from '@element-plus/icons-vue'
 
-// 问卷ID
+// 考试ID
 const props = defineProps({
     examId: {
         type: [String, Number],
@@ -15,7 +15,7 @@ const props = defineProps({
 
 // 问题列表
 const questions = ref([])
-// 问卷信息
+// 考试信息
 const examInfo = ref({
     name: '',
     description: '',
@@ -70,7 +70,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     return previousQuestionsCount + questionIndex + 1;
 }
 const userInfoStore = useUserInfoStore()
-// 获取问卷的所有问题
+// 获取考试的所有问题
 const getExamData = async () => {
     try {
         // 获取问题列表（包含选项）
@@ -99,7 +99,7 @@ const getExamData = async () => {
             }
             return question
         })
-        // 设置问卷信息
+        // 设置考试信息
         if (questionsData.length > 0) {
             examInfo.value = {
                 name: exam.name,
@@ -108,7 +108,7 @@ const getExamData = async () => {
             }
         }
     } catch (error) {
-        ElMessage.error('获取问卷数据失败')
+        ElMessage.error('获取考试数据失败')
     }
 }
 
@@ -254,7 +254,7 @@ onMounted(() => {
 <template>
         <div class="exam-preview">
             <div class="exam-container">
-                <!-- 问卷标题和描述 -->
+                <!-- 考试标题和描述 -->
                 <div class="exam-header">
                     <h1 class="exam-title">{{ examInfo.name }}</h1>
                     <h6 class="exam-description">{{ examInfo.description }}</h6>

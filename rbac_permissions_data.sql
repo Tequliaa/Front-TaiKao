@@ -3,12 +3,12 @@
 
 -- 1. 插入权限数据
 INSERT INTO permission (name, permission_code, comment,create_time) VALUES
-('查看问卷', 'survey:view', '查看问卷列表和详情',now()),
-('创建问卷', 'survey:create', '创建新问卷',now()),
-('编辑问卷', 'survey:edit', '编辑问卷内容',now()),
-('删除问卷', 'survey:delete', '删除问卷',now()),
-('发布问卷', 'survey:publish', '发布问卷到部门',now()),
-('查看问卷统计', 'survey:statistics', '查看问卷统计数据',now()),
+('查看考试', 'exam:view', '查看考试列表和详情',now()),
+('创建考试', 'exam:create', '创建新考试',now()),
+('编辑考试', 'exam:edit', '编辑考试内容',now()),
+('删除考试', 'exam:delete', '删除考试',now()),
+('发布考试', 'exam:publish', '发布考试到部门',now()),
+('查看考试统计', 'exam:statistics', '查看考试统计数据',now()),
 
 ('查看用户', 'user:view', '查看用户列表和详情',now()),
 ('创建用户', 'user:create', '创建新用户',now()),
@@ -46,7 +46,7 @@ INSERT INTO permission (name, permission_code, comment,create_time) VALUES
 ('编辑选项', 'option:edit', '编辑选项内容',now()),
 ('删除选项', 'option:delete', '删除选项',now()),
 
-('查看响应', 'response:view', '查看问卷响应数据',now()),
+('查看响应', 'response:view', '查看考试响应数据',now()),
 ('导出响应', 'response:export', '导出响应数据',now()),
 ('删除响应', 'response:delete', '删除响应数据',now()),
 
@@ -71,7 +71,7 @@ INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, p.id FROM role r, permission p 
 WHERE r.name = '普通管理员' 
 AND p.code IN (
-  'survey:view', 'survey:create', 'survey:edit', 'survey:delete', 'survey:publish', 'survey:statistics',
+  'exam:view', 'exam:create', 'exam:edit', 'exam:delete', 'exam:publish', 'exam:statistics',
   'user:view', 'user:create', 'user:edit', 'user:delete', 'user:import', 'user:export',
   'department:view', 'department:create', 'department:edit', 'department:delete',
   'role:view', 'role:create', 'role:edit', 'role:assign',
@@ -83,12 +83,12 @@ AND p.code IN (
   'profile:view', 'profile:edit', 'password:change'
 );
 
--- 普通用户 - 拥有基础的问卷操作权限
+-- 普通用户 - 拥有基础的考试操作权限
 INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, p.id FROM role r, permission p 
 WHERE r.name = '普通用户' 
 AND p.code IN (
-  'survey:view', 'survey:create', 'survey:edit',
+  'exam:view', 'exam:create', 'exam:edit',
   'response:view',
   'profile:view', 'profile:edit', 'password:change'
 );
@@ -98,7 +98,7 @@ INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, p.id FROM role r, permission p 
 WHERE r.name = '只读用户' 
 AND p.code IN (
-  'survey:view',
+  'exam:view',
   'response:view',
   'profile:view', 'password:change'
 );

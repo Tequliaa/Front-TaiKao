@@ -9,7 +9,7 @@ import {
 import { ref, nextTick,onMounted, watch,computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userListService, userUpdateService, userDeleteService, userExportService, userImportService } from '@/api/user.js'
-import { getAllSurveysService } from '@/api/department.js'
+import { getAllExamsService } from '@/api/department.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
 import { getAllRolesService } from '@/api/role.js'
@@ -102,7 +102,7 @@ const getUserInf = async () => {
 // 修改获取部门数据的方法
 const getAllDepartments = async () => {
     try {
-        let result = await getAllSurveysService(userInfoStore.info.id);
+        let result = await getAllExamsService(userInfoStore.info.id);
         departments.value = result.data;
     } catch (error) {
         ElMessage.error('获取部门列表失败')
@@ -273,10 +273,10 @@ const getPlainText = (htmlContent)=> {
     div.innerHTML = htmlContent;
     return div.textContent || div.innerText || '';
 }
-const goToUserSurveyPage = (row) => {
+const goToUserExamPage = (row) => {
     console.log(row.name)
     router.push({
-      name: 'UserSurvey',  // 使用路由名称
+      name: 'UserExam',  // 使用路由名称
       params: { userId: row.id ,
                 username: row.name }  // 传递参数
     })}
@@ -498,7 +498,7 @@ window.addEventListener('resize', () => {
                 <el-table-column label="操作" style="text-align: center;" align="center" width="150">
                     <template #default="{ row }">
                         <el-tooltip content="查看" placement="top">
-                            <el-button v-permission="'user:view'" :icon="Pointer" circle plain type="primary" @click="goToUserSurveyPage(row)"></el-button>
+                            <el-button v-permission="'user:view'" :icon="Pointer" circle plain type="primary" @click="goToUserExamPage(row)"></el-button>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button v-permission="'user:edit'" :icon="Edit" circle plain type="primary" @click="updateUserEcho(row)"></el-button>

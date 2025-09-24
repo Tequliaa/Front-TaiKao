@@ -171,13 +171,13 @@ const checkPermissions = async () => {
     try {
         const { hasPermission } = usePermission()
         
-        // 检查问卷管理权限
-        permissionState.canManageExam = await hasPermission(PERMISSIONS.Exam_VIEW)
-        permissionState.canCreateExam = await hasPermission(PERMISSIONS.Exam_CREATE)
-        permissionState.canEditExam = await hasPermission(PERMISSIONS.Exam_EDIT)
-        permissionState.canDeleteExam = await hasPermission(PERMISSIONS.Exam_DELETE)
-        permissionState.canPublishExam = await hasPermission(PERMISSIONS.Exam_PUBLISH)
-        permissionState.canViewExamStats = await hasPermission(PERMISSIONS.Exam_STATISTICS)
+        // 检查考试管理权限
+        permissionState.canManageExam = await hasPermission(PERMISSIONS.EXAM_VIEW)
+        permissionState.canCreateExam = await hasPermission(PERMISSIONS.EXAM_CREATE)
+        permissionState.canEditExam = await hasPermission(PERMISSIONS.EXAM_EDIT)
+        permissionState.canDeleteExam = await hasPermission(PERMISSIONS.EXAM_DELETE)
+        permissionState.canPublishExam = await hasPermission(PERMISSIONS.EXAM_PUBLISH)
+        permissionState.canViewExamStats = await hasPermission(PERMISSIONS.EXAM_STATISTICS)
         
         // 检查用户管理权限
         permissionState.canManageUser = await hasPermission(PERMISSIONS.USER_VIEW)
@@ -251,7 +251,7 @@ const refreshPermissions = async () => {
                     class="mobile-menu-container">
                     <el-menu-item index="/manage/userExam" class="mobile-menu-item">
                         <el-icon><Avatar /></el-icon>
-                        <span>我的问卷</span>
+                        <span>我的考试</span>
                     </el-menu-item>
 
                     <!-- 管理员菜单 -->
@@ -259,15 +259,15 @@ const refreshPermissions = async () => {
                         <el-sub-menu v-if="permissionState.canManageExam || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption" index="geren1" class="mobile-submenu">
                             <template #title>
                                 <el-icon><Menu /></el-icon>
-                                <span>问卷管理</span>
+                                <span>考试管理</span>
                             </template>
                             <el-menu-item v-if="permissionState.canManageExam" index="/exam/exam" class="mobile-submenu-item">
                                 <el-icon><User /></el-icon>
-                                <span>问卷管理</span>
+                                <span>考试管理</span>
                             </el-menu-item>
                             <el-menu-item v-if="permissionState.canManageExam" index="/exam/builder" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
-                                <span>问卷构建器</span>
+                                <span>考试构建器</span>
                             </el-menu-item>
                             <el-menu-item v-if="permissionState.canManageCategory" index="/manage/category" class="mobile-submenu-item">
                                 <el-icon><EditPen /></el-icon>
@@ -327,7 +327,7 @@ const refreshPermissions = async () => {
             <!-- 桌面端头部 -->
             <div v-else class="sidebar-header">
                 <div class="logo-container">
-                    <span class="logo-text" v-if="!isCollapse">问卷管理平台</span>
+                    <span class="logo-text" v-if="!isCollapse">考试管理平台</span>
                     <el-icon class="collapse-btn" @click="toggleSidebar">
                         <component :is="isCollapse ? 'Expand' : 'Fold'" />
                     </el-icon>
@@ -346,11 +346,11 @@ const refreshPermissions = async () => {
                 
                 <el-menu-item index="/manage/userExam" class="menu-item">
                     <el-icon><Avatar /></el-icon>
-                    <template #title>我的问卷</template>
+                    <template #title>我的考试</template>
                 </el-menu-item>
                 <el-menu-item index="/exam/builder" class="submenu-item">
                             <el-icon><EditPen /></el-icon>
-                            <template #title>问卷构建器</template>
+                            <template #title>考试构建器</template>
                 </el-menu-item>
                 <!-- 管理员菜单 -->
                 <template v-if="permissionState.canManageExam || permissionState.canManageUser || permissionState.canManageDepartment || permissionState.canManageRole || permissionState.canManagePermission || permissionState.canManageCategory || permissionState.canManageQuestion || permissionState.canManageOption">
@@ -461,7 +461,7 @@ const refreshPermissions = async () => {
             <!-- 底部区域 -->
             <el-footer class="main-footer">
                 <div class="footer-content">
-                    <span>问卷调查管理系统 ©2025 Created by 饭得标</span>
+                    <span>考试调查管理系统 ©2025 Created by 饭得标</span>
                 </div>
             </el-footer>
         </el-container>

@@ -50,8 +50,8 @@
     </div>
     
     <div>
-        <label for="surveyId">问卷ID:</label>
-        <input type="number" id="surveyId" value="1" min="1">
+        <label for="examId">考试ID:</label>
+        <input type="number" id="examId" value="1" min="1">
     </div>
     
     <div class="log" id="logContainer"></div>
@@ -63,7 +63,7 @@
         const disconnectBtn = document.getElementById('disconnectBtn');
         const sendPingBtn = document.getElementById('sendPingBtn');
         const sendSubscribeBtn = document.getElementById('sendSubscribeBtn');
-        const surveyIdInput = document.getElementById('surveyId');
+        const examIdInput = document.getElementById('examId');
 
         function log(message, type = 'info') {
             const entry = document.createElement('div');
@@ -79,8 +79,8 @@
                 return;
             }
 
-            const surveyId = surveyIdInput.value;
-            const wsUrl = `ws://127.0.0.1:8082/ws/survey/${surveyId}`;
+            const examId = examIdInput.value;
+            const wsUrl = `ws://127.0.0.1:8082/ws/exam/${examId}`;
             log(`尝试连接到: ${wsUrl}`, 'info');
 
             try {
@@ -146,7 +146,7 @@
                 const message = JSON.stringify({
                     type: 'subscribe',
                     payload: {
-                        surveyId: parseInt(surveyIdInput.value),
+                        examId: parseInt(examIdInput.value),
                         userId: 'test_user',
                         type: 'response_update'
                     }

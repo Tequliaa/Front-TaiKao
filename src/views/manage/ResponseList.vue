@@ -5,7 +5,7 @@ import {
 import dayjs from 'dayjs'
 import {  onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { ref } from 'vue'
-//问卷列表查询
+//考试列表查询
 import { getResponseListService } from '@/api/response.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
@@ -36,7 +36,7 @@ const getUserInf = async () => {
 //获取用户基本信息
 getUserInf()
 
-//问卷数据模型
+//考试数据模型
 const responses = ref([
     {
         "responseId":1,

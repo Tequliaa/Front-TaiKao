@@ -5,7 +5,7 @@ import { ElMessage, ElDialog } from 'element-plus'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import AIAnalysisReport from '@/components/AIAnalysisReport.vue'
-// 问卷ID
+// 考试ID
 const props = defineProps({
     examId: {
         type: [String, Number],
@@ -26,7 +26,7 @@ const router = useRouter()
 // 问题列表
 const questions = ref([])
 const unfinishedTotalRecords = ref(0)
-// 问卷信息
+// 考试信息
 const examInfo = ref({
     name: '',
     description: ''
@@ -396,7 +396,7 @@ const getStatistics = async () => {
             matrixCellData.value = response.data.matrixCellData || {}
             // console.log('获取到的矩阵单元格数据:', matrixCellData.value)
             
-            // 设置问卷信息
+            // 设置考试信息
             // 处理每个问题，添加必要的响应式数据
             questions.value = response.data.questions.map(question => {
                 if (question.type === '矩阵单选' || question.type === '矩阵多选') {
@@ -618,7 +618,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
-                    <!-- 问卷标题和描述 -->
+                    <!-- 考试标题和描述 -->
                     <div class="exam-header">
                         <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <div class="unfinished-info">
@@ -2041,7 +2041,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
   border-color: #5daf34;
 }
 
-/* 调整问卷标题区域布局 */
+/* 调整考试标题区域布局 */
 .exam-header {
   display: flex;
   flex-direction: column;

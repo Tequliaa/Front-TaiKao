@@ -8,7 +8,7 @@ export const departmentListService = (params) => {
   return request.get('/department/list',{params})
 }
 
-export const getAllSurveysService = (userId) => {
+export const getAllExamsService = (userId) => {
   console.log("到调用接口部分了")
   return request.get('/department/getAllById?userId='+userId)
 }

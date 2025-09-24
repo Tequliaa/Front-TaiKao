@@ -49,7 +49,7 @@ const router = useRouter()
 // 标记是否是刷新页面
 const isPageRefresh = ref(false)
 
-// 问卷数据
+// 考试数据
 const exam = ref({
     examId: null,
     name: '',
@@ -527,7 +527,7 @@ const getQuestionErrors = (index) => {
     return Object.values(errors)
 }
 
-// 获取问卷详情
+// 获取考试详情
 const fetchExamDetail = async () => {
     // 确定要使用的ExamId
     let currentExamId = null
@@ -541,7 +541,7 @@ const fetchExamDetail = async () => {
     }
     
     if (!currentExamId) {
-        console.log('没有ExamId，无法获取问卷详情')
+        console.log('没有ExamId，无法获取考试详情')
         return
     }
     
@@ -569,7 +569,7 @@ const fetchExamDetail = async () => {
             }
         }
     } catch (error) {
-        // ElMessage.error('获取问卷详情失败')
+        // ElMessage.error('获取考试详情失败')
     }
 }
 
@@ -664,10 +664,10 @@ const selectedCategoriesList = computed(() => {
     .filter(Boolean)
 })
 
-// 保存问卷
+// 保存考试
 const saveExam = async () => {
     if (!exam.value.name) {
-        ElMessage.warning('请输入问卷标题')
+        ElMessage.warning('请输入考试标题')
         return
     }
 
@@ -685,28 +685,28 @@ const saveExam = async () => {
             : await saveBuildExam(exam.value, questions.value, { categories: selectedCategoriesList.value })
           // console.log('保存提交前questions数据',questions.value)
         if (res.code === 200) {
-            ElMessage.success('问卷保存成功')
+            ElMessage.success('考试保存成功')
             if (!exam.value.examId) {
                 exam.value.examId = res.data
                 // 更新会话存储
                 sessionStorage.setItem('currentExamId', res.data)
             }
             
-            // 保存成功后重新获取问卷详情，确保数据同步
+            // 保存成功后重新获取考试详情，确保数据同步
             await fetchExamDetail()
         } else {
-            ElMessage.error(res.message || '问卷保存失败')
+            ElMessage.error(res.message || '考试保存失败')
         }
     } catch (error) {
-        console.error('保存问卷失败:', error)
-        ElMessage.error('问卷保存失败: ' + error.message)
+        console.error('保存考试失败:', error)
+        ElMessage.error('考试保存失败: ' + error.message)
     }
 }
 
-// 提交问卷
+// 提交考试
 const submitExam = async () => {
   if (!exam.value.name) {
-    ElMessage.warning('请输入问卷标题')
+    ElMessage.warning('请输入考试标题')
     return
   }
 
@@ -717,7 +717,7 @@ const submitExam = async () => {
 
   try {
     await ElMessageBox.confirm(
-      '提交后问卷将无法修改，是否确认提交？',
+      '提交后考试将无法修改，是否确认提交？',
       '提示',
       {
         confirmButtonText: '确定',
@@ -731,24 +731,24 @@ const submitExam = async () => {
     const res = await updateBuildExam(exam.value, questions.value, { categories: selectedCategoriesList.value })
     
     if (res.code === 200) {
-      ElMessage.success('问卷提交成功')
-      // 提交成功后重新获取问卷详情，确保数据同步
+      ElMessage.success('考试提交成功')
+      // 提交成功后重新获取考试详情，确保数据同步
       await fetchExamDetail()
     } else {
-      ElMessage.error(res.message || '问卷提交失败')
+      ElMessage.error(res.message || '考试提交失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('问卷提交失败')
+      ElMessage.error('考试提交失败')
     }
   }
 }
 
 // 切换预览状态
 const togglePreview = () => {
-    // 验证问卷基本信息
+    // 验证考试基本信息
     if (!exam.value.name) {
-        ElMessage.warning('请填写问卷标题')
+        ElMessage.warning('请填写考试标题')
         return
     }
 
@@ -773,7 +773,7 @@ const togglePreview = () => {
 
     if (hasError) {
         // 只显示一个总的错误提示，而不是每个问题都提示
-        ElMessage.error('问卷中存在未完善的问题，请检查')
+        ElMessage.error('考试中存在未完善的问题，请检查')
         return
     }
 
@@ -896,7 +896,7 @@ onMounted(() => {
         sessionStorage.removeItem('currentExamId')
     }
     
-    // 获取问卷详情
+    // 获取考试详情
     fetchExamDetail()
     
     // 如果 isCategory 为 1，获取分类数据
@@ -916,7 +916,7 @@ onMounted(() => {
       <el-result
         icon="warning"
         title="移动端暂不支持该功能"
-        sub-title="请使用电脑端访问问卷设计器"
+        sub-title="请使用电脑端访问考试设计器"
       >
         <template #extra>
           <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
@@ -946,7 +946,7 @@ onMounted(() => {
         <div class="edit-area" 
              :class="{ 'preview-mode': isPreviewMode }">
           <div class="exam-header">
-            <el-input v-model="exam.name" placeholder="请输入问卷标题" />
+            <el-input v-model="exam.name" placeholder="请输入考试标题" />
             <div class="exam-category-switch">
               <el-switch
                 v-model="exam.isCategory"
@@ -960,7 +960,7 @@ onMounted(() => {
               v-model="exam.description"
               type="textarea"
               :rows="3"
-              placeholder="请输入问卷描述"
+              placeholder="请输入考试描述"
             />
           </div>
 
@@ -1098,7 +1098,7 @@ onMounted(() => {
                 </div>
                 <!-- 添加空容器提示 -->
                 <div class="empty-placeholder" v-if="questions.length === 0">
-                  <el-empty description="拖拽问题模板到此处开始创建问卷" />
+                  <el-empty description="拖拽问题模板到此处开始创建考试" />
                 </div>
               </div>
             </template>
@@ -1110,7 +1110,7 @@ onMounted(() => {
              :class="{ 'preview-mode': isPreviewMode }"
              :style="{ width: isPreviewMode ? '60%' : '300px' }">
           <div class="panel-header">
-            <h3>{{ isPreviewMode ? '问卷预览' : (isEditingOption ? '编辑选项' : '属性设置') }}</h3>
+            <h3>{{ isPreviewMode ? '考试预览' : (isEditingOption ? '编辑选项' : '属性设置') }}</h3>
             <el-button v-if="isPreviewMode" type="text" @click="togglePreview">
               <el-icon><Close /></el-icon>
             </el-button>
@@ -1196,10 +1196,10 @@ onMounted(() => {
 
       <!-- 底部操作栏 -->
       <div class="action-bar">
-        <el-button type="primary" @click="saveExam">保存问卷</el-button>
-        <el-button type="success" @click="submitExam">提交问卷</el-button>
+        <el-button type="primary" @click="saveExam">保存考试</el-button>
+        <el-button type="success" @click="submitExam">提交考试</el-button>
         <el-button link @click="togglePreview">
-          {{ isPreviewMode ? '取消预览' : '预览问卷' }}
+          {{ isPreviewMode ? '取消预览' : '预览考试' }}
         </el-button>
       </div>
 

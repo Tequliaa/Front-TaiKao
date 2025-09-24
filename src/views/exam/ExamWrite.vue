@@ -7,7 +7,7 @@ import { useUserInfoStore } from '@/stores/user'
 import request from '@/utils/request.js'
 import Sortable from 'sortablejs'
 import { Rank } from '@element-plus/icons-vue'
-// 问卷ID
+// 考试ID
 const props = defineProps({
     examId: {
         type: [String, Number],
@@ -17,7 +17,7 @@ const props = defineProps({
 
 // 问题列表
 const questions = ref([])
-// 问卷信息
+// 考试信息
 const examInfo = ref({
     name: '',
     description: ''
@@ -169,7 +169,7 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
     }
 }
 
-// 修改获取问卷数据的方法
+// 修改获取考试数据的方法
 const getExamData = async () => {
     loading.value = true
     try {
@@ -348,21 +348,21 @@ const getExamData = async () => {
                 return question
             })
 
-            // 设置问卷信息
+            // 设置考试信息
             if (questionsData.length > 0) {
                 examInfo.value = {
                     name: exam.name,
                     description: exam.description,
                     isCategory: exam.isCategory
                 }
-                console.log('问卷信息：', examInfo.value)
+                console.log('考试信息：', examInfo.value)
             }
         } else {
-            ElMessage.error('获取问卷数据失败')
+            ElMessage.error('获取考试数据失败')
         }
     } catch (error) {
-        console.error('获取问卷数据异常：', error)
-        ElMessage.error('获取问卷数据失败：' + error.message)
+        console.error('获取考试数据异常：', error)
+        ElMessage.error('获取考试数据失败：' + error.message)
     } finally {
         loading.value = false
     }
@@ -665,7 +665,7 @@ const submitExam = async (isSaveAction = false) => {
 // 添加确认提交方法
 const confirmSubmit = () => {
     ElMessageBox.confirm(
-        '确定要提交问卷吗？提交后将无法修改。',
+        '确定要提交考试吗？提交后将无法修改。',
         '提示',
         {
             confirmButtonText: '确定',
@@ -890,7 +890,7 @@ const getPlainText = (htmlContent)=> {
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
-                    <!-- 问卷标题和描述 -->
+                    <!-- 考试标题和描述 -->
                     <div class="exam-header">
                         <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <h3 class="exam-description">{{ getPlainText(examInfo.description) }}</h3>

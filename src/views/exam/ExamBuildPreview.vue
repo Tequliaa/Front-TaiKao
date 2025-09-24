@@ -2,9 +2,9 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-// 接收问卷数据
+// 接收考试数据
 const props = defineProps({
-    survey: {
+    exam: {
         type: Object,
         required: true,
         default: () => ({
@@ -50,7 +50,7 @@ watch(() => props.questions, (newQuestions) => {
 
 // 按分类分组的问题
 const groupedQuestions = computed(() => {
-    if (props.survey.isCategory !== 1) {
+    if (props.exam.isCategory !== 1) {
         return [{ categoryId: null, categoryName: '所有问题', questions: props.questions }]
     }
     
@@ -142,7 +142,7 @@ const handleOptionSelect = (question, optionId) => {
 
 const getQuestionIndex = (questionId) => {
     // 如果是分类模式，需要按照分类内顺序重新编号
-    if (props.survey.isCategory === 1) {
+    if (props.exam.isCategory === 1) {
         // 找到问题所属的分类
         let categoryId = null;
         let questionInCategory = null;
@@ -210,17 +210,17 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 </script>
 
 <template>
-    <div class="survey-preview">
-        <div class="survey-container">
-            <!-- 问卷标题和描述 -->
-            <div class="survey-header">
-                <h1 class="survey-title">{{ survey.name }}</h1>
-                <h6 class="survey-description">{{ survey.description }}</h6>
+    <div class="exam-preview">
+        <div class="exam-container">
+            <!-- 考试标题和描述 -->
+            <div class="exam-header">
+                <h1 class="exam-title">{{ exam.name }}</h1>
+                <h6 class="exam-description">{{ exam.description }}</h6>
             </div>
 
             <!-- 问题列表 -->
             <div class="questions-list">
-                <template v-if="survey.isCategory === 1">
+                <template v-if="exam.isCategory === 1">
                     <div v-for="group in groupedQuestions" :key="group.categoryId" class="question-group">
                         <div class="group-header">
                             <h4>{{ group.categoryName }}</h4>
@@ -856,29 +856,29 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 </template>
 
 <style lang="scss" scoped>
-.survey-preview {
+.exam-preview {
     background-color: #f8f9fa;
     min-height: 100vh;
     padding: 20px 0;
 
-    .survey-container {
+    .exam-container {
         max-width: 800px;
         margin: 0 auto;
         padding: 0 20px;
     }
 
-    .survey-header {
+    .exam-header {
         margin-bottom: 30px;
         text-align: center;
 
-        .survey-title {
+        .exam-title {
             font-size: 24px;
             font-weight: 600;
             color: #303133;
             margin-bottom: 10px;
         }
 
-        .survey-description {
+        .exam-description {
             font-size: 16px;
             color: #606266;
             line-height: 1.6;
@@ -1303,8 +1303,8 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 
 // 添加响应式样式
 @media (max-width: 768px) {
-    .survey-preview {
-        .survey-container {
+    .exam-preview {
+        .exam-container {
             padding: 0 10px;
         }
         

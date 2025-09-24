@@ -7,7 +7,7 @@ import {
 } from '@element-plus/icons-vue'
 import {nextTick, ref,reactive, computed,onMounted } from 'vue'
 import dayjs from 'dayjs'
-//问卷列表查询
+//考试列表查询
 import {userExamListService} from '@/api/userExam.js'
 //导入接口函数
 import { userInfoGetService } from '@/api/user.js'
@@ -50,7 +50,7 @@ const initData = async () => {
             return;
         }
         
-        // 获取问卷列表
+        // 获取考试列表
         await getUserExams();
     } catch (error) {
         console.error('初始化数据失败:', error);
@@ -72,7 +72,7 @@ const props =defineProps({
         type:String
     }
 })
-//问卷数据模型
+//考试数据模型
 const userExams = ref([
     {
         "id": 1,
@@ -81,8 +81,8 @@ const userExams = ref([
         "departmentId": "1",
         "username": "张三",
         "departmentName": "部门1",
-        "examName": "早餐调查问卷",
-        "examDescription": "这是一份关于早餐的调查问卷。",
+        "examName": "早餐调查考试",
+        "examDescription": "这是一份关于早餐的调查考试。",
         "status": "已完成",
         "allowView": "1",
         "assignedAt": "2024-05-01 10:00:00",
@@ -110,7 +110,7 @@ const getUserExams = async () => {
         //渲染列表数据
         userExams.value = result.data.userExams
     } catch (error) {
-        ElMessage.error('获取问卷列表失败')
+        ElMessage.error('获取考试列表失败')
         throw error;
     }
 }
@@ -189,22 +189,22 @@ onMounted(() => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>{{ props.username || userInfoStore.info?.name || '用户' }}的问卷</span>
+                    <span>{{ props.username || userInfoStore.info?.name || '用户' }}的考试</span>
                     <div class="extra">
-                        <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问卷名称或描述" />
+                        <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入考试名称或描述" />
                     </div>
                 </div>
             </template>
 
-            <!-- 问卷列表 -->
+            <!-- 考试列表 -->
             <template v-if="!isMobile">
                 <el-table 
                     v-loading="loading"
                     :data="userExams" 
                     style="width: 100%">
                     <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
-                    <el-table-column label="问卷名称" style="text-align: center;" align="center" prop="examName"></el-table-column>
-                    <el-table-column label="问卷描述" style="text-align: center;" align="center">
+                    <el-table-column label="考试名称" style="text-align: center;" align="center" prop="examName"></el-table-column>
+                    <el-table-column label="考试描述" style="text-align: center;" align="center">
                         <template #default="scope">
                             <el-tooltip 
                                 :content="getPlainText(scope.row.examDescription)" 

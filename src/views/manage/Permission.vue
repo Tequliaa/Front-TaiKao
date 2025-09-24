@@ -40,9 +40,9 @@ getUserInf()
 const permissions = ref([
     {
         "id": 1,
-        "name": "查看问卷",
-        "permissionCode": "survey:view",
-        "comment": "查看问卷列表和详情",
+        "name": "查看考试",
+        "permissionCode": "exam:view",
+        "comment": "查看考试列表和详情",
     }
 ])
 
@@ -301,7 +301,7 @@ window.addEventListener('resize', () => {
                 <el-input v-model="permissionModel.name" placeholder="请输入权限名称"></el-input>
             </el-form-item>
             <el-form-item label="权限代码">
-                <el-input v-model="permissionModel.permissionCode" placeholder="请输入权限代码，如：survey:view"></el-input>
+                <el-input v-model="permissionModel.permissionCode" placeholder="请输入权限代码，如：exam:view"></el-input>
             </el-form-item>
             <el-form-item label="权限描述">
                 <div class="editor">

@@ -175,12 +175,12 @@ const handleCaptchaEnter = () => {
         <div class="login-box">
             <div class="login-left">
                 <div class="login-banner">
-                    <h1 class="banner-title">问卷调查平台</h1>
-                    <p class="banner-subtitle">专业的问卷设计与数据分析工具</p>
+                    <h1 class="banner-title">钛考-在线考试平台</h1>
+                    <p class="banner-subtitle">专业的考试设计与数据分析工具</p>
                     <div class="banner-features">
                         <div class="feature-item">
                             <i class="el-icon-document"></i>
-                            <span>多样化问卷模板</span>
+                            <span>多样化考试模板</span>
                         </div>
                         <div class="feature-item">
                             <i class="el-icon-data-analysis"></i>

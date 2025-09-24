@@ -53,8 +53,8 @@ const routes = [
       { path: '/user/info', component: UserInfoVue },
       { path: '/user/avatar', component: UserAvatarVue },
       { path: '/user/password', component: UserResetPasswordVue },
-      // { path: '/exam/builder', name: 'ExamBuilder', component: ExamBuilder, meta: { title: '问卷构建器', icon: 'edit' } },
-      // { path: '/exam/builder/:id', name: 'ExamBuilderEdit', component: ExamBuilder, meta: { title: '编辑问卷', icon: 'edit' } }
+      // { path: '/exam/builder', name: 'ExamBuilder', component: ExamBuilder, meta: { title: '考试构建器', icon: 'edit' } },
+      // { path: '/exam/builder/:id', name: 'ExamBuilderEdit', component: ExamBuilder, meta: { title: '编辑考试', icon: 'edit' } }
     ]
   }
 ]

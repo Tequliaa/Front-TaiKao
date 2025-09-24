@@ -4,7 +4,7 @@ import { getResponseDetailsService } from '@/api/response'
 import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/user'
 import {userExamUpdateService} from '@/api/userExam'
-// 问卷ID
+// 考试ID
 const props = defineProps({
     examId: {
         type: Number
@@ -19,7 +19,7 @@ const props = defineProps({
 
 // 问题列表
 const questions = ref([])
-// 问卷信息
+// 考试信息
 const examInfo = ref({
     name: '',
     description: '',
@@ -97,7 +97,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
     return previousQuestionsCount + questionIndex + 1;
 }
 
-// 修改获取问卷数据的方法
+// 修改获取考试数据的方法
 const getExamData = async () => {
     loading.value = true
     try {
@@ -258,7 +258,7 @@ const getExamData = async () => {
                 return question
             })
 
-            // 设置问卷信息
+            // 设置考试信息
             if (questionsData.length > 0) {
                 examInfo.value = {
                     name: exam.name,
@@ -267,11 +267,11 @@ const getExamData = async () => {
                 }
             }
         } else {
-            ElMessage.error('获取问卷数据失败')
+            ElMessage.error('获取考试数据失败')
         }
     } catch (error) {
-        console.error('获取问卷数据异常：', error)
-        ElMessage.error('获取问卷数据失败：' + error.message)
+        console.error('获取考试数据异常：', error)
+        ElMessage.error('获取考试数据失败：' + error.message)
     } finally {
         loading.value = false
     }
@@ -330,7 +330,7 @@ const getOptionIndex = (question, optionId) => {
 onMounted(() => {
     getExamData()
 })
-//打回问卷
+//打回考试
 const HitBackExam = async () => {
     let result = await userExamUpdateService(props.examId,props.userId||userInfoStore.info.id,'0');
     ElMessage.success(result.message ? result.message : '打回成功')
@@ -397,7 +397,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
-                    <!-- 问卷标题和描述 -->
+                    <!-- 考试标题和描述 -->
                     <div class="exam-header">
                         <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <!-- <h6 class="exam-description">{{ examInfo.description }}</h6> -->
@@ -406,7 +406,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                         </div>
                         
                         <div class="extra">
-                            <el-button type="primary" v-if="canHitBack" @click="HitBackExam()">打回问卷</el-button>
+                            <el-button type="primary" v-if="canHitBack" @click="HitBackExam()">打回考试</el-button>
                         </div>    
                     </div>
 

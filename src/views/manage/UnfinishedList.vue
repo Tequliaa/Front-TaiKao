@@ -222,7 +222,7 @@ const refreshUnfinishedData = async () => {
                 <template #default>
                     <!-- 标题和总数 -->
                     <div class="list-header">
-                        <h2>{{ props.examName }}问卷</h2>
+                        <h2>{{ props.examName }}考试</h2>
                         <div class="info-row">
                             <div class="total-count">未完成人数：{{ total }}</div>
                             <el-button 

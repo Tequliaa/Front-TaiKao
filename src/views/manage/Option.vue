@@ -302,14 +302,14 @@ const getAllQuestionsByExamId = async () => {
         if (result.code === 200 && result.data) {
             // 从返回的Map中获取questions数组
             allQuestions.value = result.data.questions || []
-            console.log('获取到的问卷问题:', allQuestions.value)
+            console.log('获取到的考试问题:', allQuestions.value)
         } else {
-            console.error('获取问卷问题列表失败:', result)
-            ElMessage.error('获取问卷问题列表失败')
+            console.error('获取考试问题列表失败:', result)
+            ElMessage.error('获取考试问题列表失败')
         }
     } catch (error) {
-        console.error('获取问卷问题列表出错:', error)
-        ElMessage.error('获取问卷问题列表失败')
+        console.error('获取考试问题列表出错:', error)
+        ElMessage.error('获取考试问题列表失败')
     }
 }
 
@@ -384,10 +384,10 @@ const getSkipQuestions = async (questionId) => {
         const currentQuestion = allQuestions.value.find(q => q.questionId === questionId);
         if (!currentQuestion) return;
         
-        // 获取该问题所属的问卷ID
+        // 获取该问题所属的考试ID
         const currentExamId = currentQuestion.examId;
         
-        // 获取该问卷下的所有问题
+        // 获取该考试下的所有问题
         const result = await getAllQuestionsByExamIdService(currentExamId,userInfoStore.info.id);
         if (result.code === 200 && result.data) {
             // 从返回的Map中获取questions数组，并过滤掉当前问题
@@ -422,7 +422,7 @@ window.addEventListener('resize', () => {
 })
 
 const handleExamChange = (value) => {
-    // 根据选择的问卷ID获取问卷名称
+    // 根据选择的考试ID获取考试名称
     const exam = allExams.value.find(s => s.examId === value);
     if (exam) {
         optionModel.value.examName = exam.name;
@@ -512,8 +512,8 @@ const handleQuestionChange = (value) => {
                     <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value"/>
                 </el-select>
             </el-form-item>
-            <el-form-item label="问题所属问卷">
-                <el-select v-model="activeExamId" clearable placeholder="问题所属问卷" @change="handleExamChange">
+            <el-form-item label="问题所属考试">
+                <el-select v-model="activeExamId" clearable placeholder="问题所属考试" @change="handleExamChange">
                     <el-option v-for="item in allExams" :key="item.examId" :label="item.name" :value="item.id"/>
                 </el-select>
                 <div v-if="optionModel.examName" class="exam-name-display">

@@ -6,7 +6,7 @@ import request from '@/utils/request'
 import { useTokenStore } from '@/stores/token.js';
 
 const props = defineProps({
-  surveyId: {
+  examId: {
     type: [String, Number],
     required: true
   },
@@ -33,8 +33,8 @@ const getAnalysisReport = async () => {
     hasError.value = false
     
     let tokenStore = useTokenStore()
-    console.log('[调试] 开始请求分析报告，surveyId:', props.surveyId, 'departmentId:', props.departmentId)
-    const response = await fetch(`/api/response/analysis?surveyId=${props.surveyId}&departmentId=${props.departmentId}`, {
+    console.log('[调试] 开始请求分析报告，examId:', props.examId, 'departmentId:', props.departmentId)
+    const response = await fetch(`/api/response/analysis?examId=${props.examId}&departmentId=${props.departmentId}`, {
       method: 'GET',
       headers: {
         'Accept': 'text/event-stream',

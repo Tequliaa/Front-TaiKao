@@ -422,7 +422,7 @@ const handleExamChange = (value) => {
         <el-card class="page-container">
             <template #header>
                 <div class="header">
-                    <span>问题管理 - {{ props.examName || '所有问卷' }}</span>
+                    <span>问题管理 - {{ props.examName || '所有考试' }}</span>
                     <div class="extra">
                         <el-input v-model="keyword" @input="handleInputChange" placeholder="请输入问题描述" />
                         <el-button type="primary" @click="openAddDialog()" class="hide-on-mobile">添加问题</el-button>
@@ -437,7 +437,7 @@ const handleExamChange = (value) => {
                 <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description"></el-table-column>
                 <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type" > </el-table-column>
                 <!-- <el-table-column label="所属分类" style="text-align: center;" align="center" prop="categoryName" width="100"></el-table-column> -->
-                <el-table-column label="所属问卷" style="text-align: center;" align="center" prop="examName"></el-table-column>
+                <el-table-column label="所属考试" style="text-align: center;" align="center" prop="examName"></el-table-column>
                 <el-table-column label="是否必答" style="text-align: center;" align="center" prop="isRequired">
                     <template #default="{ row }">{{ row.isRequired === 1 ? '是' : '否' }}
                     </template>
@@ -529,8 +529,8 @@ const handleExamChange = (value) => {
                 </el-select>
             </el-form-item>
 
-            <el-form-item label="所属问卷">
-                <el-select v-model="questionModel.examId" clearable placeholder="所属问卷" @change="handleExamChange">
+            <el-form-item label="所属考试">
+                <el-select v-model="questionModel.examId" clearable placeholder="所属考试" @change="handleExamChange">
                     <el-option v-for="item in allExams" :key="item.examId" :label="item.name" :value="item.examId"/>
                 </el-select>
                 <div v-if="questionModel.examName" class="exam-name-display">

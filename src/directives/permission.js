@@ -3,10 +3,10 @@ import { permissionChecker } from '@/utils/permission.js'
 /**
  * 权限指令
  * 用法：
- * v-permission="'survey:create'"
- * v-permission=["survey:create", "survey:edit"]
- * v-permission:any=["survey:create", "survey:edit"] // 任一权限
- * v-permission:all=["survey:create", "survey:edit"] // 所有权限
+ * v-permission="'exam:create'"
+ * v-permission=["exam:create", "exam:edit"]
+ * v-permission:any=["exam:create", "exam:edit"] // 任一权限
+ * v-permission:all=["exam:create", "exam:edit"] // 所有权限
  */
 export const permission = {
   mounted(el, binding) {

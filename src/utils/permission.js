@@ -172,13 +172,13 @@ export class PermissionChecker {
 
 // 权限代码常量
 export const PERMISSIONS = {
-  // 问卷管理权限
-  SURVEY_VIEW: 'survey:view',           // 查看问卷
-  SURVEY_CREATE: 'survey:create',       // 创建问卷
-  SURVEY_EDIT: 'survey:edit',           // 编辑问卷
-  SURVEY_DELETE: 'survey:delete',       // 删除问卷
-  SURVEY_PUBLISH: 'survey:publish',     // 发布问卷
-  SURVEY_STATISTICS: 'survey:statistics', // 查看问卷统计
+  // 考试管理权限
+  EXAM_VIEW: 'exam:view',           // 查看考试
+  EXAM_CREATE: 'exam:create',       // 创建考试
+  EXAM_EDIT: 'exam:edit',           // 编辑考试
+  EXAM_DELETE: 'exam:delete',       // 删除考试
+  EXAM_PUBLISH: 'exam:publish',     // 发布考试
+  EXAM_STATISTICS: 'exam:statistics', // 查看考试统计
 
   // 用户管理权限
   USER_VIEW: 'user:view',               // 查看用户
