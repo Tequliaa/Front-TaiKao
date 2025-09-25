@@ -185,7 +185,7 @@ const handleCategoryChange = (question, newCategoryId) => {
   // console.log('新分类ID:', newCategoryId)
   
   // 找到问题在数组中的索引
-  const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId)
+  const questionIndex = questions.value.findIndex(q => q.id === question.id)
   console.log('问题索引:', questionIndex)
   
   if (questionIndex !== -1) {
@@ -209,7 +209,7 @@ const handleCategoryChange = (question, newCategoryId) => {
       // 使用nextTick确保DOM更新后再设置选中状态
       nextTick(() => {
         // 找到更新后问题在数组中的新索引
-        const newIndex = questions.value.findIndex(q => q.questionId === question.questionId)
+        const newIndex = questions.value.findIndex(q => q.id === question.id)
         if (newIndex !== -1) {
           activeQuestionIndex.value = newIndex
         }
@@ -332,9 +332,9 @@ const deleteQuestion = async (index) => {
   const question = questions.value[index]
   
   // 如果问题有ID，调用后端删除服务
-  if (question.questionId) {
+  if (question.id) {
     try {
-      const result = await questionDelService(question.questionId)
+      const result = await questionDelService(question.id)
       if (result.code === 200) {
         ElMessage.success('问题删除成功')
         questions.value.splice(index, 1)
@@ -422,7 +422,7 @@ const handleEditOption = (data) => {
   // console.log('ExamBuilder - 处理编辑选项:', data)
   // console.log('ExamBuilder - 当前activeQuestion:', activeQuestion.value)
   
-  const questionIndex = questions.value.findIndex(q => q.questionId === data.questionId)
+  const questionIndex = questions.value.findIndex(q => q.id === data.questionId)
   if (questionIndex !== -1) {
     activeQuestionIndex.value = questionIndex
   }
@@ -459,7 +459,7 @@ const fetchSkipQuestions = async () => {
     // console.log('ExamBuilder - 获取问题列表结果:', result)
     if (result.code === 200) {
       const currentQuestionId = questionsData[activeQuestionIndex.value]?.questionId
-      skipQuestions.value = questionsData.filter(q => q.questionId !== currentQuestionId)
+      skipQuestions.value = questionsData.filter(q => q.id !== currentQuestionId)
       // console.log('ExamBuilder - 过滤后的跳转问题列表:', skipQuestions.value)
     }
   } catch (error) {
@@ -624,7 +624,7 @@ const updateSortKeys = () => {
   updatedQuestions.forEach((question, index) => {
     question.sortKey = (index + 1).toString()
   })
-  // console.log('不按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.questionId, sortKey: q.sortKey })))
+  // console.log('不按分类排序，更新后的sortKey:', updatedQuestions.map(q => ({ id: q.id, sortKey: q.sortKey })))
 
   // 一次性更新整个数组，避免多次触发响应式更新
   questions.value = updatedQuestions
@@ -1001,23 +1001,23 @@ onMounted(() => {
                      @drop="onDrop($event, group.categoryId)">
                   <transition-group name="question-fade" tag="div">
                     <div v-for="(question, index) in group.questions" 
-                         :key="question.questionId || index"
+                         :key="question.id || index"
                          class="question-item"
                          :class="{ 
-                           'active': activeQuestionIndex === questions.findIndex(q => q.questionId === question.questionId),
-                           'has-error': getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0
+                           'active': activeQuestionIndex === questions.findIndex(q => q.id === question.id),
+                           'has-error': getQuestionErrors(questions.findIndex(q => q.id === question.id)).length > 0
                          }"
-                         @click="selectQuestion(questions.findIndex(q => q.questionId === question.questionId || q === question))">
+                         @click="selectQuestion(questions.findIndex(q => q.id === question.id || q === question))">
                       <div class="question-header">
                         <!-- <span class="question-type">{{ question.type }}</span> -->
                         <div class="question-actions">
-                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'up')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === 0">
+                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.id === question.id), 'up')" :disabled="questions.findIndex(q => q.id === question.id) === 0">
                             <el-icon><ArrowUp /></el-icon>
                           </el-button>
-                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.questionId === question.questionId), 'down')" :disabled="questions.findIndex(q => q.questionId === question.questionId) === questions.length - 1">
+                          <el-button type="text" @click.stop="moveQuestion(questions.findIndex(q => q.id === question.id), 'down')" :disabled="questions.findIndex(q => q.id === question.id) === questions.length - 1">
                             <el-icon><ArrowDown /></el-icon>
                           </el-button>
-                          <el-button type="text" @click.stop="deleteQuestion(questions.findIndex(q => q.questionId === question.questionId))">
+                          <el-button type="text" @click.stop="deleteQuestion(questions.findIndex(q => q.id === question.id))">
                             <el-icon><Delete /></el-icon>
                           </el-button>
                         </div>
@@ -1026,13 +1026,13 @@ onMounted(() => {
                         <component 
                           :is="getQuestionComponent(question.type)"
                           :model-value="question"
-                          @update:model-value="updateQuestion(questions.findIndex(q => q.questionId === question.questionId), $event)"
+                          @update:model-value="updateQuestion(questions.findIndex(q => q.id === question.id), $event)"
                           @edit-option="handleEditOption"
                         />
                       </div>
-                      <div v-if="getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId)).length > 0" class="question-errors">
+                      <div v-if="getQuestionErrors(questions.findIndex(q => q.id === question.id)).length > 0" class="question-errors">
                         <el-alert
-                          v-for="(error, errorIndex) in getQuestionErrors(questions.findIndex(q => q.questionId === question.questionId))"
+                          v-for="(error, errorIndex) in getQuestionErrors(questions.findIndex(q => q.id === question.id))"
                           :key="errorIndex"
                           :title="error"
                           type="error"

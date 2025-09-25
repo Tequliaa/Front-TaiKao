@@ -417,7 +417,7 @@ const getStatistics = async () => {
             if (questions.value && questions.value.length > 0) {
                 // 初始化所有问题的显示状态
                 questions.value.forEach(question => {
-                    visibleQuestions.value.add(question.questionId)
+                    visibleQuestions.value.add(question.id)
                 })
                 
                 // 初始化图表
@@ -468,10 +468,10 @@ const initCharts = () => {
     questions.value.forEach(question => {
         if (question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
             question.type === '矩阵单选' || question.type === '矩阵多选' || question.type === '排序') {
-            // console.log('处理问题:', question.questionId, question.type)
+            // console.log('处理问题:', question.id, question.type)
             // 使用 nextTick 确保 DOM 已经渲染
             nextTick(() => {
-                initChart(question.questionId, question.type, question.options)
+                initChart(question.id, question.type, question.options)
             })
         }
     })
@@ -518,7 +518,7 @@ const groupedQuestions = computed(() => {
 //     // 遍历所有矩阵题
 //     questions.value.forEach(question => {
 //         if (question.type === '矩阵单选' || question.type === '矩阵多选') {
-//             console.log(`问题 ${question.questionId} (${question.type}) 的矩阵数据:`, matrixCellData.value[question.questionId])
+//             console.log(`问题 ${question.id} (${question.type}) 的矩阵数据:`, matrixCellData.value[question.id])
             
 //             // 获取行和列选项
 //             const rowOptions = question.options.filter(opt => opt.type === '行选项')
@@ -528,7 +528,7 @@ const groupedQuestions = computed(() => {
 //             console.log('列选项:', colOptions)
             
 //             // 检查每个单元格的数据
-//             const cellData = matrixCellData.value[question.questionId] || []
+//             const cellData = matrixCellData.value[question.id] || []
 //             console.log('单元格数据:', cellData)
             
 //             // 创建单元格数据映射
@@ -558,7 +558,7 @@ const getQuestionIndex = (questionId) => {
         
         // 查找问题所属的分类
         for (const group of groupedQuestions.value) {
-            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            const foundQuestion = group.questions.find(q => q.id === questionId);
             if (foundQuestion) {
                 categoryId = group.categoryId;
                 questionInCategory = foundQuestion;
@@ -578,7 +578,7 @@ const getQuestionIndex = (questionId) => {
             
             // 找到问题在当前分类中的索引
             const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
-            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.id === questionId);
             
             // 返回分类内编号 + 之前分类的问题数量
             return previousQuestionsCount + questionIndex + 1;
@@ -586,7 +586,7 @@ const getQuestionIndex = (questionId) => {
     }
     
     // 非分类模式，使用原来的逻辑
-    const index = props.questions.findIndex(q => q.questionId === questionId);
+    const index = props.questions.findIndex(q => q.id === questionId);
     return index + 1;
 }
 const getOptionIndex = (question, optionId) => {
@@ -657,12 +657,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                 </div>
                                 <div class="questions-container">
                                     <div v-for="(question, index) in group.questions" 
-                                        :key="question.questionId" 
-                                        :id="'question_' + question.questionId"
+                                        :key="question.id" 
+                                        :id="'question_' + question.id"
                                         class="question-item"
                                         :data-index="getGroupQuestionIndex(groupIndex, index)"
                                         :data-has-skip="question.isSkip"
-                                        v-show="visibleQuestions.has(question.questionId)">
+                                        v-show="visibleQuestions.has(question.id)">
                                         <!-- 问题标题 -->
                                         <div class="question-title">
                                             <span class="question-number">{{ getGroupQuestionIndex(groupIndex, index) }}.</span>
@@ -901,7 +901,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                                         <!-- 拖拽排序 -->
                                                         <template v-if="question.sortType === '拖拽排序'">
                                                             <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                            <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                            <div :id="'sortable-' + question.id" class="sortable-list">
                                                                 <div v-for="option in question.options" 
                                                                     :key="option.id" 
                                                                     class="sortable-item"
@@ -957,7 +957,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                             <div v-if="question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
                                                 question.type === '矩阵单选' || question.type === '矩阵多选' || question.type === '排序'" 
                                                 class="chart-container" 
-                                                :id="'chart_' + question.questionId">
+                                                :id="'chart_' + question.id">
                                             </div>
                                         </div>
                                     </div>
@@ -967,12 +967,12 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
 
                         <template v-else>
                             <div v-for="(question, index) in questions" 
-                            :key="question.questionId" 
-                            :id="'question_' + question.questionId"
+                            :key="question.id" 
+                            :id="'question_' + question.id"
                             class="question-item"
                             :data-index="index + 1"
                             :data-has-skip="question.isSkip"
-                            v-show="visibleQuestions.has(question.questionId)">
+                            v-show="visibleQuestions.has(question.id)">
                             <!-- 问题标题 -->
                             <div class="question-title">
                                 <span class="question-number">{{ index + 1 }}.</span>
@@ -1209,7 +1209,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                             <!-- 拖拽排序 -->
                                             <template v-if="question.sortType === '拖拽排序'">
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div :id="'sortable-' + question.id" class="sortable-list">
                                                     <div v-for="option in question.options" 
                                                         :key="option.id" 
                                                         class="sortable-item"
@@ -1265,7 +1265,7 @@ const getGroupQuestionIndex = (groupIndex, questionIndex) => {
                                 <div v-if="question.type === '单选' || question.type === '多选' || question.type === '评分题' || 
                                     question.type === '矩阵单选' || question.type === '矩阵多选' || question.type === '排序'" 
                                     class="chart-container" 
-                                    :id="'chart_' + question.questionId">
+                                    :id="'chart_' + question.id">
                                 </div>
                             </div>
                         </div>

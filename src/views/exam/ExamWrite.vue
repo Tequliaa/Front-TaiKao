@@ -7,7 +7,7 @@ import { useUserInfoStore } from '@/stores/user'
 import request from '@/utils/request.js'
 import Sortable from 'sortablejs'
 import { Rank } from '@element-plus/icons-vue'
-// 问卷ID
+// 考试ID
 const props = defineProps({
     examId: {
         type: [String, Number],
@@ -17,7 +17,7 @@ const props = defineProps({
 
 // 问题列表
 const questions = ref([])
-// 问卷信息
+// 考试信息
 const examInfo = ref({
     name: '',
     description: ''
@@ -77,20 +77,20 @@ const handleOptionChange = (question, optionId, checked) => {
         const selectedOption = question.options.find(opt => opt.id === optionId)
         
         // 初始化当前问题的隐藏状态
-        if (!questionVisibility.value[question.questionId]) {
-            questionVisibility.value[question.questionId] = {
+        if (!questionVisibility.value[question.id]) {
+            questionVisibility.value[question.id] = {
                 hiddenQuestions: new Set(),
                 isActive: false
             }
         }
 
         // 先清除当前问题的隐藏状态
-        questionVisibility.value[question.questionId].hiddenQuestions.clear()
-        questionVisibility.value[question.questionId].isActive = false
+        questionVisibility.value[question.id].hiddenQuestions.clear()
+        questionVisibility.value[question.id].isActive = false
 
         if (selectedOption?.isSkip) {
             // 设置当前问题的隐藏状态
-            questionVisibility.value[question.questionId].isActive = true;
+            questionVisibility.value[question.id].isActive = true;
             
             // 获取所有问题
             let allQuestions = [];
@@ -105,13 +105,13 @@ const handleOptionChange = (question, optionId, checked) => {
             }
             
             // 找到当前问题和目标问题的索引
-            const currentQuestionIndex = allQuestions.findIndex(q => q.questionId === question.questionId);
-            const targetQuestionIndex = allQuestions.findIndex(q => q.questionId === selectedOption.skipTo);
+            const currentQuestionIndex = allQuestions.findIndex(q => q.id === question.id);
+            const targetQuestionIndex = allQuestions.findIndex(q => q.id === selectedOption.skipTo);
             
             if (currentQuestionIndex !== -1 && targetQuestionIndex !== -1) {
                 // 记录需要隐藏的问题
                 for (let i = currentQuestionIndex + 1; i < targetQuestionIndex; i++) {
-                    questionVisibility.value[question.questionId].hiddenQuestions.add(allQuestions[i].questionId);
+                    questionVisibility.value[question.id].hiddenQuestions.add(allQuestions[i].id);
                 }
             }
         }
@@ -125,9 +125,9 @@ const handleOptionChange = (question, optionId, checked) => {
         
         if (!otherSelectedSkipOption) {
             // 如果没有其他跳转选项被选中，清除当前问题的隐藏状态
-            if (questionVisibility.value[question.questionId]) {
-                questionVisibility.value[question.questionId].hiddenQuestions.clear()
-                questionVisibility.value[question.questionId].isActive = false
+            if (questionVisibility.value[question.id]) {
+                questionVisibility.value[question.id].hiddenQuestions.clear()
+                questionVisibility.value[question.id].isActive = false
             }
         }
     }
@@ -152,8 +152,8 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
     }
     
     // 如果当前问题有跳转逻辑，但选项变化不是来自当前问题，则保持当前的显示状态
-    const currentQuestionId = question.questionId;
-    const currentQuestion = questions.value.find(q => q.questionId === currentQuestionId);
+    const currentQuestionId = question.id;
+    const currentQuestion = questions.value.find(q => q.id === currentQuestionId);
     
     if (currentQuestion) {
         // 检查当前问题是否有选中的跳转选项
@@ -169,7 +169,7 @@ const handleOtherQuestionChange = (question, optionId, checked) => {
     }
 }
 
-// 修改获取问卷数据的方法
+// 修改获取考试数据的方法
 const getExamData = async () => {
     loading.value = true
     try {
@@ -186,7 +186,7 @@ const getExamData = async () => {
             // 处理每个问题，添加必要的响应式数据
             questions.value = questionsData.map(question => {
                 // 初始化当前问题的隐藏状态
-                questionVisibility.value[question.questionId] = {
+                questionVisibility.value[question.id] = {
                     hiddenQuestions: new Set(),
                     isActive: false
                 }
@@ -217,7 +217,7 @@ const getExamData = async () => {
                 }
 
                 // 设置用户之前的答案
-                const questionResponses = userResponses.filter(r => r.questionId === question.questionId)
+                const questionResponses = userResponses.filter(r => r.questionId === question.id)
                 
                 if (questionResponses.length > 0) {
                     switch (question.type) {
@@ -230,16 +230,16 @@ const getExamData = async () => {
                                 const selectedOption = question.options.find(opt => opt.id === selectedResponse.optionId)
                                 if (selectedOption?.isSkip) {
                                     // 获取当前问题索引
-                                    const currentIndex = questionsData.findIndex(q => q.questionId === question.questionId)
+                                    const currentIndex = questionsData.findIndex(q => q.id === question.id)
                                     // 获取目标问题索引
-                                    const targetIndex = questionsData.findIndex(q => q.questionId === selectedOption.skipTo)
+                                    const targetIndex = questionsData.findIndex(q => q.id === selectedOption.skipTo)
                                     
                                     if (currentIndex !== -1 && targetIndex !== -1) {
                                         // 设置当前问题的隐藏状态
-                                        questionVisibility.value[question.questionId].isActive = true
+                                        questionVisibility.value[question.id].isActive = true
                                         // 记录需要隐藏的问题
                                         for (let i = currentIndex + 1; i < targetIndex; i++) {
-                                            questionVisibility.value[question.questionId].hiddenQuestions.add(questionsData[i].questionId)
+                                            questionVisibility.value[question.id].hiddenQuestions.add(questionsData[i].id)
                                         }
                                     }
                                 }
@@ -348,21 +348,21 @@ const getExamData = async () => {
                 return question
             })
 
-            // 设置问卷信息
+            // 设置考试信息
             if (questionsData.length > 0) {
                 examInfo.value = {
                     name: exam.name,
                     description: exam.description,
                     isCategory: exam.isCategory
                 }
-                console.log('问卷信息：', examInfo.value)
+                console.log('考试信息：', examInfo.value)
             }
         } else {
-            ElMessage.error('获取问卷数据失败')
+            ElMessage.error('获取考试数据失败')
         }
     } catch (error) {
-        console.error('获取问卷数据异常：', error)
-        ElMessage.error('获取问卷数据失败：' + error.message)
+        console.error('获取考试数据异常：', error)
+        ElMessage.error('获取考试数据失败：' + error.message)
     } finally {
         loading.value = false
     }
@@ -378,7 +378,7 @@ const getQuestionIndex = (questionId) => {
         
         // 查找问题所属的分类
         for (const group of groupedQuestions.value) {
-            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            const foundQuestion = group.questions.find(q => q.id === questionId);
             if (foundQuestion) {
                 categoryId = group.categoryId;
                 questionInCategory = foundQuestion;
@@ -398,7 +398,7 @@ const getQuestionIndex = (questionId) => {
             
             // 找到问题在当前分类中的索引
             const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
-            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.id === questionId);
             
             // 返回分类内编号 + 之前分类的问题数量
             return previousQuestionsCount + questionIndex + 1;
@@ -406,7 +406,7 @@ const getQuestionIndex = (questionId) => {
     }
     
     // 非分类模式，使用原来的逻辑
-    const index = questions.value.findIndex(q => q.questionId === questionId);
+    const index = questions.value.findIndex(q => q.id === questionId);
     return index + 1;
 }
 
@@ -433,7 +433,7 @@ const validateRequiredQuestions = () => {
     
     questions.value.forEach(question => {
         // 跳过被隐藏的问题
-        if (!shouldShowQuestion(question.questionId)) return
+        if (!shouldShowQuestion(question.id)) return
         if (!question.isRequired) return
         
         let isValid = true
@@ -487,7 +487,7 @@ const validateRequiredQuestions = () => {
             case '文件上传题':
                 // 检查必答题的文件上传情况
                 console.log('验证文件上传题:', {
-                    questionId: question.questionId,
+                    questionId: question.id,
                     isRequired: question.isRequired,
                     uploadedFiles: question.uploadedFiles,
                     newUploadedFiles: question.newUploadedFiles
@@ -519,14 +519,14 @@ const submitExam = async (isSaveAction = false) => {
             if (invalidQuestions.length > 0) {
                 if(examInfo.value.isCategory===1){
                     const questionNumbers = invalidQuestions
-                        .map(q => getQuestionIndex(q.questionId))  // 直接传入 questionId
+                        .map(q => getQuestionIndex(q.id))  // 直接传入 questionId
                         .join('、');  // 用顿号连接结果
 
                     ElMessage.error(`第${questionNumbers}题是必答题，请填写后再提交`)
                 return
                 }else{
                         const questionNumbers = invalidQuestions.map(q => 
-                            questions.value.findIndex(question => question.questionId === q.questionId) + 1
+                            questions.value.findIndex(question => question.id === q.id) + 1
                             ).join('、')
 
                     ElMessage.error(`第${questionNumbers}题是必答题，请填写后再提交`)
@@ -546,15 +546,15 @@ const submitExam = async (isSaveAction = false) => {
         // 处理每个问题的答案
         questions.value.forEach(question => {
             // 跳过被隐藏的问题
-            if (!shouldShowQuestion(question.questionId)) return
+            if (!shouldShowQuestion(question.id)) return
             
-            console.log('处理问题:', question.questionId, question.type)
+            console.log('处理问题:', question.id, question.type)
             
             switch (question.type) {
                 case '单选':
                     if (question.selectedOption) {
                         // console.log('单选答案:', question.selectedOption)
-                        formData.append(`question_${question.questionId}_optionId_${question.selectedOption}`,'on')
+                        formData.append(`question_${question.id}_optionId_${question.selectedOption}`,'on')
                     }
                     break
                 case '多选':
@@ -562,19 +562,19 @@ const submitExam = async (isSaveAction = false) => {
                     if (question.selectedOptions && question.selectedOptions.length > 0) {
                         // 为每个选中的选项创建一个记录
                         question.selectedOptions.forEach(optionId => {
-                            formData.append(`question_${question.questionId}_optionId_${optionId}`, 'on')
+                            formData.append(`question_${question.id}_optionId_${optionId}`, 'on')
                         })
                     }
                     break
                 case '填空':
                     if (question.answer) {
-                        formData.append(`question_${question.questionId}`, question.answer)
+                        formData.append(`question_${question.id}`, question.answer)
                     }
                     break
                 case '矩阵单选':
                     Object.entries(question.matrixAnswers).forEach(([rowId, colId]) => {
                         if (colId) {  // 只提交有选择的答案
-                            formData.append(`question_${question.questionId}_row_${rowId}_col_${colId}`, 'on')
+                            formData.append(`question_${question.id}_row_${rowId}_col_${colId}`, 'on')
                         }
                     })
                     break
@@ -583,7 +583,7 @@ const submitExam = async (isSaveAction = false) => {
                         if (colIds && colIds.length > 0) {  // 只提交有选择的答案
                             // 为每个选中的列选项创建一个记录
                             colIds.forEach(colId => {
-                                formData.append(`question_${question.questionId}_row_${rowId}_col_${colId}`, 'on')
+                                formData.append(`question_${question.id}_row_${rowId}_col_${colId}`, 'on')
                             })
                         }
                     })
@@ -591,7 +591,7 @@ const submitExam = async (isSaveAction = false) => {
                 case '评分题':
                     question.options.forEach(option => {
                         if (option.rating) {  // 只提交有评分的答案
-                            formData.append(`rating_${question.questionId}_${option.id}`, option.rating)
+                            formData.append(`rating_${question.id}_${option.id}`, option.rating)
                         }
                     })
                     break
@@ -600,7 +600,7 @@ const submitExam = async (isSaveAction = false) => {
                     if (question.newUploadedFiles && question.newUploadedFiles.length > 0) {
                         question.newUploadedFiles.forEach(file => {
                             if (file.raw) {
-                                formData.append(`file_${question.questionId}`, file.raw, `question_${question.questionId}_${file.name}`);
+                                formData.append(`file_${question.id}`, file.raw, `question_${question.id}_${file.name}`);
                             }
                         });
                     }
@@ -612,10 +612,10 @@ const submitExam = async (isSaveAction = false) => {
                         // 将responseId转换为逗号分隔的字符串
                         const responseIds = existingFiles.map(f => f.responseId).join(',');
                         console.log('已有文件的responseId字符串:', responseIds);
-                        formData.append(`existing_files_${question.questionId}`, responseIds);
+                        formData.append(`existing_files_${question.id}`, responseIds);
                     } else {
                         // 如果没有已有文件，添加空字符串
-                        formData.append(`existing_files_${question.questionId}`, '');
+                        formData.append(`existing_files_${question.id}`, '');
                     }
                     console.log('文件上传题目部分——————提交的表单数据:', formData);
                     break;
@@ -623,7 +623,7 @@ const submitExam = async (isSaveAction = false) => {
                     if (question.sortedOrder && question.sortedOrder.length > 0) {
                         // 为每个选项创建一个记录，包含其排序位置
                         question.sortedOrder.forEach((optionId, index) => {
-                            formData.append(`question_${question.questionId}_optionId_${optionId}`, index + 1)
+                            formData.append(`question_${question.id}_optionId_${optionId}`, index + 1)
                         })
                     }
                     break;
@@ -665,7 +665,7 @@ const submitExam = async (isSaveAction = false) => {
 // 添加确认提交方法
 const confirmSubmit = () => {
     ElMessageBox.confirm(
-        '确定要提交问卷吗？提交后将无法修改。',
+        '确定要提交考试吗？提交后将无法修改。',
         '提示',
         {
             confirmButtonText: '确定',
@@ -755,14 +755,14 @@ const handleFileChange = async(file, fileList, question) => {
     console.log('文件变化:', {
         file,
         fileList,
-        questionId: question.questionId
+        questionId: question.id
     });
     
     // 分离新文件和已有文件
     const newFiles = fileList.filter(f => !f.isExisting && f.raw);
     
     // 使用响应式更新
-    const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId);
+    const questionIndex = questions.value.findIndex(q => q.id === question.id);
     if (questionIndex !== -1) {
         questions.value[questionIndex] = {
             ...questions.value[questionIndex],
@@ -782,10 +782,10 @@ const handleFileRemove = async(file, fileList, question) => {
     console.log('删除文件:', {
         file,
         fileList,
-        questionId: question.questionId
+        questionId: question.id
     });
     
-    const questionIndex = questions.value.findIndex(q => q.questionId === question.questionId);
+    const questionIndex = questions.value.findIndex(q => q.id === question.id);
     if (questionIndex !== -1) {
         // 如果是新上传的文件，从newUploadedFiles中也移除
         let newUploadedFiles = [...(questions.value[questionIndex].newUploadedFiles || [])];
@@ -813,9 +813,9 @@ const handleExceed = async(files, fileList) => {
 
 // 修改排序题的处理方法
 const initSortable = (question) => {
-    console.log('初始化排序题:', question.questionId)
+    console.log('初始化排序题:', question.id)
     nextTick(() => {
-        const el = document.querySelector(`#sortable-${question.questionId}`)
+        const el = document.querySelector(`#sortable-${question.id}`)
         console.log('排序容器:', el)
         if (el) {
             const sortable = new Sortable(el, {
@@ -890,7 +890,7 @@ const getPlainText = (htmlContent)=> {
             <!-- 添加加载状态 -->
             <el-skeleton :loading="loading" animated :rows="10">
                 <template #default>
-                    <!-- 问卷标题和描述 -->
+                    <!-- 考试标题和描述 -->
                     <div class="exam-header">
                         <h1 class="exam-title">{{ examInfo.name }}</h1>
                         <h3 class="exam-description">{{ getPlainText(examInfo.description) }}</h3>
@@ -906,12 +906,12 @@ const getPlainText = (htmlContent)=> {
                                 </div>
                                 <div class="questions-container">
                                     <div v-for="(question, index) in group.questions" 
-                                        :key="question.questionId" 
-                                        :id="'question_' + question.questionId"
+                                        :key="question.id" 
+                                        :id="'question_' + question.id"
                                         class="question-item"
                                         :data-index="getGroupQuestionIndex(groupIndex, index)"
                                         :data-has-skip="question.isSkip"
-                                        v-show="shouldShowQuestion(question.questionId)">
+                                        v-show="shouldShowQuestion(question.id)">
                                         <!-- 问题标题 -->
                                         <div class="question-title">
                                             <span class="question-number">{{ getGroupQuestionIndex(groupIndex, index) }}.</span>
@@ -936,7 +936,7 @@ const getPlainText = (htmlContent)=> {
                                                                 handleOptionChange(question, option.id, val === option.id);
                                                                 // 处理其他问题的选项变化
                                                                 questions.forEach(q => {
-                                                                    if (q.questionId !== question.questionId) {
+                                                                    if (q.id !== question.id) {
                                                                         handleOtherQuestionChange(q, option.id, val === option.id);
                                                                     }
                                                                 });
@@ -1097,7 +1097,7 @@ const getPlainText = (htmlContent)=> {
                                                     <!-- 拖拽排序 -->
                                                     <template v-if="question.sortType === '拖拽排序'">
                                                         <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                        <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                        <div :id="'sortable-' + question.id" class="sortable-list">
                                                             <div v-for="option in question.options" 
                                                                 :key="option.id" 
                                                                 class="sortable-item"
@@ -1242,12 +1242,12 @@ const getPlainText = (htmlContent)=> {
                         <!-- 不按分类显示问题 -->
                         <template v-else>
                             <div v-for="(question, index) in questions" 
-                                :key="question.questionId" 
-                                :id="'question_' + question.questionId"
+                                :key="question.id" 
+                                :id="'question_' + question.id"
                                 class="question-item"
                                 :data-index="index + 1"
                                 :data-has-skip="question.isSkip"
-                                v-show="shouldShowQuestion(question.questionId)">
+                                v-show="shouldShowQuestion(question.id)">
                                 <!-- 问题标题 -->
                                 <div class="question-title">
                                     <span class="question-number">{{ index + 1 }}.</span>
@@ -1272,7 +1272,7 @@ const getPlainText = (htmlContent)=> {
                                                         handleOptionChange(question, option.id, val === option.id);
                                                         // 处理其他问题的选项变化
                                                         questions.forEach(q => {
-                                                            if (q.questionId !== question.questionId) {
+                                                            if (q.id !== question.id) {
                                                                 handleOtherQuestionChange(q, option.id, val === option.id);
                                                             }
                                                         });
@@ -1433,7 +1433,7 @@ const getPlainText = (htmlContent)=> {
                                             <!-- 拖拽排序 -->
                                             <template v-if="question.sortType === '拖拽排序'">
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div :id="'sortable-' + question.id" class="sortable-list">
                                                     <div v-for="option in question.options" 
                                                         :key="option.id" 
                                                         class="sortable-item"

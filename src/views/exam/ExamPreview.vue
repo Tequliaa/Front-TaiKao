@@ -115,7 +115,7 @@ const getExamData = async () => {
 // 处理选项选择
 const handleOptionSelect = (questionId, optionId) => {
     // 根据问题类型处理选择逻辑
-    const question = questions.value.find(q => q.questionId === questionId)
+    const question = questions.value.find(q => q.id === questionId)
     if (!question) return
 
     switch (question.type) {
@@ -187,7 +187,7 @@ const getQuestionIndex = (questionId) => {
         
         // 查找问题所属的分类
         for (const group of groupedQuestions.value) {
-            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            const foundQuestion = group.questions.find(q => q.id === questionId);
             if (foundQuestion) {
                 categoryId = group.categoryId;
                 questionInCategory = foundQuestion;
@@ -207,7 +207,7 @@ const getQuestionIndex = (questionId) => {
             
             // 找到问题在当前分类中的索引
             const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
-            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.id === questionId);
             
             // 返回分类内编号 + 之前分类的问题数量
             return previousQuestionsCount + questionIndex + 1;
@@ -215,7 +215,7 @@ const getQuestionIndex = (questionId) => {
     }
     
     // 非分类模式，使用原来的逻辑
-    const index = questions.value.findIndex(q => q.questionId === questionId);
+    const index = questions.value.findIndex(q => q.id === questionId);
     return index + 1;
 }
 
@@ -270,8 +270,8 @@ onMounted(() => {
                             </div>
                             <div class="questions-container">
                                 <div v-for="(question, index) in group.questions" 
-                                    :key="question.questionId" 
-                                    :id="'question_' + question.questionId"
+                                    :key="question.id" 
+                                    :id="'question_' + question.id"
                                     class="question-item"
                                     :data-index="getGroupQuestionIndex(groupIndex, index)"
                                     :data-has-skip="question.isSkip">
@@ -399,7 +399,7 @@ onMounted(() => {
                                                                 class="text-center">
                                                                 <el-radio 
                                                                     v-model="question.matrixAnswers[row.id]" 
-                                                                    @change="handleOptionSelect(question.questionId, {rowId: row.id, colId: col.id})" />
+                                                                    @change="handleOptionSelect(question.id, {rowId: row.id, colId: col.id})" />
                                                             </td>
                                                         </tr>
                                                     </tbody>
@@ -528,7 +528,7 @@ onMounted(() => {
                                                 
                                                 <template v-if="question.sortType === '拖拽排序'">
                                                     <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                    <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                    <div :id="'sortable-' + question.id" class="sortable-list">
                                                         <div v-for="option in question.options" 
                                                             :key="option.id" 
                                                             class="sortable-item"
@@ -584,8 +584,8 @@ onMounted(() => {
                     <!-- 不按分类显示问题 -->
                     <template v-else>
                         <div v-for="(question, index) in questions" 
-                            :key="question.questionId" 
-                            :id="'question_' + question.questionId"
+                            :key="question.id" 
+                            :id="'question_' + question.id"
                             class="question-item"
                             :data-index="index + 1"
                             :data-has-skip="question.isSkip">
@@ -713,7 +713,7 @@ onMounted(() => {
                                                         class="text-center">
                                                         <el-radio 
                                                             v-model="question.matrixAnswers[row.id]" 
-                                                            @change="handleOptionSelect(question.questionId, {rowId: row.id, colId: col.id})" />
+                                                            @change="handleOptionSelect(question.id, {rowId: row.id, colId: col.id})" />
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -842,7 +842,7 @@ onMounted(() => {
                                         
                                         <template v-if="question.sortType === '拖拽排序'">
                                             <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                            <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                            <div :id="'sortable-' + question.id" class="sortable-list">
                                                 <div v-for="option in question.options" 
                                                     :key="option.id" 
                                                     class="sortable-item"

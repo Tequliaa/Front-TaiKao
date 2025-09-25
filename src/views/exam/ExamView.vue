@@ -110,7 +110,7 @@ const getExamData = async () => {
             // 先初始化所有问题为显示状态
             visibleQuestions.value.clear()
             questionsData.forEach(question => {
-                visibleQuestions.value.add(question.questionId)
+                visibleQuestions.value.add(question.id)
             })
             
             // 处理每个问题，添加必要的响应式数据
@@ -135,7 +135,7 @@ const getExamData = async () => {
                 }
 
                 // 设置用户之前的答案
-                const questionResponses = userResponses.filter(r => r.questionId === question.questionId)
+                const questionResponses = userResponses.filter(r => r.questionId === question.id)
                 
                 if (questionResponses.length > 0) {
                     switch (question.type) {
@@ -148,9 +148,9 @@ const getExamData = async () => {
                                 const selectedOption = question.options.find(opt => opt.optionId === selectedResponse.optionId)
                                 if (selectedOption?.isSkip) {
                                     // 获取当前问题索引
-                                    const currentIndex = questionsData.findIndex(q => q.questionId === question.questionId)
+                                    const currentIndex = questionsData.findIndex(q => q.id === question.id)
                                     // 获取目标问题索引
-                                    const targetIndex = questionsData.findIndex(q => q.questionId === selectedOption.skipTo)
+                                    const targetIndex = questionsData.findIndex(q => q.id === selectedOption.skipTo)
                                     
                                     if (currentIndex !== -1 && targetIndex !== -1) {
                                         // 隐藏中间的问题
@@ -286,7 +286,7 @@ const getQuestionIndex = (questionId) => {
         
         // 查找问题所属的分类
         for (const group of groupedQuestions.value) {
-            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            const foundQuestion = group.questions.find(q => q.id === questionId);
             if (foundQuestion) {
                 categoryId = group.categoryId;
                 questionInCategory = foundQuestion;
@@ -306,7 +306,7 @@ const getQuestionIndex = (questionId) => {
             
             // 找到问题在当前分类中的索引
             const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
-            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.id === questionId);
             
             // 返回分类内编号 + 之前分类的问题数量
             return previousQuestionsCount + questionIndex + 1;
@@ -314,7 +314,7 @@ const getQuestionIndex = (questionId) => {
     }
     
     // 非分类模式，使用原来的逻辑
-    const index = questions.value.findIndex(q => q.questionId === questionId);
+    const index = questions.value.findIndex(q => q.id === questionId);
     return index + 1;
 }
 
@@ -420,12 +420,12 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                 </div>
                                 <div class="questions-container">
                                     <div v-for="(question, index) in group.questions" 
-                                        :key="question.questionId" 
-                                        :id="'question_' + question.questionId"
+                                        :key="question.id" 
+                                        :id="'question_' + question.id"
                                         class="question-item"
                                         :data-index="getGroupQuestionIndex(groupIndex, index)"
                                         :data-has-skip="question.isSkip"
-                                        v-show="visibleQuestions.has(question.questionId)">
+                                        v-show="visibleQuestions.has(question.id)">
                                         <!-- 问题标题 -->
                                         <div class="question-title">
                                             <span class="question-number">{{ getGroupQuestionIndex(groupIndex, index) }}.</span>
@@ -681,7 +681,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                                     <!-- 拖拽排序 -->
                                                     <template v-if="question.sortType === '拖拽排序'">
                                                         <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                        <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                        <div :id="'sortable-' + question.id" class="sortable-list">
                                                             <div v-for="option in question.options" 
                                                                 :key="option.optionId" 
                                                                 class="sortable-item"
@@ -740,12 +740,12 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                         <!-- 不按分类显示问题 -->
                         <template v-else>
                             <div v-for="(question, index) in questions" 
-                                :key="question.questionId" 
-                                :id="'question_' + question.questionId"
+                                :key="question.id" 
+                                :id="'question_' + question.id"
                                 class="question-item"
                                 :data-index="index + 1"
                                 :data-has-skip="question.isSkip"
-                                v-show="visibleQuestions.has(question.questionId)">
+                                v-show="visibleQuestions.has(question.id)">
                                 <!-- 问题标题 -->
                                 <div class="question-title">
                                     <span class="question-number">{{ index + 1 }}.</span>
@@ -1001,7 +1001,7 @@ console.log('userInfoStore.info.userRole:'+userInfoStore.info.userRole)
                                             <!-- 拖拽排序 -->
                                             <template v-if="question.sortType === '拖拽排序'">
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div :id="'sortable-' + question.id" class="sortable-list">
                                                     <div v-for="option in question.options" 
                                                         :key="option.optionId" 
                                                         class="sortable-item"

@@ -149,7 +149,7 @@ const getQuestionIndex = (questionId) => {
         
         // 查找问题所属的分类
         for (const group of groupedQuestions.value) {
-            const foundQuestion = group.questions.find(q => q.questionId === questionId);
+            const foundQuestion = group.questions.find(q => q.id === questionId);
             if (foundQuestion) {
                 categoryId = group.categoryId;
                 questionInCategory = foundQuestion;
@@ -169,7 +169,7 @@ const getQuestionIndex = (questionId) => {
             
             // 找到问题在当前分类中的索引
             const categoryGroup = groupedQuestions.value.find(g => g.categoryId === categoryId);
-            const questionIndex = categoryGroup.questions.findIndex(q => q.questionId === questionId);
+            const questionIndex = categoryGroup.questions.findIndex(q => q.id === questionId);
             
             // 返回分类内编号 + 之前分类的问题数量
             return previousQuestionsCount + questionIndex + 1;
@@ -177,7 +177,7 @@ const getQuestionIndex = (questionId) => {
     }
     
     // 非分类模式，使用原来的逻辑
-    const index = props.questions.findIndex(q => q.questionId === questionId);
+    const index = props.questions.findIndex(q => q.id === questionId);
     return index + 1;
 }
 
@@ -227,14 +227,14 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
                         </div>
                         <div class="group-questions">
                             <div v-for="(question, index) in group.questions" 
-                                :key="question.questionId" 
-                                :id="'question_' + question.questionId"
+                                :key="question.id" 
+                                :id="'question_' + question.id"
                                 class="question-item"
                                 :data-index="index + 1"
                                 :data-has-skip="question.isSkip">
                                 <!-- 问题标题 -->
                                 <div class="question-title">
-                                    <span class="question-number">{{ getQuestionIndex(question.questionId) }}.</span>
+                                    <span class="question-number">{{ getQuestionIndex(question.id) }}.</span>
                                     <span class="question-text">{{ question.description }}</span>
                                     <span class="question-type">({{ question.type }}, {{ question.isRequired ? '必答' : '选填' }})</span>
                                     <span v-if="question.isRequired" class="required">*</span>
@@ -486,7 +486,7 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
                                             
                                             <template v-if="question.sortType === '拖拽排序'">
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div :id="'sortable-' + question.id" class="sortable-list">
                                                     <div v-for="option in question.options" 
                                                         :key="option.id" 
                                                         class="sortable-item"
@@ -541,8 +541,8 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
 
                 <template v-else>
                     <div v-for="(question, index) in questions" 
-                        :key="question.questionId" 
-                        :id="'question_' + question.questionId"
+                        :key="question.id" 
+                        :id="'question_' + question.id"
                         class="question-item"
                         :data-index="index + 1"
                         :data-has-skip="question.isSkip">
@@ -800,7 +800,7 @@ const handleMatrixCheckboxChange = (question, rowId, colId, checked) => {
                                             
                                             <template v-if="question.sortType === '拖拽排序'">
                                                 <div class="sortable-tip">请拖动选项进行排序（从上到下）</div>
-                                                <div :id="'sortable-' + question.questionId" class="sortable-list">
+                                                <div :id="'sortable-' + question.id" class="sortable-list">
                                                     <div v-for="option in question.options" 
                                                         :key="option.id" 
                                                         class="sortable-item"

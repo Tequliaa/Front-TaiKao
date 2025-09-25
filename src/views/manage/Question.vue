@@ -44,7 +44,7 @@ getUserInf()
 
 const questions = ref([
     {
-        "questionId": 1,
+        "id": 1,
         "description": "123",
         "categoryId": "早餐调查问题",
         "categoryName": "张三",
@@ -147,7 +147,7 @@ const visibleDrawer = ref(false)
 
 //添加表单数据模型
 const questionModel = ref({
-    questionId: '',
+    id: '',
     description: '',
     categoryId:'',
     categoryName: '',
@@ -228,7 +228,7 @@ const delquestion = (row) => {
     )
         .then(async () => {
             //用户点击了确认
-            let result = await questionDelService(row.questionId)
+            let result = await questionDelService(row.id)
             ElMessage({
                 type: 'success',
                 message: '删除成功',
@@ -391,7 +391,7 @@ const openOptions = (row) => {
     router.push({
         name: 'Option',
         params: {
-            questionId: row.questionId,
+            questionId: row.id,
             questionName:row.description
         }
     })
@@ -432,7 +432,7 @@ const handleExamChange = (value) => {
 
             <!-- 问题列表 -->
             <el-table :data="questions" style="width: 100%">
-                <!-- <el-table-column label="序号" prop="questionId"></el-table-column> -->
+                <!-- <el-table-column label="序号" prop="id"></el-table-column> -->
                 <el-table-column label="序号" style="text-align: center;" align="center" width="100" type="index"></el-table-column>
                 <el-table-column label="问题描述" style="text-align: center;" align="center" prop="description"></el-table-column>
                 <el-table-column label="问题类型" style="text-align: center;" align="center" prop="type" > </el-table-column>
